@@ -228,7 +228,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             } catch (ThreadExpiredException ex) {
                 Logger.getLogger("org.glassfish.enterprise.concurrent").log(Level.INFO, ex.toString());
             } catch (Throwable t) {
-                Logger.getLogger("org.glassfish.enterprise.concurrent").log(Level.SEVERE, t.toString());
+                Logger.getLogger("org.glassfish.enterprise.concurrent").log(Level.SEVERE, name, t);
             } finally {
                 if (handle != null) {
                     contextSetupProvider.reset(handle);
