@@ -613,6 +613,9 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         }
 
         private void scheduleNextRun() {
+            if (isDone()) {
+                return;
+            }
             Date nextRunTime = trigger.getNextRunTime(lastExecution, taskScheduledTime);
             if (nextRunTime == null) {
                 // no more tasks to run for this Trigger

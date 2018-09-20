@@ -683,7 +683,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
     }
    
     @Test
-    public void testSchedule_trigger_cancel() {
+    public void testSchedule_trigger_cancel() throws InterruptedException {
         final String classloaderName = "testSchedule_trigger_cancel" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
@@ -703,6 +703,12 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         assertTrue("timeout waiting for taskAborted call", Util.waitForTaskAborted(future, taskListener, getLoggerName()));
         taskListener.verifyCallback(ManagedTaskListenerImpl.ABORTED, future, instance, 
                 task, new CancellationException());
+        
+        // test also that task only executed once as it should have been cancelled. 
+        Thread.sleep(2000);
+        assertTrue("Task executions should be 1 as trigger task was cancelled ", taskListener.getCount(future, ManagedTaskListenerImpl.STARTING) == 1);
+        
+        
     }
 
 
