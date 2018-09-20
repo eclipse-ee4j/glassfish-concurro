@@ -635,8 +635,12 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         @Override
         public boolean cancel(boolean mayInterruptIfRunning) {
             super.cancel(mayInterruptIfRunning);
-            // cancel the next scheduled task
-            return getCurrentFuture().cancel(mayInterruptIfRunning);
+            // cancel the next scheduled task if there is one
+            ManagedTriggerSingleFutureTask<V> future = getCurrentFuture();
+            if (future != null) {
+                return future.cancel(mayInterruptIfRunning);
+            }
+            return true;
         }
 
         @Override
