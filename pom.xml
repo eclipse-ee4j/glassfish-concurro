@@ -32,7 +32,7 @@
     <packaging>jar</packaging>
     <name>org.glassfish.javax.enterprise.concurrent</name>
     <description>Reference Implementation for JSR 236 - Concurrency Utilities for Java EE</description>
-    <url>http://java.net/projects/cu-javaee</url>
+    <url>https://github.com/eclipse-ee4j/concurrency-ri</url>
 
      <licenses>
         <license>
