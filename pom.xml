@@ -81,7 +81,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javax.enterprise.concurrent-api.version>1.1</javax.enterprise.concurrent-api.version>
+        <jakarta.enterprise.concurrent-api.version>1.1.1</jakarta.enterprise.concurrent-api.version>
 
     </properties>
 
@@ -93,7 +93,7 @@
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
-        
+
         <dependency>
             <groupId>jakarta.management.j2ee</groupId>
             <artifactId>jakarta.management.j2ee-api</artifactId>
@@ -102,9 +102,9 @@
         </dependency>
 
         <dependency>
-            <groupId>javax.enterprise.concurrent</groupId>
-            <artifactId>javax.enterprise.concurrent-api</artifactId>
-            <version>${javax.enterprise.concurrent-api.version}</version>
+            <groupId>jakarta.enterprise.concurrent</groupId>
+            <artifactId>jakarta.enterprise.concurrent-api</artifactId>
+            <version>${jakarta.enterprise.concurrent-api.version}</version>
         </dependency>
     </dependencies>
 
