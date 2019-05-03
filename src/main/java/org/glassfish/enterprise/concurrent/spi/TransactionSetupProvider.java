@@ -17,8 +17,8 @@
 package org.glassfish.enterprise.concurrent.spi;
 
 import java.io.Serializable;
-import javax.enterprise.concurrent.ContextService;
-import javax.enterprise.concurrent.ManagedTask;
+import jakarta.concurrency.ContextService;
+import jakarta.concurrency.ManagedTask;
 
 /**
  * To be implemented by application server for performing proper transaction

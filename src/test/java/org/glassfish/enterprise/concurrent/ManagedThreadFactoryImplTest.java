@@ -16,7 +16,7 @@
 
 package org.glassfish.enterprise.concurrent;
 
-import javax.enterprise.concurrent.ManageableThread;
+import jakarta.concurrency.ManageableThread;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 import org.glassfish.enterprise.concurrent.test.ClassloaderContextSetupProvider;
 import org.glassfish.enterprise.concurrent.test.RunnableImpl;

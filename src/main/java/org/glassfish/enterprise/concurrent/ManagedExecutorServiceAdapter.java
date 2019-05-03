@@ -19,7 +19,7 @@ package org.glassfish.enterprise.concurrent;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
-import javax.enterprise.concurrent.ManagedExecutorService;
+import jakarta.concurrency.ManagedExecutorService;
 
 /**
  * The ManagedExecutorService instance to be handed to the

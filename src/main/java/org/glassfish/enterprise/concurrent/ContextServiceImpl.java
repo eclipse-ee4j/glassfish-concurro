@@ -21,7 +21,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.Enumeration;
 import java.util.Map;
-import javax.enterprise.concurrent.ContextService;
+import jakarta.concurrency.ContextService;
 import org.glassfish.enterprise.concurrent.internal.ContextProxyInvocationHandler;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 import org.glassfish.enterprise.concurrent.spi.TransactionSetupProvider;

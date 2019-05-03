@@ -27,12 +27,12 @@
     </parent>
 
     <groupId>org.glassfish</groupId>
-    <artifactId>javax.enterprise.concurrent</artifactId>
-    <version>1.2-SNAPSHOT</version>
+    <artifactId>jakarta-concurrency-ri</artifactId>
+    <version>2.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>org.glassfish.javax.enterprise.concurrent</name>
-    <description>Reference Implementation for JSR 236 - Concurrency Utilities for Java EE</description>
-    <url>http://java.net/projects/cu-javaee</url>
+    <description>GlassFish implementation of Jakarta Concurrency</description>
+    <url>https://github.com/eclipse-ee4j/concurrency-ri</url>
 
      <licenses>
         <license>
@@ -61,8 +61,8 @@
     </developers>
 
     <organization>
-        <name>Oracle Corporation</name>
-        <url>http://www.oracle.com/</url>
+        <name>Eclipse Foundation</name>
+        <url>http://www.eclipse.org/</url>
     </organization>
 
     <issueManagement>
@@ -81,7 +81,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javax.enterprise.concurrent-api.version>1.0</javax.enterprise.concurrent-api.version>
+        <jakarta.concurrency.version>2.0-SNAPSHOT</jakarta.concurrency.version>
 
     </properties>
 
@@ -102,9 +102,9 @@
         </dependency>
 
         <dependency>
-            <groupId>javax.enterprise.concurrent</groupId>
-            <artifactId>javax.enterprise.concurrent-api</artifactId>
-            <version>${javax.enterprise.concurrent-api.version}</version>
+            <groupId>jakarta.concurrency</groupId>
+            <artifactId>jakarta-concurrency-api</artifactId>
+            <version>${jakarta.concurrency.version}</version>
         </dependency>
     </dependencies>
 
@@ -145,15 +145,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.8.1</version>
                 <configuration>
-                    <doctitle>Concurrency Utilities for Java EE Reference Implementation${project.version}</doctitle>
-                    <bottom>
-<![CDATA[Copyright &#169; 1996-2013,
-    <a href="http://www.oracle.com">Oracle</a>
-    and/or its affiliates. All Rights Reserved.
-    Use is subject to
-    <a href="{@docRoot}/doc-files/speclicense.html" target="_top">license terms</a>.
-]]>
-                    </bottom>
+                    <doctitle>GlassFish implementation of Jakarta Concurrency ${project.version}</doctitle>
                     <excludePackageNames>org.glassfish.enterprise.concurrent.management</excludePackageNames>
                 </configuration>
                 <executions>
@@ -200,11 +192,13 @@
                     </execution>
                 </executions>
             </plugin>
+            <!--
 	     <plugin>
                  <groupId>org.apache.maven.plugins</groupId>
                  <artifactId>maven-gpg-plugin</artifactId>
                      <executions>
                          <execution>
+                         
                              <id>sign-artifacts</id>
 		             <phase>verify</phase>
                              <goals>
@@ -213,6 +207,7 @@
                          </execution>
                      </executions>
              </plugin>
+             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>

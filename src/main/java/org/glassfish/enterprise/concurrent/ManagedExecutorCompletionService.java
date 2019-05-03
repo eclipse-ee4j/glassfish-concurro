@@ -17,7 +17,7 @@
 package org.glassfish.enterprise.concurrent;
 
 import java.util.concurrent.*;
-import javax.enterprise.concurrent.ManagedTaskListener;
+import jakarta.concurrency.ManagedTaskListener;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.internal.TaskDoneCallback;
 

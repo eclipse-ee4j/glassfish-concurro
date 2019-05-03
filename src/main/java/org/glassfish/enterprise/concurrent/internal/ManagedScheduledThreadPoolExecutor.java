@@ -30,9 +30,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-import javax.enterprise.concurrent.LastExecution;
-import javax.enterprise.concurrent.SkippedException;
-import javax.enterprise.concurrent.Trigger;
+import jakarta.concurrency.LastExecution;
+import jakarta.concurrency.SkippedException;
+import jakarta.concurrency.Trigger;
 import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService;
 import org.glassfish.enterprise.concurrent.AbstractManagedThread;
 

@@ -17,9 +17,9 @@
 package org.glassfish.enterprise.concurrent;
 
 import java.util.concurrent.*;
-import javax.enterprise.concurrent.ManagedExecutorService;
-import javax.enterprise.concurrent.ManagedScheduledExecutorService;
-import javax.enterprise.concurrent.Trigger;
+import jakarta.concurrency.ManagedExecutorService;
+import jakarta.concurrency.ManagedScheduledExecutorService;
+import jakarta.concurrency.Trigger;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.internal.ManagedScheduledThreadPoolExecutor;
 

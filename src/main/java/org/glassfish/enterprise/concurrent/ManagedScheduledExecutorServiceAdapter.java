@@ -19,8 +19,8 @@ package org.glassfish.enterprise.concurrent;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
-import javax.enterprise.concurrent.ManagedScheduledExecutorService;
-import javax.enterprise.concurrent.Trigger;
+import jakarta.concurrency.ManagedScheduledExecutorService;
+import jakarta.concurrency.Trigger;
 
 /**
  * The ManagedScheduledExecutorService instance to be handed to the

@@ -17,7 +17,7 @@
 package org.glassfish.enterprise.concurrent;
 
 import java.util.concurrent.TimeUnit;
-import javax.enterprise.concurrent.ManagedExecutorService;
+import jakarta.concurrency.ManagedExecutorService;
 import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService.RejectPolicy;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 import org.glassfish.enterprise.concurrent.test.TestContextService;

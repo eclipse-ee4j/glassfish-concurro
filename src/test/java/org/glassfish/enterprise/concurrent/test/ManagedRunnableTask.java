@@ -17,8 +17,8 @@
 package org.glassfish.enterprise.concurrent.test;
 
 import java.util.Map;
-import javax.enterprise.concurrent.ManagedTask;
-import javax.enterprise.concurrent.ManagedTaskListener;
+import jakarta.concurrency.ManagedTask;
+import jakarta.concurrency.ManagedTaskListener;
 
 
 public class ManagedRunnableTask extends RunnableImpl implements ManagedTask {
