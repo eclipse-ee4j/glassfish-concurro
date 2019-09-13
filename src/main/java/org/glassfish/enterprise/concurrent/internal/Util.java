@@ -17,7 +17,7 @@
 package org.glassfish.enterprise.concurrent.internal;
 
 import java.util.Map;
-import javax.enterprise.concurrent.ManagedTask;
+import jakarta.enterprise.concurrent.ManagedTask;
 
 
 public class Util {

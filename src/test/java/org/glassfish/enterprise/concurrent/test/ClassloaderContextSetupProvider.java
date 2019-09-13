@@ -17,7 +17,7 @@
 package org.glassfish.enterprise.concurrent.test;
 
 import java.util.Map;
-import javax.enterprise.concurrent.ContextService;
+import jakarta.enterprise.concurrent.ContextService;
 import org.glassfish.enterprise.concurrent.spi.ContextHandle;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 

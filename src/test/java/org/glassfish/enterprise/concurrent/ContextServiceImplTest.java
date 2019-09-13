@@ -24,7 +24,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import javax.enterprise.concurrent.ManagedTask;
+import jakarta.enterprise.concurrent.ManagedTask;
 import org.glassfish.enterprise.concurrent.test.ClassloaderContextSetupProvider;
 import org.glassfish.enterprise.concurrent.test.DummyTransactionSetupProvider;
 import org.glassfish.enterprise.concurrent.test.ManagedTaskListenerImpl;

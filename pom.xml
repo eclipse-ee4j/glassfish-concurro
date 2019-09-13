@@ -27,12 +27,12 @@
     </parent>
 
     <groupId>org.glassfish</groupId>
-    <artifactId>javax.enterprise.concurrent</artifactId>
+    <artifactId>jakarta.enterprise.concurrent</artifactId>
     <version>1.2-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>org.glassfish.javax.enterprise.concurrent</name>
-    <description>Reference Implementation for JSR 236 - Concurrency Utilities for Java EE</description>
-    <url>http://java.net/projects/cu-javaee</url>
+    <description>Eclipse GlassFish Compatible Implementation of Jakarta Concurrency</description>
+    <url>https://projects.eclipse.org/projects/ee4j.cu</url>
 
      <licenses>
         <license>
@@ -58,11 +58,16 @@
             <name>Anthony Lai</name>
             <organization>Oracle</organization>
         </developer>
+        <developer>
+            <id>steve.millidge</id>
+            <name>Steve Millidge</name>
+            <organization>Payara</organization>
+        </developer>
     </developers>
 
     <organization>
-        <name>Oracle Corporation</name>
-        <url>http://www.oracle.com/</url>
+        <name>Eclipse Foundation</name>
+        <url>http://www.eclipse.org/</url>
     </organization>
 
     <issueManagement>
@@ -81,7 +86,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javax.enterprise.concurrent-api.version>1.0</javax.enterprise.concurrent-api.version>
+        <jakarta.enterprise.concurrent-api.version>1.2.0-SNAPSHOT</jakarta.enterprise.concurrent-api.version>
 
     </properties>
 
@@ -95,16 +100,16 @@
         </dependency>
 
         <dependency>
-            <groupId>javax</groupId>
-            <artifactId>javaee-api</artifactId>
-            <version>8.0</version>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>8.0.0</version>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>javax.enterprise.concurrent</groupId>
-            <artifactId>javax.enterprise.concurrent-api</artifactId>
-            <version>${javax.enterprise.concurrent-api.version}</version>
+            <groupId>jakarta.enterprise.concurrent</groupId>
+            <artifactId>jakarta.enterprise.concurrent-api</artifactId>
+            <version>${jakarta.enterprise.concurrent-api.version}</version>
         </dependency>
     </dependencies>
 

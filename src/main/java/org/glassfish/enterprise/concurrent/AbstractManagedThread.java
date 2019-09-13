@@ -16,7 +16,7 @@
 
 package org.glassfish.enterprise.concurrent;
 
-import javax.enterprise.concurrent.ManageableThread;
+import jakarta.enterprise.concurrent.ManageableThread;
 
 /**
  * Abstract base class for threads to be returned by 
