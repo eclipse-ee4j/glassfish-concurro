@@ -81,7 +81,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javax.enterprise.concurrent-api.version>1.0</javax.enterprise.concurrent-api.version>
+        <jakarta.enterprise.concurrent-api.version>1.1.2</jakarta.enterprise.concurrent-api.version>
 
     </properties>
 
@@ -95,16 +95,16 @@
         </dependency>
 
         <dependency>
-            <groupId>javax</groupId>
-            <artifactId>javaee-api</artifactId>
-            <version>8.0</version>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>8.0.0</version>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>javax.enterprise.concurrent</groupId>
-            <artifactId>javax.enterprise.concurrent-api</artifactId>
-            <version>${javax.enterprise.concurrent-api.version}</version>
+            <groupId>jakarta.enterprise.concurrent</groupId>
+            <artifactId>jakarta.enterprise.concurrent-api</artifactId>
+            <version>${jakarta.enterprise.concurrent-api.version}</version>
         </dependency>
     </dependencies>
 
@@ -200,19 +200,6 @@
                     </execution>
                 </executions>
             </plugin>
-	     <plugin>
-                 <groupId>org.apache.maven.plugins</groupId>
-                 <artifactId>maven-gpg-plugin</artifactId>
-                     <executions>
-                         <execution>
-                             <id>sign-artifacts</id>
-		             <phase>verify</phase>
-                             <goals>
-                                 <goal>sign</goal>
-                             </goals>
-                         </execution>
-                     </executions>
-             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
@@ -275,6 +262,27 @@
                                         <descriptor>src/main/assembly/assembly-src-licensee.xml</descriptor>
                                     </descriptors>
                                 </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
                             </execution>
                         </executions>
                     </plugin>
