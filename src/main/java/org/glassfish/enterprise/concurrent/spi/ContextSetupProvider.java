@@ -18,7 +18,7 @@ package org.glassfish.enterprise.concurrent.spi;
 
 import java.io.Serializable;
 import java.util.Map;
-import javax.enterprise.concurrent.ContextService;
+import jakarta.enterprise.concurrent.ContextService;
 
 /**
  * To be implemented by application server for setting up proper execution
