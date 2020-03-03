@@ -18,8 +18,8 @@ package org.glassfish.enterprise.concurrent.test;
 
 import java.util.Locale;
 import java.util.Map;
-import javax.enterprise.concurrent.ManagedTask;
-import javax.enterprise.concurrent.ManagedTaskListener;
+import jakarta.enterprise.concurrent.ManagedTask;
+import jakarta.enterprise.concurrent.ManagedTaskListener;
 
 
 public class ManagedTimeRecordingRunnableTask extends TimeRecordingRunnableImpl implements ManagedTask {

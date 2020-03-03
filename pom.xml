@@ -23,14 +23,14 @@
     <parent>
         <groupId>org.eclipse.ee4j</groupId>
         <artifactId>project</artifactId>
-        <version>1.0.5</version>
+        <version>1.0.6</version>
     </parent>
 
     <groupId>org.glassfish</groupId>
-    <artifactId>javax.enterprise.concurrent</artifactId>
-    <version>1.2-SNAPSHOT</version>
+    <artifactId>jakarta.enterprise.concurrent</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>org.glassfish.javax.enterprise.concurrent</name>
+    <name>org.glassfish.jakarta.enterprise.concurrent</name>
     <description>Compatible Implementation of Jakarta Concurrency</description>
     <url>https://projects.eclipse.org/projects/ee4j.cu</url>
 
@@ -58,13 +58,17 @@
             <name>Anthony Lai</name>
             <organization>Oracle</organization>
         </developer>
+        <developer>
+            <id>smillidge</id>
+            <name>Steve Millidge</name>
+            <organization>Payara</organization>
+        </developer>
     </developers>
 
     <organization>
         <name>Oracle Corporation</name>
         <url>http://www.oracle.com/</url>
     </organization>
-
     <issueManagement>
         <system>GitHub</system>
         <url>https://github.com/eclipse-ee4j/concurrency-ri/issues</url>
@@ -81,8 +85,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jakarta.enterprise.concurrent-api.version>1.1.2</jakarta.enterprise.concurrent-api.version>
-
+        <jakarta.enterprise.concurrent-api.version>2.0.0-RC1</jakarta.enterprise.concurrent-api.version>
     </properties>
 
 
@@ -93,18 +96,16 @@
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>jakarta.platform</groupId>
-            <artifactId>jakarta.jakartaee-api</artifactId>
-            <version>8.0.0</version>
-            <optional>true</optional>
-        </dependency>
-
         <dependency>
             <groupId>jakarta.enterprise.concurrent</groupId>
             <artifactId>jakarta.enterprise.concurrent-api</artifactId>
             <version>${jakarta.enterprise.concurrent-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>8.0.0</version>
+            <type>jar</type>
         </dependency>
     </dependencies>
 
@@ -114,12 +115,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>2.3.2</version>
+                    <version>3.8.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-bundle-plugin</artifactId>
-                    <version>2.3.4</version>
+                    <version>4.1.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -135,26 +136,22 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.3.1</version>
-                <configuration>
-                    <useDefaultManifestFile>true</useDefaultManifestFile>
-                </configuration>
+                <version>3.1.2</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.8.1</version>
+                <version>3.1.1</version>
                 <configuration>
                     <doctitle>Jakarta Concurrency Compatible Implementation ${project.version}</doctitle>
                     <bottom>
-<![CDATA[Copyright &#169; 1996-2013,
-    <a href="http://www.oracle.com">Oracle</a>
-    and/or its affiliates. All Rights Reserved.
+<![CDATA[Copyright (c) 2020 Eclipse Foundation.
     Use is subject to
     <a href="{@docRoot}/doc-files/speclicense.html" target="_top">license terms</a>.
 ]]>
                     </bottom>
                     <excludePackageNames>org.glassfish.enterprise.concurrent.management</excludePackageNames>
+                    <source>1.8</source>
                 </configuration>
                 <executions>
                     <execution>
@@ -168,7 +165,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.1.2</version>
+                <version>3.1.0</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>

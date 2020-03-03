@@ -18,7 +18,7 @@ package org.glassfish.enterprise.concurrent;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import javax.enterprise.concurrent.ManagedExecutorService;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
 
 /**
  * Abstract base class for {@code ManagedExecutorService} and 

@@ -17,7 +17,7 @@
 package org.glassfish.enterprise.concurrent.test;
 
 import java.util.concurrent.Future;
-import javax.enterprise.concurrent.ManagedExecutorService;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
 import static junit.framework.Assert.*;
 
 public class TaskRunEnvironmentTracker {
