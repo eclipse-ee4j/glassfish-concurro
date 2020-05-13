@@ -85,7 +85,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jakarta.enterprise.concurrent-api.version>2.0.0-RC1</jakarta.enterprise.concurrent-api.version>
+        <jakarta.enterprise.concurrent-api.version>2.0.0-RC2</jakarta.enterprise.concurrent-api.version>
     </properties>
 
 
