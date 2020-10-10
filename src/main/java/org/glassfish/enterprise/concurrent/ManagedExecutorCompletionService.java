@@ -16,13 +16,19 @@
 
 package org.glassfish.enterprise.concurrent;
 
-import java.util.concurrent.*;
+import jakarta.enterprise.concurrent.ManagedExecutors;
+import jakarta.enterprise.concurrent.ManagedTask;
 import jakarta.enterprise.concurrent.ManagedTaskListener;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.internal.TaskDoneCallback;
 
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 /**
- *
  * Adopted from java.util.concurrent.ExecutorCompletionService with support
  * for ManagedTaskListener.
  */
@@ -51,44 +57,63 @@ public class ManagedExecutorCompletionService<V> implements TaskDoneCallback {
      * executor for base task execution and the supplied queue as its
      * completion queue.
      *
-     * @param executor the executor to use
+     * @param executor        the executor to use
      * @param completionQueue the queue to use as the completion queue
-     *        normally one dedicated for use by this service. This
-     *        queue is treated as unbounded -- failed attempted
-     *        {@code Queue.add} operations for completed taskes cause
-     *        them not to be retrievable.
+     *                        normally one dedicated for use by this service. This
+     *                        queue is treated as unbounded -- failed attempted
+     *                        {@code Queue.add} operations for completed taskes cause
+     *                        them not to be retrievable.
      * @throws NullPointerException if executor or completionQueue are {@code null}
      */
     public ManagedExecutorCompletionService(AbstractManagedExecutorService executor,
-                                     BlockingQueue<Future<V>> completionQueue) {
+                                            BlockingQueue<Future<V>> completionQueue) {
         if (executor == null || completionQueue == null) {
             throw new NullPointerException();
         }
         this.executor = executor;
         this.completionQueue = completionQueue;
     }
-    
+
     public Future<V> submit(Callable<V> task) {
+        return submit(task, null);
+    }
+
+    public Future<V> submit(Callable<V> task, ManagedTaskListener taskListener) {
         if (task == null) {
             throw new NullPointerException();
         }
-        ManagedFutureTask<V> f = executor.getNewTaskFor(task);
+
+        // Check for type and wrap as ManagedTask if not already one
+        Callable<V> managedTask = task instanceof ManagedTask
+                ? task
+                : ManagedExecutors.managedTask(task, taskListener);
+
+        ManagedFutureTask<V> f = executor.getNewTaskFor(managedTask);
         f.setTaskDoneCallback(this);
         executor.executeManagedFutureTask(f);
         return f;
+    }
+
+    public Future<V> submit(Runnable task, V result) {
+        return submit(task, result, null);
     }
 
     public Future<V> submit(Runnable task, V result, ManagedTaskListener taskListener) {
         if (task == null) {
             throw new NullPointerException();
         }
-        ManagedFutureTask<V> f = executor.getNewTaskFor(task, result);
+
+        // Check for type and wrap as ManagedTask if not already one
+        Runnable managedTask = task instanceof ManagedTask
+                ? task
+                : ManagedExecutors.managedTask(task, taskListener);
+
+        ManagedFutureTask<V> f = executor.getNewTaskFor(managedTask, result);
         f.setTaskDoneCallback(this);
         executor.executeManagedFutureTask(f);
         return f;
     }
 
-    
     public Future<V> take() throws InterruptedException {
         return completionQueue.take();
     }
@@ -104,7 +129,7 @@ public class ManagedExecutorCompletionService<V> implements TaskDoneCallback {
 
     @Override
     public void taskDone(ManagedFutureTask future) {
-        completionQueue.add(future); 
+        completionQueue.add(future);
     }
 }
 
