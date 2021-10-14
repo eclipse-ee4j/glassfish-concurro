@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018 [Payara Foundation and/or its affiliates].
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -112,24 +113,25 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
         }
     }
  
+    @Override
     public void run() {
         if (contextSetupException == null) {
             super.run();
         }
         else {
-            // context handle not in valid state, throws AbortedException and
-            // do not run the task
-            AbortedException ex = new AbortedException(contextSetupException.getMessage());
-            setException(ex);
-            if (taskListener != null) {
-                // notify listener. No need to set context here as it wouldn't work
-                // anyway
-                taskListener.taskAborted(this, 
-                            executor.getExecutorForTaskListener(),
-                            task,
-                            ex);
-            }
+            abort();
         }
+    }
+
+    @Override
+    public boolean runAndReset() {
+        if (contextSetupException == null) {
+           return super.runAndReset();
+        }
+        else {
+            abort();
+        }
+        return false;
     }
 
     @Override
@@ -256,5 +258,20 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
         // if a name is not provided for the task, use toString() as the name
         return task.toString();
     }
-    
+
+    private void abort() {
+        // context handle not in valid state, throws AbortedException and
+        // do not run the task
+        AbortedException ex = new AbortedException(contextSetupException.getMessage());
+        setException(ex);
+        if (taskListener != null) {
+            // notify listener. No need to set context here as it wouldn't work
+            // anyway
+            taskListener.taskAborted(this,
+                    executor.getExecutorForTaskListener(),
+                    task,
+                    ex);
+        }
+    }
+
 }
