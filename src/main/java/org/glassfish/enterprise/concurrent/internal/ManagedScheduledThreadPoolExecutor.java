@@ -33,6 +33,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import jakarta.enterprise.concurrent.LastExecution;
 import jakarta.enterprise.concurrent.SkippedException;
 import jakarta.enterprise.concurrent.Trigger;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService;
 import org.glassfish.enterprise.concurrent.AbstractManagedThread;
 
@@ -710,14 +713,14 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         private class LastExecutionImpl<V> implements LastExecution {
 
             private V result;
-            private Date scheduledStart, runStart, runEnd;
+            private ZonedDateTime scheduledStart, runStart, runEnd;
 
             public LastExecutionImpl(V result, long scheduledStart,
                     long runStart, long runEnd) {
                 this.result = result;
-                this.scheduledStart = scheduledStart == 0L ? null : new Date(scheduledStart);
-                this.runStart = runStart == 0L ? null : new Date(runStart);
-                this.runEnd = runEnd == 0L ? null : new Date(runEnd);
+                this.scheduledStart = scheduledStart == 0L ? null : ZonedDateTime.ofInstant(Instant.ofEpochMilli(scheduledStart), ZoneId.systemDefault());
+                this.runStart = runStart == 0L ? null : ZonedDateTime.ofInstant(Instant.ofEpochMilli(runStart), ZoneId.systemDefault());
+                this.runEnd = runEnd == 0L ? null : ZonedDateTime.ofInstant(Instant.ofEpochMilli(runEnd), ZoneId.systemDefault());
             }
 
             @Override
@@ -731,18 +734,18 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             }
 
             @Override
-            public Date getScheduledStart() {
-                return scheduledStart;
+            public ZonedDateTime getScheduledStart(ZoneId zone) {
+                return scheduledStart.withZoneSameLocal(zone);
             }
 
             @Override
-            public Date getRunStart() {
-                return runStart;
+            public ZonedDateTime getRunStart(ZoneId zone) {
+                return runStart.withZoneSameLocal(zone);
             }
 
             @Override
-            public Date getRunEnd() {
-                return runEnd;
+            public ZonedDateTime getRunEnd(ZoneId zone) {
+                return runEnd.withZoneSameLocal(zone);
             }
         }
     }

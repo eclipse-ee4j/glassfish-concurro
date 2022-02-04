@@ -16,20 +16,22 @@
 
 package org.glassfish.enterprise.concurrent;
 
+import jakarta.enterprise.concurrent.ContextService;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.concurrent.Trigger;
+import java.util.function.Supplier;
 
 /**
  * The ManagedScheduledExecutorService instance to be handed to the
  * application components, with all life cycle operations overriden to 
  * throw UnSupportedException.
  */
-public class ManagedScheduledExecutorServiceAdapter 
-extends AbstractManagedExecutorServiceAdapter
-implements ManagedScheduledExecutorService {
+public class ManagedScheduledExecutorServiceAdapter
+        extends AbstractManagedExecutorServiceAdapter
+        implements ManagedScheduledExecutorService {
 
     private ManagedScheduledExecutorService executor;
 
@@ -105,6 +107,56 @@ implements ManagedScheduledExecutorService {
     @Override
     public ScheduledFuture<?> schedule(Runnable command, Trigger trigger) {
         return executor.schedule(command, trigger);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> completedFuture(U value) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletionStage<U> completedStage(U value) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T> CompletableFuture<T> copy(CompletableFuture<T> stage) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T> CompletionStage<T> copy(CompletionStage<T> stage) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletableFuture<U> failedFuture(Throwable ex) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletionStage<U> failedStage(Throwable ex) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public ContextService getContextService() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletableFuture<U> newIncompleteFuture() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public CompletableFuture<Void> runAsync(Runnable runnable) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
 }

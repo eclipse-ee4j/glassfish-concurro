@@ -28,6 +28,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.enterprise.concurrent.ManagedThreadFactory;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.internal.ThreadExpiredException;
 import org.glassfish.enterprise.concurrent.spi.ContextHandle;
@@ -197,6 +199,11 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
       finally {
           lock.unlock();
       }      
+    }
+
+    @Override
+    public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
     
     /**

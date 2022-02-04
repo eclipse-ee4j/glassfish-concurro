@@ -20,6 +20,7 @@ import java.util.concurrent.*;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.concurrent.Trigger;
+import java.util.function.Supplier;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.internal.ManagedScheduledThreadPoolExecutor;
 
@@ -151,5 +152,50 @@ public class ManagedScheduledExecutorServiceImpl extends AbstractManagedExecutor
     @Override
     public long getCompletedTaskCount() {
         return threadPoolExecutor.getCompletedTaskCount();
+    }
+
+    @Override
+    public <U> CompletableFuture<U> completedFuture(U value) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletionStage<U> completedStage(U value) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T> CompletableFuture<T> copy(CompletableFuture<T> stage) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T> CompletionStage<T> copy(CompletionStage<T> stage) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletableFuture<U> failedFuture(Throwable ex) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletionStage<U> failedStage(Throwable ex) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletableFuture<U> newIncompleteFuture() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public CompletableFuture<Void> runAsync(Runnable runnable) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

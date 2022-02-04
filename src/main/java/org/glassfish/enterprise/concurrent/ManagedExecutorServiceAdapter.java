@@ -16,10 +16,12 @@
 
 package org.glassfish.enterprise.concurrent;
 
+import jakarta.enterprise.concurrent.ContextService;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
+import java.util.function.Supplier;
 
 /**
  * The ManagedExecutorService instance to be handed to the
@@ -72,6 +74,56 @@ implements ManagedExecutorService {
     @Override
     public void execute(Runnable command) {
         executor.execute(command);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> completedFuture(U value) {
+        return executor.completedFuture(value);
+    }
+
+    @Override
+    public <U> CompletionStage<U> completedStage(U value) {
+        return executor.completedStage(value);
+    }
+
+    @Override
+    public <T> CompletableFuture<T> copy(CompletableFuture<T> future) {
+        return executor.copy(future);
+    }
+
+    @Override
+    public <T> CompletionStage<T> copy(CompletionStage<T> completionStage) {
+        return executor.copy(completionStage);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> failedFuture(Throwable ex) {
+        return executor.failedFuture(ex);
+    }
+
+    @Override
+    public <U> CompletionStage<U> failedStage(Throwable ex) {
+        return executor.failedStage(ex);
+    }
+
+    @Override
+    public ContextService getContextService() {
+        return executor.getContextService();
+    }
+
+    @Override
+    public <U> CompletableFuture<U> newIncompleteFuture() {
+        return executor.newIncompleteFuture();
+    }
+
+    @Override
+    public CompletableFuture<Void> runAsync(Runnable runnable) {
+        return executor.runAsync(runnable);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
+        return executor.supplyAsync(supplier);
     }
 
 }

@@ -24,6 +24,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.internal.ManagedThreadPoolExecutor;
 
@@ -154,6 +157,51 @@ public class ManagedExecutorServiceImpl extends AbstractManagedExecutorService {
     @Override
     public long getCompletedTaskCount() {
         return threadPoolExecutor.getCompletedTaskCount();
+    }
+
+    @Override
+    public <U> CompletableFuture<U> completedFuture(U value) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletionStage<U> completedStage(U value) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T> CompletableFuture<T> copy(CompletableFuture<T> stage) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T> CompletionStage<T> copy(CompletionStage<T> stage) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletableFuture<U> failedFuture(Throwable ex) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletionStage<U> failedStage(Throwable ex) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletableFuture<U> newIncompleteFuture() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public CompletableFuture<Void> runAsync(Runnable runnable) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
     
 }

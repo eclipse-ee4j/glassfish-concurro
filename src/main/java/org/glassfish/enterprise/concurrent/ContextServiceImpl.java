@@ -22,6 +22,15 @@ import java.lang.reflect.Proxy;
 import java.util.Enumeration;
 import java.util.Map;
 import jakarta.enterprise.concurrent.ContextService;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import org.glassfish.enterprise.concurrent.internal.ContextProxyInvocationHandler;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 import org.glassfish.enterprise.concurrent.spi.TransactionSetupProvider;
@@ -137,5 +146,55 @@ public class ContextServiceImpl implements ContextService, Serializable {
             return cpih;
         }
         throw new IllegalArgumentException(INVALID_PROXY);
+    }
+
+    @Override
+    public <R> Callable<R> contextualCallable(Callable<R> clbl) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T, U> BiConsumer<T, U> contextualConsumer(BiConsumer<T, U> bc) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T> Consumer<T> contextualConsumer(Consumer<T> cnsmr) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T, U, R> BiFunction<T, U, R> contextualFunction(BiFunction<T, U, R> bf) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T, R> Function<T, R> contextualFunction(Function<T, R> fnctn) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public Runnable contextualRunnable(Runnable r) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <R> Supplier<R> contextualSupplier(Supplier<R> splr) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public Executor currentContextExecutor() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T> CompletableFuture<T> withContextCapture(CompletableFuture<T> cf) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public <T> CompletionStage<T> withContextCapture(CompletionStage<T> cs) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }
