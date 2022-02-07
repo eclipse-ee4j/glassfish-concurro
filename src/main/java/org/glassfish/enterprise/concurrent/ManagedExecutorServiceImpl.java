@@ -161,47 +161,48 @@ public class ManagedExecutorServiceImpl extends AbstractManagedExecutorService {
 
     @Override
     public <U> CompletableFuture<U> completedFuture(U value) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return CompletableFuture.completedFuture(value);
     }
 
     @Override
     public <U> CompletionStage<U> completedStage(U value) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return CompletableFuture.completedStage(value);
     }
 
     @Override
     public <T> CompletableFuture<T> copy(CompletableFuture<T> stage) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return stage.copy();
     }
 
     @Override
     public <T> CompletionStage<T> copy(CompletionStage<T> stage) {
+        // FIXME: implement
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
     public <U> CompletableFuture<U> failedFuture(Throwable ex) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return CompletableFuture.failedFuture(ex);
     }
 
     @Override
     public <U> CompletionStage<U> failedStage(Throwable ex) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return CompletableFuture.failedStage(ex);
     }
 
     @Override
     public <U> CompletableFuture<U> newIncompleteFuture() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return new <U>CompletableFuture().newIncompleteFuture();
     }
 
     @Override
     public CompletableFuture<Void> runAsync(Runnable runnable) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return CompletableFuture.runAsync(runnable, adapter);
     }
 
     @Override
     public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return CompletableFuture.supplyAsync(supplier, adapter);
     }
     
 }
