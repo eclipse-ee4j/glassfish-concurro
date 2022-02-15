@@ -22,10 +22,12 @@ import org.glassfish.enterprise.concurrent.test.ClassloaderContextSetupProvider;
 import org.glassfish.enterprise.concurrent.test.RunnableImpl;
 import org.glassfish.enterprise.concurrent.test.TestContextService;
 import org.glassfish.enterprise.concurrent.test.Util;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import org.junit.Test;
+
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
+
+import static org.junit.Assert.*;
 
 public class ManagedThreadFactoryImplTest {
 
@@ -87,6 +89,17 @@ public class ManagedThreadFactoryImplTest {
         newThread.start();
         newThread.join();
         assertTrue(r.isInterrupted);
+    }
+
+    @Test
+    public void testNewThreadForkJoinPool() throws InterruptedException {
+        ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("test1");
+        ForkJoinPool pool = new ForkJoinPool(1);
+        ForkJoinWorkerThread forkJoinWT = factory.newThread(pool);
+        assertNotNull(forkJoinWT);
+        forkJoinWT.start();
+        forkJoinWT.join();
+        assertFalse(forkJoinWT.isInterrupted());
     }
 
     private void verifyThreadProperties(Thread thread, boolean isDaemon, int priority) {

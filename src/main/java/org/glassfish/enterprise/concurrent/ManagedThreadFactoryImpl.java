@@ -203,7 +203,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
 
     @Override
     public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return pool.getFactory().newThread(pool);
     }
     
     /**
