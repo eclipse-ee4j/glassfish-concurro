@@ -90,7 +90,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     public void setHungTaskThreshold(long hungTaskThreshold) {
         this.hungTaskThreshold = hungTaskThreshold;
     }
-    
+
     @Override
     public Thread newThread(Runnable r) {
         lock.lock();
@@ -127,7 +127,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
               });
         }
     }
-    
+
     protected void removeThread(ManagedThread t) {
         lock.lock();
         try {
@@ -137,7 +137,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             lock.unlock();
         }
     }
-    
+
     /**
      * Return an array of threads in this ManagedThreadFactoryImpl
      * @return an array of threads in this ManagedThreadFactoryImpl.
@@ -164,7 +164,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             mt.task = task;
         }
     }
-    
+
     public void taskDone(Thread t) {
         if (t instanceof ManagedThread) {
             ManagedThread mt = (ManagedThread) t;
@@ -192,20 +192,38 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             try {
                t.shutdown(); // mark threads as shutting down
                t.interrupt();
-            } catch (SecurityException ignore) {                
+            } catch (SecurityException ignore) {
             }
         }
       }
       finally {
           lock.unlock();
-      }      
+      }
     }
 
     @Override
     public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
-        return pool.getFactory().newThread(pool);
+        return new WorkerThread(pool);
     }
-    
+
+    class WorkerThread extends ForkJoinWorkerThread {
+
+        public WorkerThread(ForkJoinPool pool) {
+            super(pool);
+        }
+
+        @Override
+        protected void onStart() {
+            super.onStart();
+        }
+
+        @Override
+        protected void onTermination(Throwable exception) {
+            super.onTermination(exception);
+        }
+
+    }
+
     /**
      * ManageableThread to be returned by {@code ManagedThreadFactory.newThread()}
      */
@@ -213,7 +231,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         final ContextHandle contextHandleForSetup;
         volatile ManagedFutureTask task = null;
         volatile long taskStartTime = 0L;
-        
+
         public ManagedThread(Runnable target, ContextHandle contextHandleForSetup) {
             super(target);
             setName(name + "-Thread-" + threadIdSequence.incrementAndGet());
@@ -243,7 +261,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 removeThread(this);
             }
         }
-        
+
         @Override
         boolean cancelTask() {
             if (task != null) {
