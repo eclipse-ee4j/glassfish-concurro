@@ -128,6 +128,20 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         }
     }
 
+    protected ForkJoinWorkerThread createWorkerThread(final ForkJoinPool forkJoinPool, final ContextHandle contextHandleForSetup) {
+        if (System.getSecurityManager() == null) {
+            return new WorkerThread(forkJoinPool, contextHandleForSetup);
+        } else {
+            return (ForkJoinWorkerThread) AccessController.doPrivileged(
+                    new PrivilegedAction() {
+                        @Override
+                        public Object run() {
+                            return new WorkerThread(forkJoinPool, contextHandleForSetup);
+                        }
+                    });
+        }
+    }
+
     protected void removeThread(ManagedThread t) {
         lock.lock();
         try {
@@ -203,13 +217,28 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
 
     @Override
     public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
-        return new WorkerThread(pool);
+        lock.lock();
+        try {
+            if(stopped) {
+                // Do not create new ForkJoinWorkerThread and throw IllegalStateException if stopped
+                throw new IllegalStateException(MANAGED_THREAD_FACTORY_STOPPED);
+            }
+            ContextHandle contextHandleForSetup = null;
+            if (contextSetupProvider != null) {
+                contextHandleForSetup = contextSetupProvider.saveContext(contextService);
+            }
+            return createWorkerThread(pool, contextHandleForSetup);
+        } finally {
+            lock.unlock();
+        }
     }
 
     class WorkerThread extends ForkJoinWorkerThread {
+        final ContextHandle contextHandleForSetup;
 
-        public WorkerThread(ForkJoinPool pool) {
+        public WorkerThread(ForkJoinPool pool, ContextHandle contextHandleForSetup) {
             super(pool);
+            this.contextHandleForSetup = contextHandleForSetup;
         }
 
         @Override
@@ -220,6 +249,20 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         @Override
         protected void onTermination(Throwable exception) {
             super.onTermination(exception);
+        }
+
+        @Override
+        public void run() {
+            try {
+                if (contextHandleForSetup != null) {
+                    contextSetupProvider.setup(contextHandleForSetup);
+                }
+                super.run();
+            } catch (ThreadExpiredException ex) {
+                Logger.getLogger("org.glassfish.enterprise.concurrent").log(Level.INFO, ex.toString());
+            } catch (Throwable t) {
+                Logger.getLogger("org.glassfish.enterprise.concurrent").log(Level.SEVERE, name, t);
+            }
         }
 
     }
