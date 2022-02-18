@@ -18,14 +18,15 @@ package org.glassfish.enterprise.concurrent;
 
 import jakarta.enterprise.concurrent.ManageableThread;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
-import org.glassfish.enterprise.concurrent.test.ClassloaderContextSetupProvider;
-import org.glassfish.enterprise.concurrent.test.RunnableImpl;
-import org.glassfish.enterprise.concurrent.test.TestContextService;
-import org.glassfish.enterprise.concurrent.test.Util;
+import org.glassfish.enterprise.concurrent.test.*;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.ForkJoinWorkerThread;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.LongStream;
 
 import static org.junit.Assert.*;
 
@@ -63,6 +64,7 @@ public class ManagedThreadFactoryImplTest {
         ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(CLASSLOADER_NAME);
         ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
         ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("test1", contextService);
+
         RunnableImpl r = new RunnableImpl(null);
         Thread newThread = factory.newThread(r);
         newThread.start();
@@ -92,14 +94,38 @@ public class ManagedThreadFactoryImplTest {
     }
 
     @Test
-    public void testNewThreadForkJoinPool() throws InterruptedException {
+    public void testNewThreadForkJoinPool() {
         ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("test1");
         ForkJoinPool pool = new ForkJoinPool(1);
         ForkJoinWorkerThread forkJoinWT = factory.newThread(pool);
         assertNotNull(forkJoinWT);
-        forkJoinWT.start();
-        forkJoinWT.join();
-        assertFalse(forkJoinWT.isInterrupted());
+    }
+
+    @Test
+    public void testNewThreadForkJoinPoolContext() throws Exception {
+        final String CLASSLOADER_NAME = "ManagedThreadFactoryImplTest:" + new java.util.Date(System.currentTimeMillis());
+        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(CLASSLOADER_NAME);
+        ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
+        ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("test1", contextService);
+        final long[] numbers = LongStream.rangeClosed(1, 10_000).toArray();
+        String message = "starting";
+        AtomicReference<String> atomicReference = new AtomicReference<>(message);
+        ForkJoinPool pool = new ForkJoinPool(2, factory, null, false);
+        ForkJoinTask<Long> totals = pool.submit(() -> Arrays.stream(numbers).parallel().reduce(0L, (subtotal, element) -> {
+            atomicReference.compareAndSet(message, Thread.currentThread().getContextClassLoader().getName());
+            return subtotal + element;
+        }));
+        totals.get();
+        pool.shutdown();
+        assertTrue(atomicReference.get().contains(CLASSLOADER_NAME));
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void testNewThreadForkJoinPoolShutdown() throws Exception {
+        ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("testNewThreadForkJoinPoolShutdown");
+        ForkJoinPool pool = new ForkJoinPool(1);
+        factory.stop();
+        factory.newThread(pool);
     }
 
     private void verifyThreadProperties(Thread thread, boolean isDaemon, int priority) {
