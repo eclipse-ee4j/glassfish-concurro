@@ -48,7 +48,7 @@ import java.util.function.Supplier;
 /**
  * Managed CompletableFuture, using the provided ManagedExecutorServiceImpl.
  *
- * @author Petr Aubrecht <petr@aubrecht.net>
+ * @author Petr Aubrecht <aubrecht@asoftware.cz>
  */
 public class ManagedCompletableFuture<T> extends CompletableFuture<T> {
 
@@ -79,6 +79,12 @@ public class ManagedCompletableFuture<T> extends CompletableFuture<T> {
         // FIXME: return this class, see CompletableFuture.AsyncSupply
         return CompletableFuture.supplyAsync(supplier, executor);
         //return new ManagedExecutorServiceImpl(executor);
+    }
+
+    public static <U> CompletableFuture<U> completedFuture(U value, ManagedExecutorService managedExecutor) {
+        ManagedCompletableFuture<U> future = new ManagedCompletableFuture<>(managedExecutor);
+        future.complete(value);
+        return future;
     }
 
 }

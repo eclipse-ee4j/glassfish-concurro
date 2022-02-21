@@ -162,8 +162,7 @@ public class ManagedExecutorServiceImpl extends AbstractManagedExecutorService {
 
     @Override
     public <U> CompletableFuture<U> completedFuture(U value) {
-        // FIXME: make proper implementation with ManagedCompletableFuture
-        return CompletableFuture.completedFuture(value);
+        return ManagedCompletableFuture.completedFuture(value, this);
     }
 
     @Override
