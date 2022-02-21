@@ -62,14 +62,10 @@ import org.glassfish.enterprise.concurrent.internal.ManagedCompletableFuture;
 public class AsynchronousInterceptor {
     static final Logger log = Logger.getLogger(AsynchronousInterceptor.class.getName());
 
-    private ManagedExecutorService mes = null;
-
     @AroundInvoke
     public Object intercept(InvocationContext context) throws Exception {
-        if (mes == null) {
-            String executor = context.getMethod().getAnnotation(Asynchronous.class).executor();
-            mes = (ManagedExecutorService) new InitialContext().lookup(executor != null ? executor : "java:comp/DefaultManagedExecutorService");
-        }
+        String executor = context.getMethod().getAnnotation(Asynchronous.class).executor();
+        ManagedExecutorService mes = (ManagedExecutorService) new InitialContext().lookup(executor != null ? executor : "java:comp/DefaultManagedExecutorService");
         log.fine("AsynchronousInterceptor.intercept");
         CompletableFuture<Object> resultFuture = new ManagedCompletableFuture<>(mes);
         mes.submit(() -> {
