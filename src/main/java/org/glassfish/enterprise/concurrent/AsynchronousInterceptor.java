@@ -46,9 +46,11 @@ import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import org.glassfish.enterprise.concurrent.internal.ManagedCompletableFuture;
 
 /**
@@ -65,7 +67,17 @@ public class AsynchronousInterceptor {
     @AroundInvoke
     public Object intercept(InvocationContext context) throws Exception {
         String executor = context.getMethod().getAnnotation(Asynchronous.class).executor();
-        ManagedExecutorService mes = (ManagedExecutorService) new InitialContext().lookup(executor != null ? executor : "java:comp/DefaultManagedExecutorService");
+        executor = executor != null ? executor : "java:comp/DefaultManagedExecutorService"; // provide default value if there is none
+        ManagedExecutorService mes;
+        try {
+            Object lookupMes = new InitialContext().lookup(executor);
+            if (!(lookupMes instanceof ManagedExecutorService)) {
+                throw new RejectedExecutionException("ManagedExecutorService with jndi '" + executor + "' must be of type jakarta.enterprise.concurrent.ManagedExecutorService, found " + lookupMes.getClass().getName());
+            }
+            mes = (ManagedExecutorService) lookupMes;
+        } catch (NamingException ex) {
+            throw new RejectedExecutionException("ManagedExecutorService with jndi '" + executor + "' not found as requested by asynchronous method " + context.getMethod());
+        }
         log.fine("AsynchronousInterceptor.intercept");
         CompletableFuture<Object> resultFuture = new ManagedCompletableFuture<>(mes);
         mes.submit(() -> {
