@@ -180,7 +180,16 @@ public class ContextServiceImpl implements ContextService, Serializable {
 
     @Override
     public <R> Supplier<R> contextualSupplier(Supplier<R> splr) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        // TODO: NOT TESTED!!!
+        Callable<R> callable = () -> splr.get();
+        Callable<R> proxy = createContextualProxy(callable, null, Callable.class);
+        return () -> {
+            try {
+                return proxy.call();
+            } catch (Exception e) {
+                throw new RuntimeException("Exception during  contextual supplier: " + e.getMessage(), e);
+            }
+        };
     }
 
     @Override
