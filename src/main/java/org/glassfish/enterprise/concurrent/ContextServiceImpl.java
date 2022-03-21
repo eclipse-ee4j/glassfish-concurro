@@ -150,55 +150,53 @@ public class ContextServiceImpl implements ContextService, Serializable {
 
     @Override
     public <R> Callable<R> contextualCallable(Callable<R> clbl) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return createContextualProxy(clbl, null, Callable.class);
     }
 
     @Override
     public <T, U> BiConsumer<T, U> contextualConsumer(BiConsumer<T, U> bc) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return createContextualProxy(bc, null, BiConsumer.class);
     }
 
     @Override
     public <T> Consumer<T> contextualConsumer(Consumer<T> cnsmr) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return createContextualProxy(cnsmr, null, Consumer.class);
     }
 
     @Override
     public <T, U, R> BiFunction<T, U, R> contextualFunction(BiFunction<T, U, R> bf) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return createContextualProxy(bf, null, BiFunction.class);
     }
 
     @Override
     public <T, R> Function<T, R> contextualFunction(Function<T, R> fnctn) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return createContextualProxy(fnctn, null, Function.class);
     }
 
     @Override
     public Runnable contextualRunnable(Runnable r) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return createContextualProxy(r, null, Runnable.class);
     }
 
     @Override
     public <R> Supplier<R> contextualSupplier(Supplier<R> splr) {
-        // TODO: NOT TESTED!!!
-        Callable<R> callable = () -> splr.get();
-        Callable<R> proxy = createContextualProxy(callable, null, Callable.class);
-        return () -> {
-            try {
-                return proxy.call();
-            } catch (Exception e) {
-                throw new RuntimeException("Exception during  contextual supplier: " + e.getMessage(), e);
-            }
-        };
+        return createContextualProxy(splr, null, Supplier.class);
     }
 
     @Override
     public Executor currentContextExecutor() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        Executor executor = new Executor() {
+            @Override
+            public void execute(Runnable command) {
+                command.run();
+            }
+        };
+        return createContextualProxy(executor, null, Executor.class);
     }
 
     @Override
     public <T> CompletableFuture<T> withContextCapture(CompletableFuture<T> cf) {
+        // return new ManagedCompletableFuture<T>( ?  ?  ?);
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
