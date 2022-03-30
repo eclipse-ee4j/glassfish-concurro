@@ -26,6 +26,7 @@ import jakarta.enterprise.concurrent.ManagedTask;
 import org.glassfish.enterprise.concurrent.ContextServiceImpl;
 import org.glassfish.enterprise.concurrent.spi.ContextHandle;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
+import org.glassfish.enterprise.concurrent.spi.TransactionHandle;
 import org.glassfish.enterprise.concurrent.spi.TransactionSetupProvider;
 
 /**
@@ -72,19 +73,19 @@ public class ContextProxyInvocationHandler implements InvocationHandler, Seriali
             // setup before running the proxy. For example, suspend current
             // transaction on current thread unless TRANSACTION property is set
             // to USE_TRANSACTION_OF_EXECUTION_THREAD
-//            TODO: remove this code when sure, that the transaction is reliably handled by contextSetupProvider
-//            TransactionHandle txHandle = null;
-//            if (transactionSetupProvider != null) {
-//              txHandle = transactionSetupProvider.beforeProxyMethod(getTransactionExecutionProperty());
-//            }
+            // TODO:remove this code when sure, that the transaction is reliably handled by contextSetupProvider
+            TransactionHandle txHandle = null;
+            if (transactionSetupProvider != null) {
+                txHandle = transactionSetupProvider.beforeProxyMethod(getTransactionExecutionProperty());
+            }
             try {
                 result = method.invoke(proxiedObject, args);
             }
             finally {
                 contextSetupProvider.reset(contextHandleForReset);
-//                if (transactionSetupProvider != null) {
-//                    transactionSetupProvider.afterProxyMethod(txHandle, getTransactionExecutionProperty());
-//                }
+                if (transactionSetupProvider != null) {
+                    transactionSetupProvider.afterProxyMethod(txHandle, getTransactionExecutionProperty());
+                }
             }
         }
         return result;
