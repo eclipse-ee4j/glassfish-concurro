@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.concurrent.*;
 import jakarta.enterprise.concurrent.ContextService;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
+import java.util.function.Supplier;
+import org.glassfish.enterprise.concurrent.internal.ManagedCompletableFuture;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 
@@ -438,6 +440,58 @@ extends AbstractExecutorService implements ManagedExecutorService {
         return getNewTaskFor(callable);
     }
     
+    @Override
+    public <U> CompletableFuture<U> completedFuture(U value) {
+        return ManagedCompletableFuture.completedFuture(value, this);
+    }
+
+    @Override
+    public <U> CompletionStage<U> completedStage(U value) {
+        // FIXME: make proper implementation with ManagedCompletableFuture
+        return CompletableFuture.completedStage(value);
+    }
+
+    @Override
+    public <T> CompletableFuture<T> copy(CompletableFuture<T> future) {
+        // FIXME: make proper implementation with ManagedCompletableFuture
+        return future.copy();
+    }
+
+    @Override
+    public <T> CompletionStage<T> copy(CompletionStage<T> stage) {
+        // FIXME: make proper implementation with ManagedCompletableFuture
+        return stage.toCompletableFuture().copy();
+    }
+
+    @Override
+    public <U> CompletableFuture<U> failedFuture(Throwable ex) {
+        // FIXME: make proper implementation with ManagedCompletableFuture
+        return CompletableFuture.failedFuture(ex);
+    }
+
+    @Override
+    public <U> CompletionStage<U> failedStage(Throwable ex) {
+        // FIXME: make proper implementation with ManagedCompletableFuture
+        return CompletableFuture.failedStage(ex);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> newIncompleteFuture() {
+        // TODO: verify
+        return new ManagedCompletableFuture<>(this);
+    }
+
+    @Override
+    public CompletableFuture<Void> runAsync(Runnable runnable) {
+        // FIXME: make proper implementation with ManagedCompletableFuture
+        return CompletableFuture.runAsync(runnable, this);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
+        // TODO: verify
+        return ManagedCompletableFuture.supplyAsync(supplier, this);
+    }
 
     /**
      * Returns the ManagedExecutorService instance that is used for passing

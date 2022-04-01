@@ -20,7 +20,6 @@ import java.util.concurrent.*;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.concurrent.Trigger;
-import java.util.function.Supplier;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.internal.ManagedScheduledThreadPoolExecutor;
 
@@ -152,52 +151,6 @@ public class ManagedScheduledExecutorServiceImpl extends AbstractManagedExecutor
     @Override
     public long getCompletedTaskCount() {
         return threadPoolExecutor.getCompletedTaskCount();
-    }
-
-    @Override
-    public <U> CompletableFuture<U> completedFuture(U value) {
-        return CompletableFuture.completedFuture(value);
-    }
-
-    @Override
-    public <U> CompletionStage<U> completedStage(U value) {
-        return CompletableFuture.completedStage(value);
-    }
-
-    @Override
-    public <T> CompletableFuture<T> copy(CompletableFuture<T> stage) {
-        return stage.copy();
-    }
-
-    @Override
-    public <T> CompletionStage<T> copy(CompletionStage<T> stage) {
-        // FIXME: implement
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public <U> CompletableFuture<U> failedFuture(Throwable ex) {
-        return CompletableFuture.failedFuture(ex);
-    }
-
-    @Override
-    public <U> CompletionStage<U> failedStage(Throwable ex) {
-        return CompletableFuture.failedStage(ex);
-    }
-
-    @Override
-    public <U> CompletableFuture<U> newIncompleteFuture() {
-        return new <U>CompletableFuture().newIncompleteFuture();
-    }
-
-    @Override
-    public CompletableFuture<Void> runAsync(Runnable runnable) {
-        return CompletableFuture.runAsync(runnable, adapter);
-    }
-
-    @Override
-    public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
-        return CompletableFuture.supplyAsync(supplier, adapter);
     }
 
 }
