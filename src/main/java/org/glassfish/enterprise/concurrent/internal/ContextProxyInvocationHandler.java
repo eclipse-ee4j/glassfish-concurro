@@ -67,21 +67,20 @@ public class ContextProxyInvocationHandler implements InvocationHandler, Seriali
             result = method.invoke(proxiedObject, args);
         }
         else {
-            // for all other methods, invoke under creator's context
-            ContextHandle contextHandleForReset = contextSetupProvider.setup(capturedContextHandle);
             // Ask TransactionSetupProvider to perform any transaction related
             // setup before running the proxy. For example, suspend current
             // transaction on current thread unless TRANSACTION property is set
             // to USE_TRANSACTION_OF_EXECUTION_THREAD
-            // TODO:remove this code when sure, that the transaction is reliably handled by contextSetupProvider
+            // Do it before contextSetupProvider.setup, as it can clear transaction.
             TransactionHandle txHandle = null;
             if (transactionSetupProvider != null) {
                 txHandle = transactionSetupProvider.beforeProxyMethod(getTransactionExecutionProperty());
             }
+            // for all other methods, invoke under creator's context
+            ContextHandle contextHandleForReset = contextSetupProvider.setup(capturedContextHandle);
             try {
                 result = method.invoke(proxiedObject, args);
-            }
-            finally {
+            } finally {
                 contextSetupProvider.reset(contextHandleForReset);
                 if (transactionSetupProvider != null) {
                     transactionSetupProvider.afterProxyMethod(txHandle, getTransactionExecutionProperty());
