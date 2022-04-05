@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.concurrent.*;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.concurrent.Trigger;
+import org.glassfish.enterprise.concurrent.internal.ManagedCompletableFuture;
+
 import java.util.function.Supplier;
 
 /**
@@ -111,12 +113,12 @@ public class ManagedScheduledExecutorServiceAdapter
 
     @Override
     public <U> CompletableFuture<U> completedFuture(U value) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return ManagedCompletableFuture.completedFuture(value);
     }
 
     @Override
     public <U> CompletionStage<U> completedStage(U value) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return ManagedCompletableFuture.completedStage(value);
     }
 
     @Override
@@ -151,12 +153,12 @@ public class ManagedScheduledExecutorServiceAdapter
 
     @Override
     public CompletableFuture<Void> runAsync(Runnable runnable) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return ManagedCompletableFuture.runAsync(runnable);
     }
 
     @Override
     public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return ManagedCompletableFuture.supplyAsync(supplier);
     }
 
 }
