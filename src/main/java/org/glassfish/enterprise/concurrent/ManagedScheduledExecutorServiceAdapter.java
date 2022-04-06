@@ -113,32 +113,32 @@ public class ManagedScheduledExecutorServiceAdapter
 
     @Override
     public <U> CompletableFuture<U> completedFuture(U value) {
-        return ManagedCompletableFuture.completedFuture(value);
+        return ManagedCompletableFuture.completedFuture(value, executor);
     }
 
     @Override
     public <U> CompletionStage<U> completedStage(U value) {
-        return ManagedCompletableFuture.completedStage(value);
+        return ManagedCompletableFuture.completedStage(value, executor);
     }
 
     @Override
-    public <T> CompletableFuture<T> copy(CompletableFuture<T> stage) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public <T> CompletableFuture<T> copy(CompletableFuture<T> future) {
+        return ManagedCompletableFuture.copy(future, this);
     }
 
     @Override
     public <T> CompletionStage<T> copy(CompletionStage<T> stage) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return ManagedCompletableFuture.copy(stage, this);
     }
 
     @Override
     public <U> CompletableFuture<U> failedFuture(Throwable ex) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return ManagedCompletableFuture.failedFuture(ex, this);
     }
 
     @Override
     public <U> CompletionStage<U> failedStage(Throwable ex) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return ManagedCompletableFuture.failedStage(ex, this);
     }
 
     @Override
@@ -148,17 +148,17 @@ public class ManagedScheduledExecutorServiceAdapter
 
     @Override
     public <U> CompletableFuture<U> newIncompleteFuture() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return new ManagedCompletableFuture<>(executor);
     }
 
     @Override
     public CompletableFuture<Void> runAsync(Runnable runnable) {
-        return ManagedCompletableFuture.runAsync(runnable);
+        return ManagedCompletableFuture.runAsync(runnable, executor);
     }
 
     @Override
     public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
-        return ManagedCompletableFuture.supplyAsync(supplier);
+        return ManagedCompletableFuture.supplyAsync(supplier, executor);
     }
 
 }

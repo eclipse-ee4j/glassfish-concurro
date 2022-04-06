@@ -447,49 +447,41 @@ extends AbstractExecutorService implements ManagedExecutorService {
 
     @Override
     public <U> CompletionStage<U> completedStage(U value) {
-        // FIXME: make proper implementation with ManagedCompletableFuture
-        return CompletableFuture.completedStage(value);
+        return ManagedCompletableFuture.completedStage(value, this);
     }
 
     @Override
     public <T> CompletableFuture<T> copy(CompletableFuture<T> future) {
-        // FIXME: make proper implementation with ManagedCompletableFuture
-        return future.copy();
+        return ManagedCompletableFuture.copy(future, this);
     }
 
     @Override
     public <T> CompletionStage<T> copy(CompletionStage<T> stage) {
-        // FIXME: make proper implementation with ManagedCompletableFuture
-        return stage.toCompletableFuture().copy();
+        return ManagedCompletableFuture.copy(stage,this);
     }
 
     @Override
     public <U> CompletableFuture<U> failedFuture(Throwable ex) {
-        // FIXME: make proper implementation with ManagedCompletableFuture
-        return CompletableFuture.failedFuture(ex);
+        return ManagedCompletableFuture.failedFuture(ex, this);
     }
 
     @Override
     public <U> CompletionStage<U> failedStage(Throwable ex) {
-        // FIXME: make proper implementation with ManagedCompletableFuture
-        return CompletableFuture.failedStage(ex);
+        return ManagedCompletableFuture.failedStage(ex, this);
     }
 
     @Override
     public <U> CompletableFuture<U> newIncompleteFuture() {
-        // TODO: verify
         return new ManagedCompletableFuture<>(this);
     }
 
     @Override
     public CompletableFuture<Void> runAsync(Runnable runnable) {
-        // FIXME: make proper implementation with ManagedCompletableFuture
-        return CompletableFuture.runAsync(runnable, this);
+        return ManagedCompletableFuture.runAsync(runnable, this);
     }
 
     @Override
     public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
-        // TODO: verify
         return ManagedCompletableFuture.supplyAsync(supplier, this);
     }
 

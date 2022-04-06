@@ -41,6 +41,7 @@ package org.glassfish.enterprise.concurrent.internal;
 
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -76,15 +77,40 @@ public class ManagedCompletableFuture<T> extends CompletableFuture<T> {
     }
 
     public static <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier, ManagedExecutorService executor) {
-        // FIXME: return this class, see CompletableFuture.AsyncSupply
         return CompletableFuture.supplyAsync(supplier, executor);
-        //return new ManagedExecutorServiceImpl(executor);
     }
 
-    public static <U> CompletableFuture<U> completedFuture(U value, ManagedExecutorService managedExecutor) {
-        ManagedCompletableFuture<U> future = new ManagedCompletableFuture<>(managedExecutor);
+    public static <U> CompletableFuture<U> completedFuture(U value, ManagedExecutorService executor) {
+        ManagedCompletableFuture<U> future = new ManagedCompletableFuture<>(executor);
         future.complete(value);
         return future;
+    }
+
+    public static <U> CompletionStage<U> completedStage(U value, ManagedExecutorService executor) {
+        ManagedCompletableFuture<U> future = new ManagedCompletableFuture<>(executor);
+        future.complete(value);
+        return (CompletionStage<U>) future;
+    }
+
+    public static <T> CompletableFuture<T> copy(CompletableFuture<T> future, ManagedExecutorService executor) {
+        return future.copy();
+    }
+
+    public static <T> CompletionStage<T> copy(CompletionStage<T> stage, ManagedExecutorService executor) {
+        CompletableFuture<T> future = (CompletableFuture<T>) stage;
+        return future.copy();
+    }
+
+    public static <U> CompletableFuture<U> failedFuture(Throwable ex, ManagedExecutorService executor) {
+        return executor.failedFuture(ex);
+    }
+
+    public static <U> CompletionStage<U> failedStage(Throwable ex, ManagedExecutorService executor) {
+        return executor.failedStage(ex);
+    }
+
+    public static CompletableFuture<Void> runAsync(Runnable runnable, ManagedExecutorService executor) {
+        return CompletableFuture.runAsync(runnable, executor);
     }
 
 }
