@@ -143,7 +143,7 @@ public class ManagedScheduledExecutorServiceAdapter
 
     @Override
     public ContextService getContextService() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return executor.getContextService();
     }
 
     @Override
