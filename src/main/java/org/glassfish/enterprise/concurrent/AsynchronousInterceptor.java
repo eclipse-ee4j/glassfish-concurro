@@ -68,6 +68,7 @@ public class AsynchronousInterceptor {
     public Object intercept(InvocationContext context) throws Exception {
         String executor = context.getMethod().getAnnotation(Asynchronous.class).executor();
         executor = executor != null ? executor : "java:comp/DefaultManagedExecutorService"; // provide default value if there is none
+        log.fine("AsynchronousInterceptor.intercept around asynchronous method " + context.getMethod() + ", executor='" + executor + "'");
         ManagedExecutorService mes;
         try {
             Object lookupMes = new InitialContext().lookup(executor);
@@ -78,7 +79,6 @@ public class AsynchronousInterceptor {
         } catch (NamingException ex) {
             throw new RejectedExecutionException("ManagedExecutorService with jndi '" + executor + "' not found as requested by asynchronous method " + context.getMethod());
         }
-        log.fine("AsynchronousInterceptor.intercept");
         CompletableFuture<Object> resultFuture = new ManagedCompletableFuture<>(mes);
         mes.submit(() -> {
             Asynchronous.Result.setFuture(resultFuture);
