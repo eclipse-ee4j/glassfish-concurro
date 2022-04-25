@@ -104,7 +104,6 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 contextHandleForSetup = contextSetupProvider.saveContext(contextService);
             }
             AbstractManagedThread newThread = createThread(r, contextHandleForSetup);
-            newThread.setPriority(priority);
             newThread.setDaemon(true);
             threads.add(newThread);
             return newThread;
@@ -116,30 +115,40 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
 
     protected AbstractManagedThread createThread(final Runnable r, final ContextHandle contextHandleForSetup) {
         if (System.getSecurityManager() == null) {
-            return new ManagedThread(r, contextHandleForSetup);
+            return createThreadInternal(r, contextHandleForSetup);
         } else {
-            return (ManagedThread) AccessController.doPrivileged(
-              new PrivilegedAction() {
+            return (ManagedThread) AccessController.doPrivileged(new PrivilegedAction() {
                 @Override
                 public Object run() {
-                    return new ManagedThread(r, contextHandleForSetup);
+                    return createThreadInternal(r, contextHandleForSetup);
                 }
               });
         }
     }
 
+    private ManagedThread createThreadInternal(final Runnable r, final ContextHandle contextHandleForSetup) {
+        ManagedThread newThread = new ManagedThread(r, contextHandleForSetup);
+        newThread.setPriority(priority);
+        return newThread;
+    }
+
     protected ForkJoinWorkerThread createWorkerThread(final ForkJoinPool forkJoinPool, final ContextHandle contextHandleForSetup) {
         if (System.getSecurityManager() == null) {
-            return new WorkerThread(forkJoinPool, contextHandleForSetup);
+            return createWorkerThreadInternal(forkJoinPool, contextHandleForSetup);
         } else {
-            return (ForkJoinWorkerThread) AccessController.doPrivileged(
-                    new PrivilegedAction() {
+            return (ForkJoinWorkerThread) AccessController.doPrivileged(new PrivilegedAction() {
                         @Override
                         public Object run() {
-                            return new WorkerThread(forkJoinPool, contextHandleForSetup);
+                            return createWorkerThreadInternal(forkJoinPool, contextHandleForSetup);
                         }
                     });
         }
+    }
+
+    private WorkerThread createWorkerThreadInternal(final ForkJoinPool forkJoinPool, final ContextHandle contextHandleForSetup) {
+        WorkerThread newThread = new WorkerThread(forkJoinPool, contextHandleForSetup);
+        newThread.setPriority(priority);
+        return newThread;
     }
 
     protected void removeThread(ManagedThread t) {
