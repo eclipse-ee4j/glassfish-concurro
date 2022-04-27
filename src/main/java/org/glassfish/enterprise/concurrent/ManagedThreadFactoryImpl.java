@@ -45,7 +45,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     private Lock lock; // protects threads and stopped
 
     private String name;
-    final private ContextSetupProvider contextSetupProvider;
+    final protected ContextSetupProvider contextSetupProvider;
     // A non-null ContextService should be provided if thread context should
     // be setup before running the Runnable passed in through the newThread
     // method.
@@ -53,7 +53,10 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     // used for creating threads for ManagedExecutorService, where it is
     // not necessary to set up thread context at thread creation time. In that
     // case, thread context is set up before running each task.
-    final private ContextServiceImpl contextService;
+    final protected ContextServiceImpl contextService;
+    // Java Concurrency requires saving context during jndi lookup ManagedThreadFactory,
+    // it is kept in savedContextHandleForSetup.
+    protected ContextHandle savedContextHandleForSetup = null;
     private int priority;
     private long hungTaskThreshold = 0L; // in milliseconds
     private AtomicInteger threadIdSequence = new AtomicInteger();
@@ -100,7 +103,9 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 throw new IllegalStateException(MANAGED_THREAD_FACTORY_STOPPED);
             }
             ContextHandle contextHandleForSetup = null;
-            if (contextSetupProvider != null) {
+            if (savedContextHandleForSetup != null) {
+                contextHandleForSetup = savedContextHandleForSetup;
+            } else if (contextSetupProvider != null) {
                 contextHandleForSetup = contextSetupProvider.saveContext(contextService);
             }
             AbstractManagedThread newThread = createThread(r, contextHandleForSetup);
@@ -233,7 +238,9 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 throw new IllegalStateException(MANAGED_THREAD_FACTORY_STOPPED);
             }
             ContextHandle contextHandleForSetup = null;
-            if (contextSetupProvider != null) {
+            if (savedContextHandleForSetup != null) {
+                contextHandleForSetup = savedContextHandleForSetup;
+            } else if (contextSetupProvider != null) {
                 contextHandleForSetup = contextSetupProvider.saveContext(contextService);
             }
             return createWorkerThread(pool, contextHandleForSetup);
