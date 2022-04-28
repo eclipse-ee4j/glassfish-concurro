@@ -43,6 +43,7 @@ import jakarta.enterprise.concurrent.ManagedExecutorService;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -77,7 +78,26 @@ public class ManagedCompletableFuture<T> extends CompletableFuture<T> {
     }
 
     public static <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier, ManagedExecutorService executor) {
-        return CompletableFuture.supplyAsync(supplier, executor);
+        ManagedCompletableFuture<T> managedFuture = new ManagedCompletableFuture<>(executor);
+        executor.execute(() -> {
+            try {
+                managedFuture.complete(supplier.get());
+            } catch (Exception e) {
+                managedFuture.completeExceptionally(e);
+            }
+        });
+        return managedFuture;
+    }
+
+    @Override
+    public <U> CompletableFuture<U> thenApplyAsync(Function<? super T, ? extends U> fn, Executor executor) {
+        // FIXME: implement correctly
+        return super.thenApplyAsync(fn, executor);
+    }
+
+    @Override
+    public <U, V> CompletableFuture<V> thenCombine(CompletionStage<? extends U> other, BiFunction<? super T, ? super U, ? extends V> fn) {
+        return super.thenCombine(other, executor.getContextService().contextualFunction(fn));
     }
 
     public static <U> CompletableFuture<U> completedFuture(U value, ManagedExecutorService executor) {
