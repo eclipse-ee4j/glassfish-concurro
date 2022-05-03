@@ -74,7 +74,7 @@ public class ManagedCompletableFuture<T> extends CompletableFuture<T> {
 
     @Override
     public <U> CompletableFuture<U> thenApply(Function<? super T, ? extends U> fn) {
-        return super.thenApply(fn);
+        return super.thenApply(executor.getContextService().contextualFunction(fn));
     }
 
     public static <T> CompletableFuture<T> supplyAsync(Supplier<T> supplier, ManagedExecutorService executor) {
@@ -90,9 +90,29 @@ public class ManagedCompletableFuture<T> extends CompletableFuture<T> {
     }
 
     @Override
+    public <U> CompletableFuture<U> thenApplyAsync(Function<? super T, ? extends U> fn) {
+        return thenApplyAsync(fn, executor);
+    }
+
+    @Override
     public <U> CompletableFuture<U> thenApplyAsync(Function<? super T, ? extends U> fn, Executor executor) {
-        // FIXME: implement correctly
         return super.thenApplyAsync(fn, executor);
+    }
+
+    @Override
+    public <U, V> CompletableFuture<V> thenCombineAsync(CompletionStage<? extends U> other, BiFunction<? super T, ? super U, ? extends V> fn) {
+        return thenCombineAsync(other, executor.getContextService().contextualFunction(fn), executor);
+    }
+
+    @Override
+    public <U, V> CompletableFuture<V> thenCombineAsync(CompletionStage<? extends U> other, BiFunction<? super T, ? super U, ? extends V> fn, Executor executor) {
+        return super.thenCombineAsync(other, fn, executor);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> handleAsync(BiFunction<? super T, Throwable, ? extends U> fn) {
+        // FIXME: implement correctly
+        return super.handleAsync(executor.getContextService().contextualFunction(fn));
     }
 
     @Override
@@ -117,8 +137,7 @@ public class ManagedCompletableFuture<T> extends CompletableFuture<T> {
     }
 
     public static <T> CompletionStage<T> copy(CompletionStage<T> stage, ManagedExecutorService executor) {
-        CompletableFuture<T> future = (CompletableFuture<T>) stage;
-        return future.copy();
+        return stage.thenApply(Function.identity());
     }
 
     public static <U> CompletableFuture<U> failedFuture(Throwable ex, ManagedExecutorService executor) {
