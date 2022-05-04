@@ -13,7 +13,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
-
 package org.glassfish.enterprise.concurrent;
 
 import java.util.ArrayList;
@@ -452,12 +451,24 @@ extends AbstractExecutorService implements ManagedExecutorService {
 
     @Override
     public <T> CompletableFuture<T> copy(CompletableFuture<T> future) {
-        return ManagedCompletableFuture.copy(future, this);
+        return copyInternal(future);
     }
 
     @Override
     public <T> CompletionStage<T> copy(CompletionStage<T> stage) {
-        return ManagedCompletableFuture.copy(stage,this);
+        return copyInternal(stage);
+    }
+
+    private <T> CompletableFuture<T> copyInternal(CompletionStage<T> future) {
+        ManagedCompletableFuture managedFuture = new ManagedCompletableFuture(this);
+        future.whenComplete((result, exception) -> {
+            if (exception == null) {
+                managedFuture.complete(result);
+            } else {
+                managedFuture.completeExceptionally(exception);
+            }
+        });
+        return managedFuture;
     }
 
     @Override

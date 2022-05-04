@@ -123,12 +123,12 @@ public class ManagedScheduledExecutorServiceAdapter
 
     @Override
     public <T> CompletableFuture<T> copy(CompletableFuture<T> future) {
-        return ManagedCompletableFuture.copy(future, this);
+        return executor.copy(future);
     }
 
     @Override
-    public <T> CompletionStage<T> copy(CompletionStage<T> stage) {
-        return ManagedCompletableFuture.copy(stage, this);
+    public <T> CompletionStage<T> copy(CompletionStage<T> completionStage) {
+        return executor.copy(completionStage);
     }
 
     @Override
