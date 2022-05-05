@@ -136,6 +136,11 @@ public class ManagedCompletableFuture<T> extends CompletableFuture<T> {
         return super.thenAcceptBoth(other, executor.getContextService().contextualConsumer(action));
     }
 
+    @Override
+    public CompletableFuture<T> exceptionally(Function<Throwable, ? extends T> fn) {
+        return super.exceptionally(this.executor.getContextService().contextualFunction(fn));
+    }
+
     public static <U> CompletableFuture<U> completedFuture(U value, ManagedExecutorService executor) {
         ManagedCompletableFuture<U> future = new ManagedCompletableFuture<>(executor);
         future.complete(value);
