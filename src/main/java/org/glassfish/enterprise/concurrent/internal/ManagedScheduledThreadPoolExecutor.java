@@ -735,17 +735,17 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
 
             @Override
             public ZonedDateTime getScheduledStart(ZoneId zone) {
-                return scheduledStart.withZoneSameLocal(zone);
+                return scheduledStart.withZoneSameInstant(zone);
             }
 
             @Override
             public ZonedDateTime getRunStart(ZoneId zone) {
-                return runStart.withZoneSameLocal(zone);
+                return runStart.withZoneSameInstant(zone);
             }
 
             @Override
             public ZonedDateTime getRunEnd(ZoneId zone) {
-                return runEnd.withZoneSameLocal(zone);
+                return runEnd.withZoneSameInstant(zone);
             }
         }
     }
