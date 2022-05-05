@@ -43,6 +43,7 @@ import jakarta.enterprise.concurrent.ManagedExecutorService;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -130,6 +131,10 @@ public class ManagedCompletableFuture<T> extends CompletableFuture<T> {
         return super.applyToEitherAsync(other, this.executor.getContextService().contextualFunction(fn), executor); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
     }
 
+    @Override
+    public <U> CompletableFuture<Void> thenAcceptBoth(CompletionStage<? extends U> other, BiConsumer<? super T, ? super U> action) {
+        return super.thenAcceptBoth(other, executor.getContextService().contextualConsumer(action));
+    }
 
     public static <U> CompletableFuture<U> completedFuture(U value, ManagedExecutorService executor) {
         ManagedCompletableFuture<U> future = new ManagedCompletableFuture<>(executor);
