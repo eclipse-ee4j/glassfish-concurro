@@ -225,7 +225,7 @@ public class ContextServiceImpl implements ContextService, Serializable {
                 0, TimeUnit.SECONDS,
                 0L,
                 Integer.MAX_VALUE,
-                new ContextServiceImpl("", this.contextSetupProvider, this.transactionSetupProvider),
+                this,
                 AbstractManagedExecutorService.RejectPolicy.ABORT);
     }
 }
