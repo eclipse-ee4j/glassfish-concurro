@@ -26,12 +26,16 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import jakarta.enterprise.concurrent.ManagedExecutorService;
 import org.glassfish.enterprise.concurrent.internal.ContextProxyInvocationHandler;
+import org.glassfish.enterprise.concurrent.internal.ManagedCompletableFuture;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 import org.glassfish.enterprise.concurrent.spi.TransactionSetupProvider;
 
@@ -196,12 +200,32 @@ public class ContextServiceImpl implements ContextService, Serializable {
 
     @Override
     public <T> CompletableFuture<T> withContextCapture(CompletableFuture<T> cf) {
-        // return new ManagedCompletableFuture<T>( ?  ?  ?);
-        throw new UnsupportedOperationException("Not supported yet.");
+        CompletionStage<T> cs = cf;
+        return (CompletableFuture<T>) withContextCapture(cs);
     }
 
     @Override
     public <T> CompletionStage<T> withContextCapture(CompletionStage<T> cs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        ManagedCompletableFuture<T> newCompletableFuture;
+        Executor executor = getDefaultManageExecutorService();
+        newCompletableFuture = new ManagedCompletableFuture<T>((ManagedExecutorService) executor);
+        cs.whenComplete((result, failure) -> {
+            if(failure == null) {
+                newCompletableFuture.complete(result);
+            } else {
+                newCompletableFuture.completeExceptionally(failure);
+            }
+        });
+        return (CompletionStage<T>) newCompletableFuture;
+    }
+
+    private Executor getDefaultManageExecutorService() {
+        return new ManagedExecutorServiceImpl(name, null, 0, false,
+                1, Integer.MAX_VALUE,
+                0, TimeUnit.SECONDS,
+                0L,
+                Integer.MAX_VALUE,
+                new ContextServiceImpl("", this.contextSetupProvider, this.transactionSetupProvider),
+                AbstractManagedExecutorService.RejectPolicy.ABORT);
     }
 }
