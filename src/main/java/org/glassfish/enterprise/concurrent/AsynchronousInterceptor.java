@@ -46,6 +46,7 @@ import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -68,10 +69,13 @@ public class AsynchronousInterceptor {
     public Object intercept(InvocationContext context) throws Exception {
         String executor = context.getMethod().getAnnotation(Asynchronous.class).executor();
         executor = executor != null ? executor : "java:comp/DefaultManagedExecutorService"; // provide default value if there is none
-        log.fine("AsynchronousInterceptor.intercept around asynchronous method " + context.getMethod() + ", executor='" + executor + "'");
+        log.log(Level.FINE, "AsynchronousInterceptor.intercept around asynchronous method {0}, executor=''{1}''", new Object[]{context.getMethod(), executor});
         ManagedExecutorService mes;
         try {
             Object lookupMes = new InitialContext().lookup(executor);
+            if (lookupMes == null) {
+                throw new RejectedExecutionException("ManagedExecutorService with jndi '" + executor + "' not found!");
+            }
             if (!(lookupMes instanceof ManagedExecutorService)) {
                 throw new RejectedExecutionException("ManagedExecutorService with jndi '" + executor + "' must be of type jakarta.enterprise.concurrent.ManagedExecutorService, found " + lookupMes.getClass().getName());
             }
@@ -82,16 +86,25 @@ public class AsynchronousInterceptor {
         CompletableFuture<Object> resultFuture = new ManagedCompletableFuture<>(mes);
         mes.submit(() -> {
             Asynchronous.Result.setFuture(resultFuture);
+            CompletableFuture<Object> returnedFuture = resultFuture;
             try {
                 // the asynchronous method is responsible for calling Asynchronous.Result.complete()
-                context.proceed();
+                returnedFuture = (CompletableFuture<Object>) context.proceed();
             } catch (Exception ex) {
                 resultFuture.completeExceptionally(ex);
             } finally {
                 // Check if Asynchronous.Result is not completed?
-                if (!Asynchronous.Result.getFuture().isDone()) {
+                if (!returnedFuture.isDone()) {
                     log.log(Level.SEVERE, "Method annotated with @Asynchronous did not call Asynchronous.Result.complete() at its end: {0}", context.getMethod().toString());
                     Asynchronous.Result.getFuture().cancel(true);
+                }
+                if (returnedFuture != Asynchronous.Result.getFuture()) {
+                    // if the asynchronous methods returns a different future, use this to complete the resultFuture
+                    try {
+                        resultFuture.complete(returnedFuture.get());
+                    } catch (InterruptedException | ExecutionException e) {
+                        resultFuture.completeExceptionally(e);
+                    }
                 }
                 // cleanup after asynchronous call
                 Asynchronous.Result.setFuture(null);
