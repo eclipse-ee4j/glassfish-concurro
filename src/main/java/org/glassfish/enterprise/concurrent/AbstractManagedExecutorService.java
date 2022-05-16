@@ -70,7 +70,7 @@ extends AbstractExecutorService implements ManagedExecutorService {
         if (managedThreadFactory == null) {
             managedThreadFactory = new ManagedThreadFactoryImpl(
                     name + "-ManagedThreadFactory",
-                    null,//contextService,
+                    null,
                     Thread.NORM_PRIORITY);            
         }
         managedThreadFactory.setHungTaskThreshold(hungTaskThreshold);
