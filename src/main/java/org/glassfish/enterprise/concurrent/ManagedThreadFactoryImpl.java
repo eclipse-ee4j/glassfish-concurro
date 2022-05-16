@@ -53,8 +53,8 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     // used for creating threads for ManagedExecutorService, where it is
     // not necessary to set up thread context at thread creation time. In that
     // case, thread context is set up before running each task.
-    final protected ContextServiceImpl contextService;
-    // Java Concurrency requires saving context during jndi lookup ManagedThreadFactory,
+    final private ContextServiceImpl contextService;
+    // If there is a need to save context earlier than during newThread() (e.g. jndi lookup ManagedThreadFactory),
     // it is kept in savedContextHandleForSetup.
     protected ContextHandle savedContextHandleForSetup = null;
     private int priority;
