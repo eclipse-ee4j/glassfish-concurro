@@ -46,7 +46,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     private Lock lock; // protects threads and stopped
 
     private String name;
-    final protected ContextSetupProvider contextSetupProvider;
+    final private ContextSetupProvider contextSetupProvider;
     // A non-null ContextService should be provided if thread context should
     // be setup before running the Runnable passed in through the newThread
     // method.
@@ -228,6 +228,16 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
       finally {
           lock.unlock();
       }
+    }
+
+    /**
+     * Make contextSetupProvider available for extending classes if necessary to implement context saving in other
+     * moments than this implemention expects.
+     *
+     * @return contextSetupProvider
+     */
+    protected ContextSetupProvider getContextSetupProvider() {
+        return contextSetupProvider;
     }
 
     @Override
