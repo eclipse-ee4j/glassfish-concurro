@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -28,6 +29,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.enterprise.concurrent.ManagedThreadFactory;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.internal.ThreadExpiredException;
 import org.glassfish.enterprise.concurrent.spi.ContextHandle;
@@ -43,7 +46,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     private Lock lock; // protects threads and stopped
 
     private String name;
-    final private ContextSetupProvider contextSetupProvider;
+    final protected ContextSetupProvider contextSetupProvider;
     // A non-null ContextService should be provided if thread context should
     // be setup before running the Runnable passed in through the newThread
     // method.
@@ -52,6 +55,9 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     // not necessary to set up thread context at thread creation time. In that
     // case, thread context is set up before running each task.
     final private ContextServiceImpl contextService;
+    // If there is a need to save context earlier than during newThread() (e.g. jndi lookup ManagedThreadFactory),
+    // it is kept in savedContextHandleForSetup.
+    protected ContextHandle savedContextHandleForSetup = null;
     private int priority;
     private long hungTaskThreshold = 0L; // in milliseconds
     private AtomicInteger threadIdSequence = new AtomicInteger();
@@ -88,7 +94,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     public void setHungTaskThreshold(long hungTaskThreshold) {
         this.hungTaskThreshold = hungTaskThreshold;
     }
-    
+
     @Override
     public Thread newThread(Runnable r) {
         lock.lock();
@@ -98,11 +104,12 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 throw new IllegalStateException(MANAGED_THREAD_FACTORY_STOPPED);
             }
             ContextHandle contextHandleForSetup = null;
-            if (contextSetupProvider != null) {
+            if (savedContextHandleForSetup != null) {
+                contextHandleForSetup = savedContextHandleForSetup;
+            } else if (contextSetupProvider != null) {
                 contextHandleForSetup = contextSetupProvider.saveContext(contextService);
             }
             AbstractManagedThread newThread = createThread(r, contextHandleForSetup);
-            newThread.setPriority(priority);
             newThread.setDaemon(true);
             threads.add(newThread);
             return newThread;
@@ -114,18 +121,42 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
 
     protected AbstractManagedThread createThread(final Runnable r, final ContextHandle contextHandleForSetup) {
         if (System.getSecurityManager() == null) {
-            return new ManagedThread(r, contextHandleForSetup);
+            return createThreadInternal(r, contextHandleForSetup);
         } else {
-            return (ManagedThread) AccessController.doPrivileged(
-              new PrivilegedAction() {
+            return (ManagedThread) AccessController.doPrivileged(new PrivilegedAction() {
                 @Override
                 public Object run() {
-                    return new ManagedThread(r, contextHandleForSetup);
+                    return createThreadInternal(r, contextHandleForSetup);
                 }
               });
         }
     }
-    
+
+    private ManagedThread createThreadInternal(final Runnable r, final ContextHandle contextHandleForSetup) {
+        ManagedThread newThread = new ManagedThread(r, contextHandleForSetup);
+        newThread.setPriority(priority);
+        return newThread;
+    }
+
+    protected ForkJoinWorkerThread createWorkerThread(final ForkJoinPool forkJoinPool, final ContextHandle contextHandleForSetup) {
+        if (System.getSecurityManager() == null) {
+            return createWorkerThreadInternal(forkJoinPool, contextHandleForSetup);
+        } else {
+            return (ForkJoinWorkerThread) AccessController.doPrivileged(new PrivilegedAction() {
+                        @Override
+                        public Object run() {
+                            return createWorkerThreadInternal(forkJoinPool, contextHandleForSetup);
+                        }
+                    });
+        }
+    }
+
+    private WorkerThread createWorkerThreadInternal(final ForkJoinPool forkJoinPool, final ContextHandle contextHandleForSetup) {
+        WorkerThread newThread = new WorkerThread(forkJoinPool, contextHandleForSetup);
+        newThread.setPriority(priority);
+        return newThread;
+    }
+
     protected void removeThread(ManagedThread t) {
         lock.lock();
         try {
@@ -135,7 +166,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             lock.unlock();
         }
     }
-    
+
     /**
      * Return an array of threads in this ManagedThreadFactoryImpl
      * @return an array of threads in this ManagedThreadFactoryImpl.
@@ -162,7 +193,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             mt.task = task;
         }
     }
-    
+
     public void taskDone(Thread t) {
         if (t instanceof ManagedThread) {
             ManagedThread mt = (ManagedThread) t;
@@ -190,15 +221,69 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             try {
                t.shutdown(); // mark threads as shutting down
                t.interrupt();
-            } catch (SecurityException ignore) {                
+            } catch (SecurityException ignore) {
             }
         }
       }
       finally {
           lock.unlock();
-      }      
+      }
     }
-    
+
+    @Override
+    public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
+        lock.lock();
+        try {
+            if(stopped) {
+                // Do not create new ForkJoinWorkerThread and throw IllegalStateException if stopped
+                throw new IllegalStateException(MANAGED_THREAD_FACTORY_STOPPED);
+            }
+            ContextHandle contextHandleForSetup = null;
+            if (savedContextHandleForSetup != null) {
+                contextHandleForSetup = savedContextHandleForSetup;
+            } else if (contextSetupProvider != null) {
+                contextHandleForSetup = contextSetupProvider.saveContext(contextService);
+            }
+            return createWorkerThread(pool, contextHandleForSetup);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    class WorkerThread extends ForkJoinWorkerThread {
+        final ContextHandle contextHandleForSetup;
+
+        public WorkerThread(ForkJoinPool pool, ContextHandle contextHandleForSetup) {
+            super(pool);
+            this.contextHandleForSetup = contextHandleForSetup;
+        }
+
+        @Override
+        protected void onStart() {
+            super.onStart();
+        }
+
+        @Override
+        protected void onTermination(Throwable exception) {
+            super.onTermination(exception);
+        }
+
+        @Override
+        public void run() {
+            try {
+                if (contextHandleForSetup != null) {
+                    contextSetupProvider.setup(contextHandleForSetup);
+                }
+                super.run();
+            } catch (ThreadExpiredException ex) {
+                Logger.getLogger("org.glassfish.enterprise.concurrent").log(Level.INFO, ex.toString());
+            } catch (Throwable t) {
+                Logger.getLogger("org.glassfish.enterprise.concurrent").log(Level.SEVERE, name, t);
+            }
+        }
+
+    }
+
     /**
      * ManageableThread to be returned by {@code ManagedThreadFactory.newThread()}
      */
@@ -206,7 +291,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         final ContextHandle contextHandleForSetup;
         volatile ManagedFutureTask task = null;
         volatile long taskStartTime = 0L;
-        
+
         public ManagedThread(Runnable target, ContextHandle contextHandleForSetup) {
             super(target);
             setName(name + "-Thread-" + threadIdSequence.incrementAndGet());
@@ -236,7 +321,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 removeThread(this);
             }
         }
-        
+
         @Override
         boolean cancelTask() {
             if (task != null) {

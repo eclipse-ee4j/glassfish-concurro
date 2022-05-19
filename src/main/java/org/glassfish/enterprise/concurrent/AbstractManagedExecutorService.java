@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -13,7 +14,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
-
 package org.glassfish.enterprise.concurrent;
 
 import java.util.ArrayList;
@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.concurrent.*;
 import jakarta.enterprise.concurrent.ContextService;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
+import java.util.function.Supplier;
+import org.glassfish.enterprise.concurrent.internal.ManagedCompletableFuture;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 
@@ -438,6 +440,62 @@ extends AbstractExecutorService implements ManagedExecutorService {
         return getNewTaskFor(callable);
     }
     
+    @Override
+    public <U> CompletableFuture<U> completedFuture(U value) {
+        return ManagedCompletableFuture.completedFuture(value, this);
+    }
+
+    @Override
+    public <U> CompletionStage<U> completedStage(U value) {
+        return ManagedCompletableFuture.completedStage(value, this);
+    }
+
+    @Override
+    public <T> CompletableFuture<T> copy(CompletableFuture<T> future) {
+        return copyInternal(future);
+    }
+
+    @Override
+    public <T> CompletionStage<T> copy(CompletionStage<T> stage) {
+        return copyInternal(stage);
+    }
+
+    private <T> CompletableFuture<T> copyInternal(CompletionStage<T> future) {
+        ManagedCompletableFuture managedFuture = new ManagedCompletableFuture(this);
+        future.whenComplete((result, exception) -> {
+            if (exception == null) {
+                managedFuture.complete(result);
+            } else {
+                managedFuture.completeExceptionally(exception);
+            }
+        });
+        return managedFuture;
+    }
+
+    @Override
+    public <U> CompletableFuture<U> failedFuture(Throwable ex) {
+        return ManagedCompletableFuture.failedFuture(ex, this);
+    }
+
+    @Override
+    public <U> CompletionStage<U> failedStage(Throwable ex) {
+        return ManagedCompletableFuture.failedStage(ex, this);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> newIncompleteFuture() {
+        return new ManagedCompletableFuture<>(this);
+    }
+
+    @Override
+    public CompletableFuture<Void> runAsync(Runnable runnable) {
+        return ManagedCompletableFuture.runAsync(runnable, this);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
+        return ManagedCompletableFuture.supplyAsync(supplier, this);
+    }
 
     /**
      * Returns the ManagedExecutorService instance that is used for passing

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -22,7 +23,20 @@ import java.lang.reflect.Proxy;
 import java.util.Enumeration;
 import java.util.Map;
 import jakarta.enterprise.concurrent.ContextService;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import jakarta.enterprise.concurrent.ManagedExecutorService;
 import org.glassfish.enterprise.concurrent.internal.ContextProxyInvocationHandler;
+import org.glassfish.enterprise.concurrent.internal.ManagedCompletableFuture;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 import org.glassfish.enterprise.concurrent.spi.TransactionSetupProvider;
 
@@ -137,5 +151,82 @@ public class ContextServiceImpl implements ContextService, Serializable {
             return cpih;
         }
         throw new IllegalArgumentException(INVALID_PROXY);
+    }
+
+    @Override
+    public <R> Callable<R> contextualCallable(Callable<R> clbl) {
+        return createContextualProxy(clbl, null, Callable.class);
+    }
+
+    @Override
+    public <T, U> BiConsumer<T, U> contextualConsumer(BiConsumer<T, U> bc) {
+        return createContextualProxy(bc, null, BiConsumer.class);
+    }
+
+    @Override
+    public <T> Consumer<T> contextualConsumer(Consumer<T> cnsmr) {
+        return createContextualProxy(cnsmr, null, Consumer.class);
+    }
+
+    @Override
+    public <T, U, R> BiFunction<T, U, R> contextualFunction(BiFunction<T, U, R> bf) {
+        return createContextualProxy(bf, null, BiFunction.class);
+    }
+
+    @Override
+    public <T, R> Function<T, R> contextualFunction(Function<T, R> fnctn) {
+        return createContextualProxy(fnctn, null, Function.class);
+    }
+
+    @Override
+    public Runnable contextualRunnable(Runnable r) {
+        return createContextualProxy(r, null, Runnable.class);
+    }
+
+    @Override
+    public <R> Supplier<R> contextualSupplier(Supplier<R> splr) {
+        return createContextualProxy(splr, null, Supplier.class);
+    }
+
+    @Override
+    public Executor currentContextExecutor() {
+        Executor executor = new Executor() {
+            @Override
+            public void execute(Runnable command) {
+                command.run();
+            }
+        };
+        return createContextualProxy(executor, null, Executor.class);
+    }
+
+    @Override
+    public <T> CompletableFuture<T> withContextCapture(CompletableFuture<T> cf) {
+        CompletionStage<T> cs = cf;
+        return (CompletableFuture<T>) withContextCapture(cs);
+    }
+
+    @Override
+    public <T> CompletionStage<T> withContextCapture(CompletionStage<T> cs) {
+        ManagedCompletableFuture<T> newCompletableFuture;
+        Executor executor = getDefaultManageExecutorService();
+        newCompletableFuture = new ManagedCompletableFuture<T>((ManagedExecutorService) executor);
+        cs.whenComplete((result, failure) -> {
+            if(failure == null) {
+                newCompletableFuture.complete(result);
+            } else {
+                newCompletableFuture.completeExceptionally(failure);
+            }
+        });
+        return (CompletionStage<T>) newCompletableFuture;
+    }
+
+    private Executor getDefaultManageExecutorService() {
+        return new ManagedExecutorServiceImpl(name, null, 0, false,
+                1, Integer.MAX_VALUE,
+                0, TimeUnit.SECONDS,
+                0L,
+                Integer.MAX_VALUE,
+                this,
+                AbstractManagedExecutorService.RejectPolicy.ABORT);
     }
 }

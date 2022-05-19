@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -16,20 +17,31 @@
 
 package org.glassfish.enterprise.concurrent;
 
+import jakarta.enterprise.concurrent.ContextService;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.concurrent.Trigger;
+import org.glassfish.enterprise.concurrent.internal.ManagedCompletableFuture;
+
+import java.util.function.Supplier;
 
 /**
  * The ManagedScheduledExecutorService instance to be handed to the
  * application components, with all life cycle operations overriden to 
  * throw UnSupportedException.
  */
-public class ManagedScheduledExecutorServiceAdapter 
-extends AbstractManagedExecutorServiceAdapter
-implements ManagedScheduledExecutorService {
+public class ManagedScheduledExecutorServiceAdapter
+        extends AbstractManagedExecutorServiceAdapter
+        implements ManagedScheduledExecutorService {
 
     private ManagedScheduledExecutorService executor;
 
@@ -105,6 +117,56 @@ implements ManagedScheduledExecutorService {
     @Override
     public ScheduledFuture<?> schedule(Runnable command, Trigger trigger) {
         return executor.schedule(command, trigger);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> completedFuture(U value) {
+        return ManagedCompletableFuture.completedFuture(value, executor);
+    }
+
+    @Override
+    public <U> CompletionStage<U> completedStage(U value) {
+        return ManagedCompletableFuture.completedStage(value, executor);
+    }
+
+    @Override
+    public <T> CompletableFuture<T> copy(CompletableFuture<T> future) {
+        return executor.copy(future);
+    }
+
+    @Override
+    public <T> CompletionStage<T> copy(CompletionStage<T> completionStage) {
+        return executor.copy(completionStage);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> failedFuture(Throwable ex) {
+        return ManagedCompletableFuture.failedFuture(ex, this);
+    }
+
+    @Override
+    public <U> CompletionStage<U> failedStage(Throwable ex) {
+        return ManagedCompletableFuture.failedStage(ex, this);
+    }
+
+    @Override
+    public ContextService getContextService() {
+        return executor.getContextService();
+    }
+
+    @Override
+    public <U> CompletableFuture<U> newIncompleteFuture() {
+        return new ManagedCompletableFuture<>(executor);
+    }
+
+    @Override
+    public CompletableFuture<Void> runAsync(Runnable runnable) {
+        return ManagedCompletableFuture.runAsync(runnable, executor);
+    }
+
+    @Override
+    public <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
+        return ManagedCompletableFuture.supplyAsync(supplier, executor);
     }
 
 }

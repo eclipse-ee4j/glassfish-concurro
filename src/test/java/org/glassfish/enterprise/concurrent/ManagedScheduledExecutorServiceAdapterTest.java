@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -31,6 +32,8 @@ import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.concurrent.SkippedException;
 import jakarta.enterprise.concurrent.Trigger;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService.RejectPolicy;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 import org.glassfish.enterprise.concurrent.test.CallableImpl;
@@ -771,15 +774,15 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
 
         String identityName;
         Object result;
-        Date scheduledStart, runStart, runEnd;
+        ZonedDateTime scheduledStart, runStart, runEnd;
         
         public LastExecutionCopy(LastExecution source) {
             if (source != null) {
                 identityName = source.getIdentityName();
                 result = source.getResult();
-                scheduledStart = source.getScheduledStart();
-                runStart = source.getRunStart();
-                runEnd = source.getRunEnd();
+                scheduledStart = source.getScheduledStart(ZoneId.systemDefault());
+                runStart = source.getRunStart(ZoneId.systemDefault());
+                runEnd = source.getRunEnd(ZoneId.systemDefault());
             }
         }
         
@@ -794,25 +797,25 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         }
 
         @Override
-        public Date getScheduledStart() {
-            return scheduledStart;
+        public ZonedDateTime getScheduledStart(ZoneId zone) {
+            return scheduledStart.withZoneSameLocal(zone);
         }
 
         @Override
-        public Date getRunStart() {
-            return runStart;
+        public ZonedDateTime getRunStart(ZoneId zone) {
+            return runStart.withZoneSameLocal(zone);
         }
 
         @Override
-        public Date getRunEnd() {
-            return runEnd;
+        public ZonedDateTime getRunEnd(ZoneId zone) {
+            return runEnd.withZoneSameLocal(zone);
         }
         
         @Override
         public String toString() {
-            return "[LastExecutionInfo] identityName: " + identityName + ", result: " + result + ", scheduledStart: " + scheduledStart + 
-                    ", runStart: " + runStart + ", runEnd: " + runEnd;
+            return "[LastExecutionInfo] identityName: " + identityName + ", result: " + result + ", scheduledStart: " + scheduledStart
+                    + ", runStart: " + runStart + ", runEnd: " + runEnd;
         }
-        
+
     }
 }
