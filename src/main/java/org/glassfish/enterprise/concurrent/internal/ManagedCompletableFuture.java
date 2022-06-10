@@ -15,7 +15,6 @@
  */
 package org.glassfish.enterprise.concurrent.internal;
 
-import jakarta.enterprise.concurrent.ManagedExecutorService;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -24,10 +23,12 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+
 /**
  * Managed CompletableFuture, using the provided ManagedExecutorServiceImpl.
  *
- * @author Petr Aubrecht <aubrecht@asoftware.cz>
+ * @author Petr Aubrecht &lt;aubrecht@asoftware.cz&gt;
  */
 public class ManagedCompletableFuture<T> extends CompletableFuture<T> {
 
@@ -126,7 +127,7 @@ public class ManagedCompletableFuture<T> extends CompletableFuture<T> {
     public static <U> CompletionStage<U> completedStage(U value, ManagedExecutorService executor) {
         ManagedCompletableFuture<U> future = new ManagedCompletableFuture<>(executor);
         future.complete(value);
-        return (CompletionStage<U>) future;
+        return future;
     }
 
     public static <U> CompletableFuture<U> failedFuture(Throwable ex, ManagedExecutorService executor) {

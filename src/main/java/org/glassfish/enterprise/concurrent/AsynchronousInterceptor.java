@@ -15,25 +15,28 @@
  */
 package org.glassfish.enterprise.concurrent;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+
+import org.glassfish.enterprise.concurrent.internal.ManagedCompletableFuture;
+
 import jakarta.annotation.Priority;
 import jakarta.enterprise.concurrent.Asynchronous;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import org.glassfish.enterprise.concurrent.internal.ManagedCompletableFuture;
 
 /**
  * Interceptor for @Asynchronous.
  *
- * @author Petr Aubrecht <aubrecht@asoftware.cz>
+ * @author Petr Aubrecht &lt;aubrecht@asoftware.cz&gt;
  */
 @Interceptor
 @Asynchronous

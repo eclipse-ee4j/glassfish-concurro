@@ -1,6 +1,7 @@
 /*
- * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2022 Payara Foundation and/or its affiliates.
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -20,25 +21,38 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.*;
-import jakarta.enterprise.concurrent.ContextService;
-import jakarta.enterprise.concurrent.ManagedExecutorService;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.RunnableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
+
 import org.glassfish.enterprise.concurrent.internal.ManagedCompletableFuture;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 
+import jakarta.enterprise.concurrent.ContextService;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+
 /**
- * Abstract base class for {@code ManagedExecutorService} and 
+ * Abstract base class for {@code ManagedExecutorService} and
  * {@code ManagedScheduledExecutorService}
  * implementation classes. Lifecycle operations are available for use by the
- * application server. Application components should be handed instances 
- * that extends from  AbstractManagedExecutorServiceAdapter instead, which have 
+ * application server. Application components should be handed instances
+ * that extends from  AbstractManagedExecutorServiceAdapter instead, which have
  * their lifecycle operations disabled.
  * Instances of subclasses of this class could be used by the Java EE
  * product provider to control the life cycle.
  */
-public abstract class AbstractManagedExecutorService 
+public abstract class AbstractManagedExecutorService
 extends AbstractExecutorService implements ManagedExecutorService {
 
     public enum RejectPolicy {
@@ -71,7 +85,7 @@ extends AbstractExecutorService implements ManagedExecutorService {
             managedThreadFactory = new ManagedThreadFactoryImpl(
                     name + "-ManagedThreadFactory",
                     null,
-                    Thread.NORM_PRIORITY);            
+                    Thread.NORM_PRIORITY);
         }
         managedThreadFactory.setHungTaskThreshold(hungTaskThreshold);
 
@@ -151,6 +165,7 @@ extends AbstractExecutorService implements ManagedExecutorService {
         return contextSetupProvider;
     }
 
+    @Override
     public ContextService getContextService() {
         return contextService;
     }
@@ -175,7 +190,7 @@ extends AbstractExecutorService implements ManagedExecutorService {
                     hungThreads.add(thread);
                 }
             }
-        }        
+        }
         return hungThreads;
     }
 
@@ -370,17 +385,17 @@ extends AbstractExecutorService implements ManagedExecutorService {
 
     @Override
     public abstract void execute(Runnable command);
-    
+
     /**
      * Executes a ManagedFutureTask created by getNewTaskFor()
-     * 
+     *
      * @param task The ManagedFutureTask to be run
      */
     protected void executeManagedFutureTask(ManagedFutureTask<?> task) {
         task.submitted();
         getThreadPoolExecutor().execute(task);
     }
- 
+
     @Override
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         return getThreadPoolExecutor().awaitTermination(timeout, unit);
@@ -418,15 +433,26 @@ extends AbstractExecutorService implements ManagedExecutorService {
      * other methods in this package that is not a subclass of AbstractExecutorService,
      * and to return Object of type ManagedFutureTask, which extends from
      * the return type of newTaskFor of FutureRunnable.
+     *
+     * @param <V> the type of the result
+     * @param r the runnable task to execute
+     * @param result the result
+     *
+     * @return the future result
      */
     protected abstract <V> ManagedFutureTask<V> getNewTaskFor(Runnable r, V result);
-    
+
     /**
      * newTaskFor from super class java.util.concurrent.AbstractExecutorService
      * is protected access. This method allows newTaskFor to be called by
      * other methods in this package that is not a subclass of AbstractExecutorService,
      * and to return Object of type ManagedFutureTask, which extends from
      * the return type of newTaskFor of FutureRunnable.
+     *
+     * @param <V> the type of the result
+     * @param callable the callable task to execute
+     *
+     * @return the future result
      */
     protected abstract <V> ManagedFutureTask<V> getNewTaskFor(Callable<V> callable);
 
@@ -434,12 +460,12 @@ extends AbstractExecutorService implements ManagedExecutorService {
     protected <T> RunnableFuture<T> newTaskFor(Runnable r, T result) {
         return getNewTaskFor(r, result);
     }
-    
+
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
         return getNewTaskFor(callable);
     }
-    
+
     @Override
     public <U> CompletableFuture<U> completedFuture(U value) {
         return ManagedCompletableFuture.completedFuture(value, this);
@@ -500,13 +526,13 @@ extends AbstractExecutorService implements ManagedExecutorService {
     /**
      * Returns the ManagedExecutorService instance that is used for passing
      * as the executor argument of ManagedTaskListener calls
-     * 
+     *
      * @return the ManagedExecutorService instance that is used for passing
      * as the executor argument of ManagedTaskListener calls
-     * 
+     *
      */
     public abstract ManagedExecutorService getExecutorForTaskListener();
-    
+
     /**
      * Returns the approximate total number of tasks that have ever been
      * scheduled for execution. Because the states of tasks and
@@ -516,7 +542,7 @@ extends AbstractExecutorService implements ManagedExecutorService {
      * @return the number of tasks
      */
     public abstract long getTaskCount();
-    
+
     /**
      * Returns the approximate total number of tasks that have
      * completed execution. Because the states of tasks and threads
