@@ -90,7 +90,8 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <maven.compiler.release>11</maven.compiler.release>
-        <jakarta.enterprise.concurrent-api.version>3.0.0</jakarta.enterprise.concurrent-api.version>
+        <jakarta.enterprise.concurrent-api.version>3.0.1</jakarta.enterprise.concurrent-api.version>
+        <jakarta.interceptor-api.version>2.1.0</jakarta.interceptor-api.version>
     </properties>
 
     <dependencies>
@@ -98,8 +99,19 @@
             <groupId>jakarta.enterprise.concurrent</groupId>
             <artifactId>jakarta.enterprise.concurrent-api</artifactId>
             <version>${jakarta.enterprise.concurrent-api.version}</version>
+            <scope>provided</scope>
         </dependency>
-        
+        <dependency>
+            <groupId>jakarta.interceptor</groupId>
+            <artifactId>jakarta.interceptor-api</artifactId>
+            <version>${jakarta.interceptor-api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.enterprise.concurrent</groupId>
+            <artifactId>jakarta.enterprise.concurrent-api</artifactId>
+            <version>${jakarta.enterprise.concurrent-api.version}</version>
+        </dependency>        
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
