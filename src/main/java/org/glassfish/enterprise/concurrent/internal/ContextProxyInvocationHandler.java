@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import jakarta.enterprise.concurrent.ContextService;
 import jakarta.enterprise.concurrent.ManagedTask;
+import java.lang.reflect.InvocationTargetException;
 import org.glassfish.enterprise.concurrent.ContextServiceImpl;
 import org.glassfish.enterprise.concurrent.spi.ContextHandle;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
@@ -80,6 +81,9 @@ public class ContextProxyInvocationHandler implements InvocationHandler, Seriali
             ContextHandle contextHandleForReset = contextSetupProvider.setup(capturedContextHandle);
             try {
                 result = method.invoke(proxiedObject, args);
+            } catch(InvocationTargetException e) {
+                // rethrow the original exception, not InvocationTargetException
+                throw e.getCause();
             } finally {
                 contextSetupProvider.reset(contextHandleForReset);
                 if (transactionSetupProvider != null) {
