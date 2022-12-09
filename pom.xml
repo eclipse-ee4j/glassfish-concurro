@@ -34,7 +34,7 @@
 
     <name>org.glassfish.jakarta.enterprise.concurrent</name>
     <description>Compatible Implementation of Jakarta Concurrency</description>
-    <url>https://projects.eclipse.org/projects/ee4j.cu</url>
+    <url>https://projects.eclipse.org/projects/ee4j.glassfish</url>
     <organization>
         <name>Oracle Corporation</name>
         <url>http://www.oracle.com/</url>
@@ -67,22 +67,22 @@
 
     <mailingLists>
         <mailingList>
-            <name>Concurrency mailing list</name>
-            <post>cu-dev@eclipse.org</post>
-            <subscribe>https://dev.eclipse.org/mailman/listinfo/cu-dev</subscribe>
-            <unsubscribe>https://dev.eclipse.org/mailman/listinfo/cu-dev</unsubscribe>
-            <archive>https://dev.eclipse.org/mhonarc/lists/cu-dev/</archive>
+            <name>GlassFish mailing list</name>
+            <post>glassfish-dev@eclipse.org</post>
+            <subscribe>https://dev.eclipse.org/mailman/listinfo/glassfish-dev</subscribe>
+            <unsubscribe>https://dev.eclipse.org/mailman/listinfo/glassfish-dev</unsubscribe>
+            <archive>https://dev.eclipse.org/mhonarc/lists/glassfish-dev/</archive>
         </mailingList>
     </mailingLists>
 
     <scm>
-        <url>https://github.com/eclipse-ee4j/concurrency-ri</url>
-        <connection>scm:git:https://github.com/eclipse-ee4j/concurrency-ri.git</connection>
-        <developerConnection>scm:git:git@github.com:eclipse-ee4j/concurrency-ri.git</developerConnection>
+        <url>https://github.com/eclipse-ee4j/concurro</url>
+        <connection>scm:git:https://github.com/eclipse-ee4j/concurro</connection>
+        <developerConnection>scm:git:git@github.com:eclipse-ee4j/concurro.git</developerConnection>
     </scm>
     <issueManagement>
         <system>GitHub</system>
-        <url>https://github.com/eclipse-ee4j/concurrency-ri/issues</url>
+        <url>https://github.com/eclipse-ee4j/concurro/issues</url>
     </issueManagement>
 
     <properties>
