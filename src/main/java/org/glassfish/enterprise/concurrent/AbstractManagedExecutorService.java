@@ -55,6 +55,16 @@ import jakarta.enterprise.concurrent.ManagedExecutorService;
 public abstract class AbstractManagedExecutorService
 extends AbstractExecutorService implements ManagedExecutorService {
 
+    private boolean isTaskHung(Thread thread, long now) {
+        if (thread instanceof AbstractManagedThread) {
+            AbstractManagedThread managedThread = (AbstractManagedThread) thread;
+            return managedThread.isTaskHung(now);
+        } else {
+            // TODO - virtual threads
+            throw new IllegalStateException("Not implemented yet - virtual threads");
+        }
+    }
+
     public enum RejectPolicy {
 
         ABORT, RETRY_ABORT
@@ -174,16 +184,16 @@ extends AbstractExecutorService implements ManagedExecutorService {
         return contextualCallback;
     }
 
-    public Collection<AbstractManagedThread> getHungThreads() {
+    public Collection<Thread> getHungThreads() {
         if (longRunningTasks) {
             return null;
         }
-        Collection<AbstractManagedThread> hungThreads = null;
-        Collection<AbstractManagedThread> allThreads = getThreads();
+        Collection<Thread> hungThreads = null;
+        Collection<Thread> allThreads = getThreads();
         if (allThreads != null) {
             long now = System.currentTimeMillis();
-            for (AbstractManagedThread thread: allThreads) {
-                if (thread.isTaskHung(now)) {
+            for (Thread thread : allThreads) {
+                if (isTaskHung(thread, now)) {
                     if (hungThreads == null) {
                         hungThreads = new ArrayList<>();
                     }
@@ -220,7 +230,7 @@ extends AbstractExecutorService implements ManagedExecutorService {
      * @return an array of threads in this Managed[Scheduled]ExecutorService.
      *         It returns null if there is no thread.
      */
-    public Collection<AbstractManagedThread> getThreads() {
+    public Collection<Thread> getThreads() {
         return managedThreadFactory.getThreads();
     }
 

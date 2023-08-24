@@ -258,7 +258,7 @@ public class ManagedExecutorServiceImplTest {
                 createManagedExecutor("testThreadLifeTime", 
                 1, 2, 0, 3L, 0L, false);
         
-        Collection<AbstractManagedThread> threads = mes.getThreads();
+        Collection<Thread> threads = mes.getThreads();
         assertNull(threads);
         
         RunnableImpl runnable = new RunnableImpl(null);
@@ -287,7 +287,7 @@ public class ManagedExecutorServiceImplTest {
                 createManagedExecutor("testThreadLifeTime", 
                 1, 2, 0, 0L, 1L, false);
         
-        Collection<AbstractManagedThread> threads = mes.getHungThreads();
+        Collection<Thread> threads = mes.getHungThreads();
         assertNull(threads);
         
         BlockingRunnableImpl runnable = new BlockingRunnableImpl(null, 0L);
@@ -316,7 +316,7 @@ public class ManagedExecutorServiceImplTest {
                 createManagedExecutor("testThreadLifeTime", 
                 1, 2, 0, 0L, 1L, true);
         
-        Collection<AbstractManagedThread> threads = mes.getHungThreads();
+        Collection<Thread> threads = mes.getHungThreads();
         assertNull(threads);
         
         BlockingRunnableImpl runnable = new BlockingRunnableImpl(null, 0L);

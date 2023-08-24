@@ -41,7 +41,7 @@ import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
  */
 public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
 
-    private List<AbstractManagedThread> threads;
+    private List<Thread> threads;
     private boolean stopped = false;
     private Lock lock; // protects threads and stopped
 
@@ -109,7 +109,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             } else if (contextSetupProvider != null) {
                 contextHandleForSetup = contextSetupProvider.saveContext(contextService);
             }
-            AbstractManagedThread newThread = createThread(r, contextHandleForSetup);
+            Thread newThread = createThread(r, contextHandleForSetup);
             newThread.setDaemon(true);
             threads.add(newThread);
             return newThread;
@@ -119,11 +119,11 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         }
     }
 
-    protected AbstractManagedThread createThread(final Runnable r, final ContextHandle contextHandleForSetup) {
+    protected Thread createThread(final Runnable r, final ContextHandle contextHandleForSetup) {
         if (System.getSecurityManager() == null) {
             return createThreadInternal(r, contextHandleForSetup);
         } else {
-            return (ManagedThread) AccessController.doPrivileged(new PrivilegedAction() {
+            return (Thread) AccessController.doPrivileged(new PrivilegedAction() {
                 @Override
                 public Object run() {
                     return createThreadInternal(r, contextHandleForSetup);
@@ -132,7 +132,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         }
     }
 
-    private ManagedThread createThreadInternal(final Runnable r, final ContextHandle contextHandleForSetup) {
+    private Thread createThreadInternal(final Runnable r, final ContextHandle contextHandleForSetup) {
         ManagedThread newThread = new ManagedThread(r, contextHandleForSetup);
         newThread.setPriority(priority);
         return newThread;
@@ -157,7 +157,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         return newThread;
     }
 
-    protected void removeThread(ManagedThread t) {
+    protected void removeThread(Thread t) {
         lock.lock();
         try {
             threads.remove(t);
@@ -172,8 +172,8 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
      * @return an array of threads in this ManagedThreadFactoryImpl.
      *         It returns null if there is no thread.
      */
-    protected Collection<AbstractManagedThread> getThreads() {
-        Collection<AbstractManagedThread> result = null;
+    protected Collection<Thread> getThreads() {
+        Collection<Thread> result = null;
         lock.lock();
         try {
             if (!threads.isEmpty()) {
@@ -191,6 +191,8 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             // called in thread t, so no need to worry about synchronization
             mt.taskStartTime = System.currentTimeMillis();
             mt.task = task;
+        } else {
+            // TODO - virtual threads
         }
     }
 
@@ -200,6 +202,8 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             // called in thread t, so no need to worry about synchronization
             mt.taskStartTime = 0L;
             mt.task = null;
+        } else {
+            // TODO - virtual threads
         }
     }
 
@@ -215,12 +219,12 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
       try {
         stopped = true;
         // interrupt all the threads created by this factory
-        Iterator<AbstractManagedThread> iter = threads.iterator();
+        Iterator<Thread> iter = threads.iterator();
         while(iter.hasNext()) {
-            AbstractManagedThread t = iter.next();
+            Thread t = iter.next();
             try {
-               t.shutdown(); // mark threads as shutting down
-               t.interrupt();
+                shutdown(t);
+                t.interrupt();
             } catch (SecurityException ignore) {
             }
         }
@@ -258,6 +262,17 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         } finally {
             lock.unlock();
         }
+    }
+
+    private void shutdown(Thread t) {
+        if (t instanceof AbstractManagedThread) {
+            AbstractManagedThread mt = (AbstractManagedThread) t;
+            mt.shutdown(); // mark threads as shutting down
+        } else {
+            // TODO - virtual threads
+            throw new IllegalStateException("Not implemented yet - virtual threads");
+        }
+
     }
 
     class WorkerThread extends ForkJoinWorkerThread {
