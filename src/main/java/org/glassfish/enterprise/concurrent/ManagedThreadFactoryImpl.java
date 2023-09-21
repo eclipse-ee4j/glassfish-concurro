@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023 Contributors to the Eclipse Foundation
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2022 Payara Foundation and/or its affiliates.
  *
@@ -191,8 +192,6 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             // called in thread t, so no need to worry about synchronization
             mt.taskStartTime = System.currentTimeMillis();
             mt.task = task;
-        } else {
-            // TODO - virtual threads
         }
     }
 
@@ -202,8 +201,6 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             // called in thread t, so no need to worry about synchronization
             mt.taskStartTime = 0L;
             mt.task = null;
-        } else {
-            // TODO - virtual threads
         }
     }
 
@@ -264,15 +261,11 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         }
     }
 
-    private void shutdown(Thread t) {
+    protected void shutdown(Thread t) {
         if (t instanceof AbstractManagedThread) {
             AbstractManagedThread mt = (AbstractManagedThread) t;
             mt.shutdown(); // mark threads as shutting down
-        } else {
-            // TODO - virtual threads
-            throw new IllegalStateException("Not implemented yet - virtual threads");
         }
-
     }
 
     class WorkerThread extends ForkJoinWorkerThread {

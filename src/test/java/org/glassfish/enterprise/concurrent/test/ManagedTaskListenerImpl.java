@@ -29,11 +29,11 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
 
     public static final String SUBMITTED = "taskSubmitted", STARTING = "taskStarting",
             DONE = "taskDone", ABORTED = "taskAborted";
-    private ConcurrentHashMap<Future, HashMap<String, CallbackParameters>> callParameters = 
+    private ConcurrentHashMap<Future, HashMap<String, CallbackParameters>> callParameters =
             new ConcurrentHashMap<Future, HashMap<String, CallbackParameters>>();
     volatile Future<?> startingFuture = null, submittedFuture = null,
             abortedFuture = null, doneFuture = null;
-        
+
     @Override
     public void taskSubmitted(Future<?> future, ManagedExecutorService executor, Object task) {
         storeEvent(SUBMITTED, future, executor, task, null);
@@ -57,7 +57,7 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
         storeEvent(STARTING, future, executor, task, null);
         startingFuture = future;
     }
-    
+
     public boolean eventCalled(Future<?> future, String event) {
         HashMap<String, CallbackParameters> map = callParameters.get(future);
         if (map != null) {
@@ -65,12 +65,13 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
         }
         return false;
     }
-    
+
     private void storeEvent (String event,
             Future<?> future,
             ManagedExecutorService executor,
             Object task,
             Throwable exception) {
+        System.out.println(event + ": " + task);
         HashMap<String, CallbackParameters> map = callParameters.get(future);
         if (map == null) {
             map = new HashMap<>();
@@ -85,7 +86,7 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
             map.put(event, params);
         }
     }
-    
+
     /*package*/ CallbackParameters find(Future<?> future, String event) {
         CallbackParameters result = null;
         if (future == null) {
@@ -125,19 +126,19 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
         return null;
     }
 
-    public void verifyCallback(String event, 
-            Future<?> future, 
-            ManagedExecutorService executor, 
-            Object task, 
+    public void verifyCallback(String event,
+            Future<?> future,
+            ManagedExecutorService executor,
+            Object task,
             Throwable exception) {
         verifyCallback(event, future, executor, task, exception, null);
     }
-    
-    public void verifyCallback(String event, 
-            Future<?> future, 
-            ManagedExecutorService executor, 
+
+    public void verifyCallback(String event,
+            Future<?> future,
+            ManagedExecutorService executor,
             Object task,
-            Throwable exception, 
+            Throwable exception,
             String classloaderName) {
         CallbackParameters result = find(future, event);
         assertNotNull("Callback: '" + event + "' not called", result);
@@ -159,7 +160,7 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
             assertEquals(classloaderName, ((NamedClassLoader)classLoader).getName());
         }
     }
-    
+
     /*package*/ static class CallbackParameters {
         private ManagedExecutorService executor;
         private Throwable exception;
@@ -210,6 +211,6 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
         public void setExecutor(ManagedExecutorService executor) {
             this.executor = executor;
         }
-        
+
     }
 }

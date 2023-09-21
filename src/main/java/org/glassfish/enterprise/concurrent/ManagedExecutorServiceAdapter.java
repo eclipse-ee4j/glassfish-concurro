@@ -34,12 +34,12 @@ import java.util.function.Supplier;
  * The ManagedExecutorService instance to be handed to the
  * application components, with all life cycle operations disabled.
  */
-public class ManagedExecutorServiceAdapter extends AbstractManagedExecutorServiceAdapter 
+public class ManagedExecutorServiceAdapter extends AbstractManagedExecutorServiceAdapter
 implements ManagedExecutorService {
-    
-    protected ManagedExecutorServiceImpl executor;
 
-    public ManagedExecutorServiceAdapter(ManagedExecutorServiceImpl executor) {
+    protected AbstractManagedExecutorService executor;
+
+    public ManagedExecutorServiceAdapter(AbstractManagedExecutorService executor) {
         this.executor = executor;
     }
 

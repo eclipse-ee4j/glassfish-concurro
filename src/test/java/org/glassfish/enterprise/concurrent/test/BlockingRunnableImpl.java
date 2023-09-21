@@ -21,14 +21,14 @@ public class BlockingRunnableImpl extends RunnableImpl {
     private long blockTime;
     private volatile boolean interrupted;
     private volatile boolean stopBlocking;
-    private static final boolean DEBUG = false;
-    
-    public BlockingRunnableImpl(ManagedTaskListenerImpl taskListener, 
+    private static final boolean DEBUG = true;
+
+    public BlockingRunnableImpl(ManagedTaskListenerImpl taskListener,
             long blockTime) {
         super(taskListener);
         this.blockTime = blockTime;
     }
-   
+
     private void busyWait() {
         // busy wait until stopBlocking is set
         debug("busyWait stopBlocking is " + stopBlocking);
@@ -41,7 +41,7 @@ public class BlockingRunnableImpl extends RunnableImpl {
         }
         debug("done busyWait. interrupted=" + interrupted );
     }
-    
+
     private void blockForSpecifiedTime() {
         // blocks until timed out or interrupted
         try {
@@ -53,23 +53,23 @@ public class BlockingRunnableImpl extends RunnableImpl {
     }
 
     public void run() {
-        debug("BlockingRunnableImpl.run()");
+        debug("BlockingRunnableImpl.run() " + this);
         if (blockTime == 0) {
             busyWait();
         } else {
             blockForSpecifiedTime();
         }
-        debug("BlockingRunnableImpl.run() done");
+        debug("BlockingRunnableImpl.run() done " + this);
     }
-    
+
     public boolean isInterrupted() {
         return interrupted;
     }
-    
+
     public void stopBlocking() {
         stopBlocking = true;
     }
-    
+
     public void debug(String msg) {
         if (DEBUG) {
             System.err.println(msg);
