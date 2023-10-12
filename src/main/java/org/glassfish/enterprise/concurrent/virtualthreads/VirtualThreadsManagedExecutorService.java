@@ -46,6 +46,7 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
     // The adapter to be returned to the caller needs to have all the lifecycle
     // methods disabled
     protected final ManagedExecutorServiceAdapter adapter;
+    protected final VirtualThreadsManagedThreadFactory virtualThreadsManagedThreadFactory;
 
     private AtomicLong taskCount = new AtomicLong();
 
@@ -63,6 +64,7 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
                 contextService,
                 contextService != null ? contextService.getContextSetupProvider() : null,
                 rejectPolicy);
+        virtualThreadsManagedThreadFactory = managedThreadFactory;
         // TODO - use the maxParallelTasks and queue to queue tasks if maxParallelTasks number of tasks is running
         if (maxParallelTasks <= 0) {
             throw new IllegalArgumentException("maxParallelTasks must be greater than 0, was " + maxParallelTasks);
@@ -105,6 +107,7 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
         executeManagedFutureTask(task);
     }
 
+    // FIXME: put to top of the class
     final Set<ManagedFutureTask<?>> runningFutures = Collections.synchronizedSet(new HashSet<>());
 
     protected void executeManagedFutureTask(ManagedFutureTask<?> task) {
@@ -213,4 +216,7 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
     public void taskStarting(Future<?> future, ManagedExecutorService executor, Object task) {
     }
 
+    protected boolean isTaskHung(Thread thread, long now) {
+        return virtualThreadsManagedThreadFactory.isTaskHung(thread, now);
+    }
 }

@@ -71,7 +71,7 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
             ManagedExecutorService executor,
             Object task,
             Throwable exception) {
-        System.out.println(event + ": " + task);
+        //System.out.println(event + ": " + task);
         HashMap<String, CallbackParameters> map = callParameters.get(future);
         if (map == null) {
             map = new HashMap<>();

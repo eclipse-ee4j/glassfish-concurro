@@ -55,14 +55,10 @@ import jakarta.enterprise.concurrent.ManagedExecutorService;
 public abstract class AbstractManagedExecutorService
 extends AbstractExecutorService implements ManagedExecutorService {
 
-    private boolean isTaskHung(Thread thread, long now) {
-        if (thread instanceof AbstractManagedThread) {
-            AbstractManagedThread managedThread = (AbstractManagedThread) thread;
-            return managedThread.isTaskHung(now);
-        } else {
-            // TODO - virtual threads
-            throw new IllegalStateException("Not implemented yet - virtual threads");
-        }
+    // FIXME: make this abstract and implement in subclasses
+    protected boolean isTaskHung(Thread thread, long now) {
+        AbstractManagedThread managedThread = (AbstractManagedThread) thread;
+        return managedThread.isTaskHung(now);
     }
 
     public enum RejectPolicy {

@@ -17,6 +17,8 @@ package org.glassfish.enterprise.concurrent.virtualthreads;
 
 import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.Logger.Level.INFO;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.glassfish.enterprise.concurrent.ContextServiceImpl;
 import org.glassfish.enterprise.concurrent.ManagedThreadFactoryImpl;
@@ -29,6 +31,9 @@ import org.glassfish.enterprise.concurrent.spi.ContextHandle;
  * @author Ondro Mihalyi
  */
 public class VirtualThreadsManagedThreadFactory extends ManagedThreadFactoryImpl {
+    // map from thread to the time of task start
+    // TODO replace ManagedThreadFactoryImpl.threads with startTimes.getKeySet?
+    final Map<Thread, Long> startTimes = new ConcurrentHashMap<>();
 
     public VirtualThreadsManagedThreadFactory(String name) {
         super(name);
@@ -57,15 +62,19 @@ public class VirtualThreadsManagedThreadFactory extends ManagedThreadFactoryImpl
     @Override
     public void taskStarting(Thread t, ManagedFutureTask task) {
         if (t != null) {
-            // TODO - virtual threads
+            startTimes.put(t, System.currentTimeMillis()); // TODO: use nanoTime instead?
         }
     }
 
     @Override
     public void taskDone(Thread t) {
         if (t != null) {
-            // TODO - virtual threads
+            startTimes.remove(t);
         }
+    }
+
+    public boolean isTaskHung(Thread thread, long now) {
+        return now - startTimes.get(thread) > getHungTaskThreshold();
     }
 
     static private final System.Logger loggerForRunnableWithContext = System.getLogger(RunnableWithContext.class.getName());
