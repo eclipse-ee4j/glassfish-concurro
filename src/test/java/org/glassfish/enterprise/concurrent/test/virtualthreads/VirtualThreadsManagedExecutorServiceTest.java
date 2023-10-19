@@ -26,7 +26,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,6 +47,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.glassfish.enterprise.concurrent.virtualthreads.VirtualThreadsManagedExecutorService;
 import org.glassfish.enterprise.concurrent.virtualthreads.VirtualThreadsManagedThreadFactory;
 import org.junit.Test;
@@ -262,6 +262,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
     public void testConstructorWithGivenQueue() {
         final int QUEUE_SIZE = 8765;
         BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
+        // FIXME: managedThreadFactory cannot be null
         VirtualThreadsManagedExecutorServiceExt mes
                 = new VirtualThreadsManagedExecutorServiceExt("mes", null, 0, false,
                         10, new TestContextService(null), RejectPolicy.ABORT,
@@ -413,6 +414,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
     BlockingQueue<Runnable> getQueue(VirtualThreadsManagedExecutorServiceExt mes) {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) mes.getThreadPoolExecutor();
         return executor.getQueue();
+        // FIXME replace with         return mes.getQueue();
     }
 
     public String getLoggerName() {

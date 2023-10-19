@@ -69,7 +69,7 @@ extends AbstractExecutorService implements ManagedExecutorService {
     protected final String name;
     protected final ContextSetupProvider contextSetupProvider;
     protected final ContextServiceImpl contextService;
-    protected final ManagedThreadFactoryImpl managedThreadFactory;
+    protected final ManagedThreadFactoryImpl managedThreadFactory; // FIXME aubi replace with virtual method getManagedThreadFactory
     protected RejectPolicy rejectPolicy; // currently unused
     protected final boolean contextualCallback;
     protected boolean longRunningTasks;
@@ -88,14 +88,17 @@ extends AbstractExecutorService implements ManagedExecutorService {
         this.contextualCallback = false;
         this.longRunningTasks = longRunningTasks;
         if (managedThreadFactory == null) {
-            managedThreadFactory = new ManagedThreadFactoryImpl(
-                    name + "-ManagedThreadFactory",
-                    null,
-                    Thread.NORM_PRIORITY);
+            managedThreadFactory = createDefaultManagedThreadFactory(name);
         }
         managedThreadFactory.setHungTaskThreshold(hungTaskThreshold);
 
         this.managedThreadFactory = managedThreadFactory;
+    }
+    
+    protected ManagedThreadFactoryImpl createDefaultManagedThreadFactory(String name) {
+        return new ManagedThreadFactoryImpl(name + "-ManagedThreadFactory",
+                null,
+                Thread.NORM_PRIORITY);
     }
 
     protected <T> T doInvokeAny(Collection<? extends Callable<T>> tasks, boolean timed, long nanos) throws InterruptedException, ExecutionException, TimeoutException {

@@ -96,6 +96,14 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
         if (map != null) {
             result = map.get(event);
         }
+
+        // FIXME replace with
+//        if (future != null) {
+//            HashMap<String, CallbackParameters> map = callParameters.get(future);
+//            if (map != null) {
+//                result = map.get(event);
+//            }
+//        }
         return result;
     }
 

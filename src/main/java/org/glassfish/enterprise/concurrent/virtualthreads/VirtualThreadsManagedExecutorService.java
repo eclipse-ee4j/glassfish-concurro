@@ -46,7 +46,7 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
     // The adapter to be returned to the caller needs to have all the lifecycle
     // methods disabled
     protected final ManagedExecutorServiceAdapter adapter;
-    protected final VirtualThreadsManagedThreadFactory virtualThreadsManagedThreadFactory;
+    protected VirtualThreadsManagedThreadFactory virtualThreadsManagedThreadFactory;
 
     private AtomicLong taskCount = new AtomicLong();
 
@@ -64,12 +64,14 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
                 contextService,
                 contextService != null ? contextService.getContextSetupProvider() : null,
                 rejectPolicy);
-        virtualThreadsManagedThreadFactory = managedThreadFactory;
+        if (managedThreadFactory != null) { // FIXME: find better way
+            virtualThreadsManagedThreadFactory = managedThreadFactory;
+        }
         // TODO - use the maxParallelTasks and queue to queue tasks if maxParallelTasks number of tasks is running
         if (maxParallelTasks <= 0) {
             throw new IllegalArgumentException("maxParallelTasks must be greater than 0, was " + maxParallelTasks);
         }
-        executor = Executors.newThreadPerTaskExecutor(managedThreadFactory);
+        executor = Executors.newThreadPerTaskExecutor(getManagedThreadFactory());
         adapter = new ManagedExecutorServiceAdapter(this);
     }
 
@@ -99,6 +101,14 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
             queue = new ArrayBlockingQueue<>(queueCapacity);
         }
         return queue;
+    }
+
+    @Override
+    protected ManagedThreadFactoryImpl createDefaultManagedThreadFactory(String name) {
+        VirtualThreadsManagedThreadFactory newManagedThreadFactory = new VirtualThreadsManagedThreadFactory(name + "-ManagedThreadFactory",
+                null);
+        virtualThreadsManagedThreadFactory = newManagedThreadFactory;
+        return newManagedThreadFactory;
     }
 
     @Override
