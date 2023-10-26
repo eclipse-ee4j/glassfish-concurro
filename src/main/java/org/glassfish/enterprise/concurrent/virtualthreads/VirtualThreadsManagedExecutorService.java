@@ -216,7 +216,6 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
     @Override
     public void taskDone(Future<?> future, ManagedExecutorService executor, Object task, Throwable exception) {
         runningFutures.remove(future);
-        taskCount.decrementAndGet();
         tasksCompleted.incrementAndGet();
         System.out.println("Task completed: " + task + ", taskCount: " + taskCount.get()
                 + ", tasksCompleted: " + tasksCompleted.get() + ", runningFutures: " + runningFutures.size());
