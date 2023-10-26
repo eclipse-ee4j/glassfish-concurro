@@ -30,7 +30,7 @@ import org.glassfish.enterprise.concurrent.internal.ManagedThreadPoolExecutor;
 /**
  * Implementation of ManagedExecutorService interface. See {@code AbstractManagedExecutorService}.
  */
-public class ManagedExecutorServiceImpl extends AbstractManagedExecutorService {
+public class ManagedExecutorServiceImpl extends AbstractPlatformThreadExecutorService {
     
     protected final ManagedThreadPoolExecutor threadPoolExecutor;
 

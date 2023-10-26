@@ -43,23 +43,17 @@ import jakarta.enterprise.concurrent.ContextService;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 
 /**
- * Abstract base class for {@code ManagedExecutorService} and
- * {@code ManagedScheduledExecutorService}
- * implementation classes. Lifecycle operations are available for use by the
- * application server. Application components should be handed instances
- * that extends from  AbstractManagedExecutorServiceAdapter instead, which have
- * their lifecycle operations disabled.
- * Instances of subclasses of this class could be used by the Java EE
- * product provider to control the life cycle.
+ * Abstract base class for {@code ManagedExecutorService},
+ * {@code ManagedScheduledExecutorService} and
+ * {@code VirtualThreadsManagedExecutorService} implementation classes.
+ * Lifecycle operations are available for use by the application server.
+ * Application components should be handed instances that extends from
+ * AbstractManagedExecutorServiceAdapter instead, which have their lifecycle
+ * operations disabled. Instances of subclasses of this class could be used by
+ * the Java EE product provider to control the life cycle.
  */
 public abstract class AbstractManagedExecutorService
 extends AbstractExecutorService implements ManagedExecutorService {
-
-    // FIXME: make this abstract and implement in subclasses
-    protected boolean isTaskHung(Thread thread, long now) {
-        AbstractManagedThread managedThread = (AbstractManagedThread) thread;
-        return managedThread.isTaskHung(now);
-    }
 
     public enum RejectPolicy {
 
@@ -396,7 +390,17 @@ extends AbstractExecutorService implements ManagedExecutorService {
     public abstract void execute(Runnable command);
 
     /**
-     * Executes a ManagedFutureTask created by getNewTaskFor()
+     * Determine, if the provided thread is hung. Hung thread runs longer than
+     * managedThreadFactory.hungTaskThreshold.
+     *
+     * @param thread thread to investigate
+     * @param now current time in milliseconds
+     * @return true if the thread runs longer than hungTaskThreshold
+     */
+    protected abstract boolean isTaskHung(Thread thread, long now);
+
+    /**
+     * Executes a ManagedFutureTask created by getNewTaskFor().
      *
      * @param task The ManagedFutureTask to be run
      */

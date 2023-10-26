@@ -27,8 +27,8 @@ import org.glassfish.enterprise.concurrent.internal.ManagedScheduledThreadPoolEx
 /**
  * Implementation of ManagedScheduledExecutorService interface
  */
-public class ManagedScheduledExecutorServiceImpl extends AbstractManagedExecutorService 
-    implements ManagedScheduledExecutorService {
+public class ManagedScheduledExecutorServiceImpl extends AbstractPlatformThreadExecutorService
+        implements ManagedScheduledExecutorService {
 
     protected ManagedScheduledThreadPoolExecutor threadPoolExecutor;
     protected final ManagedScheduledExecutorServiceAdapter adapter;
