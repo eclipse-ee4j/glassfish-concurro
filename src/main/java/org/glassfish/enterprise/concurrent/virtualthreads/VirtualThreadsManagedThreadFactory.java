@@ -74,7 +74,11 @@ public class VirtualThreadsManagedThreadFactory extends ManagedThreadFactoryImpl
     }
 
     public boolean isTaskHung(Thread thread, long now) {
-        return now - startTimes.get(thread) > getHungTaskThreshold();
+        Long startTime = startTimes.get(thread);
+        if (startTime == null) {
+            return false;
+        }
+        return now - startTime > getHungTaskThreshold();
     }
 
     static private final System.Logger loggerForRunnableWithContext = System.getLogger(RunnableWithContext.class.getName());

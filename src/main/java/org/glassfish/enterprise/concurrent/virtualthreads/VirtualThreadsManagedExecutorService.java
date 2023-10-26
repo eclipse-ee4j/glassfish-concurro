@@ -146,7 +146,6 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
         }
         runningFuturesCopy.stream().forEach(future -> {
             future.cancel(false);
-            System.out.println("Future " + future + " in state: " + future.state());
         });
     }
 
@@ -210,15 +209,12 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
     public void taskAborted(Future<?> future, ManagedExecutorService executor, Object task, Throwable exception) {
         runningFutures.remove(future);
         taskCount.decrementAndGet();
-        System.out.println("Task aborted: " + task + ", taskCount: " + taskCount.get() + ", runningFutures: " + runningFutures.size());
     }
 
     @Override
     public void taskDone(Future<?> future, ManagedExecutorService executor, Object task, Throwable exception) {
         runningFutures.remove(future);
         tasksCompleted.incrementAndGet();
-        System.out.println("Task completed: " + task + ", taskCount: " + taskCount.get()
-                + ", tasksCompleted: " + tasksCompleted.get() + ", runningFutures: " + runningFutures.size());
     }
 
     @Override

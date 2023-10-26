@@ -32,15 +32,13 @@ public class ClassloaderContextSetupProvider implements ContextSetupProvider {
     public ClassloaderContextSetupProvider(String classloaderName) {
         this.classloaderName = classloaderName;
     }
-    
+
     public void throwsOnSetup(String msg) {
         throwsOnSetupMessage = msg;
     }
-    
+
     @Override
     public ContextHandle saveContext(ContextService contextService) {
-//        System.out.println("ClassloaderContextSetupProvider.saveContext called");
-//        new Exception("ClassloaderContextSetupProvider.saveContext").printStackTrace();
         return new SavedContext(Thread.currentThread().getContextClassLoader());
     }
 
@@ -50,9 +48,9 @@ public class ClassloaderContextSetupProvider implements ContextSetupProvider {
             throw new IllegalStateException(throwsOnSetupMessage);
         }
         classloaderBeforeSetup = Thread.currentThread().getContextClassLoader();
-        
+
         SavedContext savedContext = (SavedContext)contextHandle;
-        ClassLoader contextClassLoader = 
+        ClassLoader contextClassLoader =
                 new NamedClassLoader(classloaderName, savedContext.originalClassloader);
         Thread.currentThread().setContextClassLoader(contextClassLoader);
         return new SavedContext(classloaderBeforeSetup);
@@ -70,14 +68,14 @@ public class ClassloaderContextSetupProvider implements ContextSetupProvider {
         contextServiceProperties = contextObjectProperties;
         return new SavedContext(Thread.currentThread().getContextClassLoader());
     }
-    
+
     static class SavedContext implements ContextHandle {
         transient ClassLoader originalClassloader;
 
         public SavedContext(ClassLoader originalClassloader) {
             this.originalClassloader = originalClassloader;
         }
-                
+
     }
-    
+
 }

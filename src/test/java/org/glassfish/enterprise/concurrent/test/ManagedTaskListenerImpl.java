@@ -71,7 +71,6 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
             ManagedExecutorService executor,
             Object task,
             Throwable exception) {
-        //System.out.println(event + ": " + task);
         HashMap<String, CallbackParameters> map = callParameters.get(future);
         if (map == null) {
             map = new HashMap<>();
@@ -89,9 +88,6 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
 
     /*package*/ CallbackParameters find(Future<?> future, String event) {
         CallbackParameters result = null;
-        if (future == null) {
-            System.out.println("future is null");
-        }
         HashMap<String, CallbackParameters> map = callParameters.get(future);
         if (map != null) {
             result = map.get(event);
