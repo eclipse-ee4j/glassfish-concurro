@@ -18,14 +18,11 @@ package org.glassfish.enterprise.concurrent.test.virtualthreads;
 
 import static java.lang.System.Logger.Level.INFO;
 
-import org.glassfish.enterprise.concurrent.*;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -47,7 +44,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
+import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService;
+import org.glassfish.enterprise.concurrent.ContextServiceImpl;
+import org.glassfish.enterprise.concurrent.ManagedExecutorServiceAdapterTest;
 import org.glassfish.enterprise.concurrent.virtualthreads.VirtualThreadsManagedExecutorService;
 import org.glassfish.enterprise.concurrent.virtualthreads.VirtualThreadsManagedThreadFactory;
 import org.junit.Test;
@@ -226,52 +225,6 @@ public class VirtualThreadsManagedExecutorServiceTest {
     }
 
     @Test
-    public void testQueueCreation() throws Exception {
-        // Case 1: corePoolSize of 0, queue size of Integer.MAX_VALUE
-        //         A SynchronousQueue should be created
-        VirtualThreadsManagedExecutorServiceExt mes1 = createManagedExecutor("mes1", 1, Integer.MAX_VALUE);
-        BlockingQueue<Runnable> queue = getQueue(mes1);
-        assertTrue(queue instanceof SynchronousQueue);
-        assertEquals(0, queue.remainingCapacity());
-
-        // Case 2: corePoolSize of non-zero, queue size of Integer.MAX_VALUE
-        //         An unbounded queue should be created
-        VirtualThreadsManagedExecutorServiceExt mes2 = createManagedExecutor("mes2", 1, Integer.MAX_VALUE);
-        queue = getQueue(mes2);
-        assertEquals(Integer.MAX_VALUE, queue.remainingCapacity());
-
-        // Case 3: queue size of 0, A SynchronousQueue should be created
-        VirtualThreadsManagedExecutorServiceExt mes3 = createManagedExecutor("mes3", 1, 0);
-        queue = getQueue(mes3);
-        assertTrue(queue instanceof SynchronousQueue);
-        assertEquals(0, queue.remainingCapacity());
-
-        // Case 4: queue size not 0 or Integer.MAX_VALUE,
-        //         A queue with specified capacity should be created
-        final int QUEUE_SIZE = 1234;
-        VirtualThreadsManagedExecutorServiceExt mes4 = createManagedExecutor("mes4", 1, QUEUE_SIZE);
-        queue = getQueue(mes4);
-        assertEquals(QUEUE_SIZE, queue.remainingCapacity());
-
-        VirtualThreadsManagedExecutorServiceExt mes5 = createManagedExecutor("mes5", 10, QUEUE_SIZE);
-        queue = getQueue(mes5);
-        assertEquals(QUEUE_SIZE, queue.remainingCapacity());
-    }
-
-    @Test
-    public void testConstructorWithGivenQueue() {
-        final int QUEUE_SIZE = 8765;
-        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
-        // FIXME: managedThreadFactory cannot be null
-        VirtualThreadsManagedExecutorServiceExt mes
-                = new VirtualThreadsManagedExecutorServiceExt("mes", null, 0, false,
-                        10, new TestContextService(null), RejectPolicy.ABORT,
-                        queue);
-        assertEquals(queue, getQueue(mes));
-        assertEquals(QUEUE_SIZE, getQueue(mes).remainingCapacity());
-    }
-
-    @Test
     public void testTaskCounters() {
         final AbstractManagedExecutorService mes
                 = (AbstractManagedExecutorService) createManagedExecutor("testTaskCounters", null);
@@ -409,12 +362,6 @@ public class VirtualThreadsManagedExecutorServiceTest {
                 queueSize,
                 new TestContextService(null),
                 RejectPolicy.ABORT);
-    }
-
-    BlockingQueue<Runnable> getQueue(VirtualThreadsManagedExecutorServiceExt mes) {
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) mes.getThreadPoolExecutor();
-        return executor.getQueue();
-        // FIXME replace with         return mes.getQueue();
     }
 
     public String getLoggerName() {
