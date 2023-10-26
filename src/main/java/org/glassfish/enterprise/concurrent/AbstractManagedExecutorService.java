@@ -63,14 +63,11 @@ extends AbstractExecutorService implements ManagedExecutorService {
     protected final String name;
     protected final ContextSetupProvider contextSetupProvider;
     protected final ContextServiceImpl contextService;
-    protected final ManagedThreadFactoryImpl managedThreadFactory; // FIXME aubi replace with virtual method getManagedThreadFactory
     protected RejectPolicy rejectPolicy; // currently unused
     protected final boolean contextualCallback;
     protected boolean longRunningTasks;
 
     public AbstractManagedExecutorService(String name,
-            ManagedThreadFactoryImpl managedThreadFactory,
-            long hungTaskThreshold,
             boolean longRunningTasks,
             ContextServiceImpl contextService,
             ContextSetupProvider contextCallback,
@@ -81,19 +78,14 @@ extends AbstractExecutorService implements ManagedExecutorService {
         this.rejectPolicy = rejectPolicy;
         this.contextualCallback = false;
         this.longRunningTasks = longRunningTasks;
-        if (managedThreadFactory == null) {
-            managedThreadFactory = createDefaultManagedThreadFactory(name);
-        }
-        managedThreadFactory.setHungTaskThreshold(hungTaskThreshold);
+    }
 
-        this.managedThreadFactory = managedThreadFactory;
-    }
-    
-    protected ManagedThreadFactoryImpl createDefaultManagedThreadFactory(String name) {
-        return new ManagedThreadFactoryImpl(name + "-ManagedThreadFactory",
-                null,
-                Thread.NORM_PRIORITY);
-    }
+    @Override
+    public abstract void execute(Runnable command);
+
+    public abstract ManagedThreadFactoryImpl getManagedThreadFactory();
+
+    protected abstract ExecutorService getThreadPoolExecutor();
 
     protected <T> T doInvokeAny(Collection<? extends Callable<T>> tasks, boolean timed, long nanos) throws InterruptedException, ExecutionException, TimeoutException {
         // adopted from java.util.concurrent.AbstractExecutorService.doInvokeAny()
@@ -197,10 +189,6 @@ extends AbstractExecutorService implements ManagedExecutorService {
         return hungThreads;
     }
 
-    public ManagedThreadFactoryImpl getManagedThreadFactory() {
-        return managedThreadFactory;
-    }
-
     public String getName() {
         return name;
     }
@@ -224,7 +212,7 @@ extends AbstractExecutorService implements ManagedExecutorService {
      *         It returns null if there is no thread.
      */
     public Collection<Thread> getThreads() {
-        return managedThreadFactory.getThreads();
+        return getManagedThreadFactory().getThreads();
     }
 
     @Override
@@ -383,11 +371,6 @@ extends AbstractExecutorService implements ManagedExecutorService {
         executeManagedFutureTask(ftask);
         return ftask;
     }
-
-    protected abstract ExecutorService getThreadPoolExecutor();
-
-    @Override
-    public abstract void execute(Runnable command);
 
     /**
      * Determine, if the provided thread is hung. Hung thread runs longer than

@@ -46,7 +46,7 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
     // The adapter to be returned to the caller needs to have all the lifecycle
     // methods disabled
     protected final ManagedExecutorServiceAdapter adapter;
-    protected VirtualThreadsManagedThreadFactory virtualThreadsManagedThreadFactory;
+    protected VirtualThreadsManagedThreadFactory managedThreadFactory;
 
     private AtomicLong taskCount = new AtomicLong();
 
@@ -60,13 +60,14 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
             ContextServiceImpl contextService,
             RejectPolicy rejectPolicy,
             BlockingQueue<Runnable> queue) {
-        super(name, managedThreadFactory, hungTaskThreshold, longRunningTasks,
+        super(name, longRunningTasks,
                 contextService,
                 contextService != null ? contextService.getContextSetupProvider() : null,
                 rejectPolicy);
-        if (managedThreadFactory != null) { // FIXME: find better way
-            virtualThreadsManagedThreadFactory = managedThreadFactory;
-        }
+
+        this.managedThreadFactory = managedThreadFactory != null ? managedThreadFactory : createDefaultManagedThreadFactory(name);
+        this.managedThreadFactory.setHungTaskThreshold(hungTaskThreshold);
+
         // TODO - use the maxParallelTasks and queue to queue tasks if maxParallelTasks number of tasks is running
         if (maxParallelTasks <= 0) {
             throw new IllegalArgumentException("maxParallelTasks must be greater than 0, was " + maxParallelTasks);
@@ -103,11 +104,10 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
         return queue;
     }
 
-    @Override
-    protected ManagedThreadFactoryImpl createDefaultManagedThreadFactory(String name) {
+    private VirtualThreadsManagedThreadFactory createDefaultManagedThreadFactory(String name) {
         VirtualThreadsManagedThreadFactory newManagedThreadFactory = new VirtualThreadsManagedThreadFactory(name + "-ManagedThreadFactory",
                 null);
-        virtualThreadsManagedThreadFactory = newManagedThreadFactory;
+        managedThreadFactory = newManagedThreadFactory;
         return newManagedThreadFactory;
     }
 
@@ -222,6 +222,11 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
     }
 
     protected boolean isTaskHung(Thread thread, long now) {
-        return virtualThreadsManagedThreadFactory.isTaskHung(thread, now);
+        return managedThreadFactory.isTaskHung(thread, now);
+    }
+
+    @Override
+    public ManagedThreadFactoryImpl getManagedThreadFactory() {
+        return managedThreadFactory;
     }
 }
