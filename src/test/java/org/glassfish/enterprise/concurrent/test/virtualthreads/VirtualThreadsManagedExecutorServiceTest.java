@@ -16,8 +16,7 @@
  */
 package org.glassfish.enterprise.concurrent.test.virtualthreads;
 
-import static java.lang.System.Logger.Level.INFO;
-
+import org.glassfish.enterprise.concurrent.test.AwaitableManagedTaskListenerImpl;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -44,9 +43,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeoutException;
 import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService;
 import org.glassfish.enterprise.concurrent.ContextServiceImpl;
 import org.glassfish.enterprise.concurrent.ManagedExecutorServiceAdapterTest;
+import org.glassfish.enterprise.concurrent.test.ManagedRunnableTask;
 import org.glassfish.enterprise.concurrent.virtualthreads.VirtualThreadsManagedExecutorService;
 import org.glassfish.enterprise.concurrent.virtualthreads.VirtualThreadsManagedThreadFactory;
 import org.junit.Test;
@@ -252,7 +253,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
     }
 
     @Test
-    public void testThreadLifeTime() {
+    public void testThreadLifeTime() throws InterruptedException, ExecutionException, TimeoutException {
         final AbstractManagedExecutorService mes
                 = createManagedExecutor("testThreadLifeTime",
                         2, 0, 3L, 0L, false);
@@ -260,23 +261,20 @@ public class VirtualThreadsManagedExecutorServiceTest {
         Collection<Thread> threads = mes.getThreads();
         assertNull(threads);
 
-        RunnableImpl runnable = new RunnableImpl(null);
+        AwaitableManagedTaskListenerImpl taskListener = new AwaitableManagedTaskListenerImpl();
+        RunnableImpl runnable = new ManagedRunnableTask(taskListener);
+
         Future f = mes.submit(runnable);
+        threads = mes.getThreads();
+        assertEquals(1, threads.size());
         try {
             f.get();
         } catch (Exception ex) {
             Logger.getLogger(VirtualThreadsManagedExecutorServiceTest.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        threads = mes.getThreads();
-        assertEquals(1, threads.size());
-        logger.log(INFO, "Waiting for threads to expire due to threadLifeTime");
-        Util.waitForBoolean(new BooleanValueProducer() {
-            public boolean getValue() {
-                // wait for all threads get expired
-                return mes.getThreads() == null;
-            }
-        }, true, getLoggerName());
+        taskListener.whenDone().get(5, TimeUnit.SECONDS);
+        assertNull("All virtual threads should be discarded after tasks are done", mes.getThreads());
 
     }
 
