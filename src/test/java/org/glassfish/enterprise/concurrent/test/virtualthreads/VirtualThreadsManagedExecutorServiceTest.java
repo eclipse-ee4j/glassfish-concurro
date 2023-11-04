@@ -48,6 +48,7 @@ import static org.junit.Assert.fail;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService;
 import org.glassfish.enterprise.concurrent.ContextServiceImpl;
 import org.glassfish.enterprise.concurrent.ManagedExecutorServiceAdapterTest;
@@ -86,76 +87,71 @@ public class VirtualThreadsManagedExecutorServiceTest {
     public void testShutdownNow_tasks_behavior() throws InterruptedException, InterruptedException {
         ManagedExecutorService mes
                 = createManagedExecutor("testShutdown_tasks_behavior", 2, 2); // max tasks=2, queue=2
-        ManagedTaskListenerImpl listener1 = new ManagedTaskListenerImpl();
-        final BlockingRunnableImpl task1 = new ManagedBlockingRunnableTask(listener1, 0L);
-        logger.log(System.Logger.Level.INFO, "task1: " + task1);
-        Future f1 = mes.submit(task1); // this task should be run
+        TestableExecution<ManagedBlockingRunnableTask> execution1
+                = new TestableExecution<>("task1", TestableExecution::busyWaitingTask);
+        logger.log(System.Logger.Level.INFO, execution1.name + ": " + execution1.task);
+        execution1.submitTo(mes); // this task should be run
 
-        ManagedTaskListenerImpl listener2 = new ManagedTaskListenerImpl();
-        BlockingRunnableImpl task2 = new ManagedBlockingRunnableTask(listener2, 0L);
-        Future f2 = mes.submit(task2); // this task should be queued
+        TestableExecution<ManagedBlockingRunnableTask> execution2
+                = new TestableExecution<>("task2", TestableExecution::busyWaitingTask);
+        execution2.submitTo(mes); // this task should be queued
 
-        ManagedTaskListenerImpl listener3 = new ManagedTaskListenerImpl();
-        BlockingRunnableImpl task3 = new ManagedBlockingRunnableTask(listener3, 0L);
-        Future f3 = mes.submit(task3); // this task should be queued
+        TestableExecution<ManagedBlockingRunnableTask> execution3
+                = new TestableExecution<>("task3", TestableExecution::busyWaitingTask);
+        execution3.submitTo(mes); // this task should be queued
         // waits for task1 to start
-        Util.waitForTaskStarted(f1, listener1, getLoggerName());
+        execution1.assertTaskStarted();
 
         mes.shutdownNow();
 
         // task2 and task3 should be cancelled
-        Util.waitForTaskAborted(f2, listener2, getLoggerName());
-        assertTrue(f2.isCancelled());
-        assertTrue(listener2.eventCalled(f2, ManagedTaskListenerImpl.ABORTED));
+        execution2.assertTaskAborted();
 
-        Util.waitForTaskAborted(f3, listener3, getLoggerName());
-        assertTrue(f3.isCancelled());
-        assertTrue(listener3.eventCalled(f3, ManagedTaskListenerImpl.ABORTED));
+        execution3.assertTaskAborted();
 
         // task1 should be interrupted
-        Util.waitForBoolean(task1::isInterrupted, true, getLoggerName());
-        assertTrue(task1.isInterrupted());
+        Util.waitForBoolean(execution1.task::isInterrupted, true, getLoggerName());
+        assertTrue(execution1.task.isInterrupted());
     }
 
     @Test
     public void testMaxParallelTasks_limitation() throws InterruptedException {
         ManagedExecutorService mes
                 = createManagedExecutor("testShutdown_tasks_behavior", 2, 2); // max tasks=2, queue=2
-        ManagedTaskListenerImpl listener1 = new ManagedTaskListenerImpl();
-        final BlockingRunnableImpl task1 = new ManagedBlockingRunnableTask(listener1, 0);
-        Future f1 = mes.submit(task1); // this task should be run
+        TestableExecution<ManagedBlockingRunnableTask> execution1
+                = new TestableExecution<>("task1", exec -> new ManagedBlockingRunnableTask(exec.listener, 0));
+        execution1.submitTo(mes); // this task should be run
 
-        ManagedTaskListenerImpl listener2 = new ManagedTaskListenerImpl();
-        BlockingRunnableImpl task2 = new ManagedBlockingRunnableTask(listener2, 0);
-        Future f2 = mes.submit(task2); // this task should be queued
+        TestableExecution<ManagedBlockingRunnableTask> execution2
+                = new TestableExecution<>("task2", exec -> new ManagedBlockingRunnableTask(exec.listener, 0));
+        execution2.submitTo(mes); // this task should be queued
 
-        // waits for task1 to start
-        assertTrue(Util.waitForTaskStarted(f1, listener1, getLoggerName()));
-        assertTrue(Util.waitForTaskStarted(f2, listener2, getLoggerName()));
+        // waits for task1 & task2 to start
+        execution1.assertTaskStarted();
+        execution2.assertTaskStarted();
 
-        ManagedTaskListenerImpl listener3 = new ManagedTaskListenerImpl();
-        RunnableImpl task3 = new ManagedRunnableTask(listener3);
-        Future f3 = mes.submit(task3); // this task should be queued
+        TestableExecution<ManagedRunnableTask> execution3
+                = new TestableExecution<>("task1", exec -> new ManagedRunnableTask(exec.listener));
+        execution3.submitTo(mes); // this task should be queued
 
         // wait for some time so tasks have some chance to start before assertions are made
         Thread.sleep(Duration.ofSeconds(1));
 
         // task3 should wait with starting while the other 2 tasks are running
-        assertFalse(listener3.eventCalled(f3, ManagedTaskListenerImpl.STARTING));
-        assertFalse(f1.isDone());
-        assertFalse(f2.isDone());
+        assertFalse(execution3.listener.eventCalled(execution3.future, ManagedTaskListenerImpl.STARTING));
+        assertFalse(execution1.future.isDone());
+        assertFalse(execution2.future.isDone());
 
-        task1.stopBlocking();
-        task2.stopBlocking();
+        execution1.task.stopBlocking();
+        execution2.task.stopBlocking();
 
-        // tasks should complete successfully
-        assertTrue(Util.waitForTaskComplete(task1, getLoggerName()));
-        assertTrue(Util.waitForTaskComplete(task2, getLoggerName()));
-        assertTrue(Util.waitForTaskComplete(task3, getLoggerName()));
+        execution1.assertTaskCompleted();
+        execution2.assertTaskCompleted();
+        execution3.assertTaskCompleted();
 
-        assertTrue(f1.isDone());
-        assertTrue(f2.isDone());
-        assertTrue(f3.isDone());
+        assertTrue(execution1.future.isDone());
+        assertTrue(execution2.future.isDone());
+        assertTrue(execution3.future.isDone());
     }
 
     @Test
@@ -381,6 +377,45 @@ public class VirtualThreadsManagedExecutorServiceTest {
         @Override
         public ExecutorService getThreadPoolExecutor() {
             return super.getThreadPoolExecutor();
+        }
+
+    }
+
+    private class TestableExecution<RUNNABLE extends RunnableImpl> {
+
+        RUNNABLE task;
+        Future future;
+        ManagedTaskListenerImpl listener;
+        String name;
+
+        public TestableExecution(String name, Function<TestableExecution, RUNNABLE> taskCreator) {
+            this.name = name;
+            listener = new ManagedTaskListenerImpl();
+            task = taskCreator.apply(this);
+        }
+
+        public void submitTo(ManagedExecutorService mes) {
+            future = mes.submit(task);
+        }
+
+        public void assertTaskCompleted() {
+            // tasks should complete successfully
+            assertTrue(Util.waitForTaskComplete(task, getLoggerName()));
+        }
+
+        public void assertTaskStarted() {
+            // waits for task1 to start
+            assertTrue(Util.waitForTaskStarted(future, listener, getLoggerName()));
+        }
+
+        public void assertTaskAborted() {
+            assertTrue(Util.waitForTaskAborted(future, listener, getLoggerName()));
+            assertTrue(future.isCancelled());
+            assertTrue(listener.eventCalled(future, ManagedTaskListenerImpl.ABORTED));
+        }
+
+        public static ManagedBlockingRunnableTask busyWaitingTask(TestableExecution exec) {
+            return new ManagedBlockingRunnableTask(exec.listener, 0);
         }
 
     }
