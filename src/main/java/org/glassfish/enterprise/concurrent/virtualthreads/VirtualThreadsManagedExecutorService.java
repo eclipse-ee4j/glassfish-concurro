@@ -21,12 +21,13 @@ import jakarta.enterprise.concurrent.ManagedTask;
 import org.glassfish.enterprise.concurrent.*;
 import java.util.concurrent.ExecutorService;
 import jakarta.enterprise.concurrent.ManagedTaskListener;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -55,6 +56,10 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
 
     private Semaphore queuedTasksSemaphore = null;
     int queueCapacity;
+
+    final private Set<ManagedFutureTask<?>> runningFutures = ConcurrentHashMap.newKeySet();
+    final private Set<ManagedFutureTask<?>> tasksInQueue = ConcurrentHashMap.newKeySet();
+
 
     public VirtualThreadsManagedExecutorService(String name,
             VirtualThreadsManagedThreadFactory managedThreadFactory,
@@ -97,12 +102,10 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
         executeManagedFutureTask(task);
     }
 
-    // FIXME: put to top of the class
-    final Set<ManagedFutureTask<?>> runningFutures = Collections.synchronizedSet(new HashSet<>());
-
     protected void executeManagedFutureTask(ManagedFutureTask<?> task) {
         if (queuedTasksSemaphore == null || queuedTasksSemaphore.tryAcquire()) {
             task.submitted();
+            tasksInQueue.add(task);
             getThreadPoolExecutor().execute(task);
             runningFutures.add(task);
         } else {
@@ -112,9 +115,9 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
 
     @Override
     public List<Runnable> shutdownNow() {
-        List<Runnable> result = super.shutdownNow();
+        super.shutdownNow();
         cancelRunningFutures();
-        return result;
+        return new ArrayList<>(tasksInQueue);
     }
 
     @Override
@@ -157,19 +160,20 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
     @Override
     protected <V> ManagedFutureTask<V> getNewTaskFor(Runnable r, V result) {
         Runnable task = turnToTaskWithListener(r, result, this);
-        return new VirtualThreadsManagedFutureTask<>(this, task, result, parallelTasksSemaphore,
-                () -> {
-                    if (queuedTasksSemaphore != null) {
-                        queuedTasksSemaphore.release();
-                    }
-                });
+        VirtualThreadsManagedFutureTask<V> managedTask = new VirtualThreadsManagedFutureTask<>(this, task, result, parallelTasksSemaphore);
+        addTaskListeners(managedTask);
+        return managedTask;
     }
 
-    @Override
-    protected ManagedFutureTask getNewTaskFor(Callable callable) {
-        Callable task = turnToTaskWithListener(callable, this);
-        return new VirtualThreadsManagedFutureTask<>(this, task, parallelTasksSemaphore,
-                queuedTasksSemaphore::release);
+    private <V> void addTaskListeners(VirtualThreadsManagedFutureTask<V> managedTask) {
+        managedTask.setTaskCompletionHandler(() -> {
+            if (queuedTasksSemaphore != null) {
+                queuedTasksSemaphore.release();
+            }
+        });
+        managedTask.setTaskStartedHandler(startedTask -> {
+            tasksInQueue.remove(startedTask);
+        });
     }
 
     private <V> Runnable turnToTaskWithListener(Runnable r, V result, ManagedTaskListener listener) throws IllegalArgumentException {
@@ -182,6 +186,14 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
         }
         return ManagedExecutors.managedTask(task, originalExecutionProperties,
                 new MultiManagedTaskListener(listener, originalListener));
+    }
+
+    @Override
+    protected ManagedFutureTask getNewTaskFor(Callable callable) {
+        Callable task = turnToTaskWithListener(callable, this);
+        VirtualThreadsManagedFutureTask managedTask = new VirtualThreadsManagedFutureTask<>(this, task, parallelTasksSemaphore);
+        addTaskListeners(managedTask);
+        return managedTask;
     }
 
     private <V> Callable turnToTaskWithListener(Callable c, ManagedTaskListener listener) throws IllegalArgumentException {

@@ -17,6 +17,7 @@
 package org.glassfish.enterprise.concurrent.test;
 
 import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.TRACE;
 
 public class BlockingRunnableImpl extends RunnableImpl {
 
@@ -37,8 +38,10 @@ public class BlockingRunnableImpl extends RunnableImpl {
         debug("busyWait stopBlocking is " + stopBlocking);
         while (!stopBlocking) {
             try {
+                logger.log(TRACE, "busyWait, sleeping, task = " + this);
                 Thread.sleep(100 /*ms*/);
             } catch (InterruptedException e) {
+                debug("busyWait, InterruptedException, task = " + this);
                 interrupted = true;
             }
         }

@@ -17,6 +17,7 @@ package org.glassfish.enterprise.concurrent.virtualthreads;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
@@ -31,16 +32,24 @@ public class VirtualThreadsManagedFutureTask<V> extends ManagedFutureTask<V> {
 
     private Runnable taskCompletionHandler = null;
 
-    public VirtualThreadsManagedFutureTask(AbstractManagedExecutorService executor, Runnable runnable, V result, Semaphore parallelTasksSemaphore, Runnable taskCompletionHandler) {
+    private Consumer<VirtualThreadsManagedFutureTask<V>> taskStartedHandler = null;
+
+    public VirtualThreadsManagedFutureTask(AbstractManagedExecutorService executor, Runnable runnable, V result, Semaphore parallelTasksSemaphore) {
         super(executor, runnable, result);
         this.parallelTasksSemaphore = parallelTasksSemaphore;
+    }
+
+    public VirtualThreadsManagedFutureTask(AbstractManagedExecutorService executor, Callable<V> callable, Semaphore parallelTasksSemaphore) {
+        super(executor, callable);
+        this.parallelTasksSemaphore = parallelTasksSemaphore;
+    }
+
+    public void setTaskCompletionHandler(Runnable taskCompletionHandler) {
         this.taskCompletionHandler = taskCompletionHandler;
     }
 
-    public VirtualThreadsManagedFutureTask(AbstractManagedExecutorService executor, Callable<V> callable, Semaphore parallelTasksSemaphore, Runnable taskCompletionHandler) {
-        super(executor, callable);
-        this.parallelTasksSemaphore = parallelTasksSemaphore;
-        this.taskCompletionHandler = taskCompletionHandler;
+    public void setTaskStartedHandler(Consumer<VirtualThreadsManagedFutureTask<V>> taskStartedHandler) {
+        this.taskStartedHandler = taskStartedHandler;
     }
 
     @Override
@@ -48,30 +57,44 @@ public class VirtualThreadsManagedFutureTask<V> extends ManagedFutureTask<V> {
         runPooled(() -> {
             super.run();
             return null;
-        });
+        }, null);
     }
 
     @Override
     public boolean runAndReset() {
-        return runPooled(super::runAndReset);
+        return runPooled(super::runAndReset, false);
     }
 
-    private <T> T runPooled(Supplier<T> wrappedCallable) {
+    private <T> T runPooled(Supplier<T> wrappedCallable, T defaultResult) {
         try {
-            acquireIfNotNull(parallelTasksSemaphore);
+            try {
+                acquireIfNotNull(parallelTasksSemaphore);
+            } catch (InterruptedException ex) {
+                /*
+              Executor.shutdownNow() called, task interrupted before started.
+              Ignore and only report as not started from the shutdownNow() method
+                 */
+                return defaultResult;
+            }
+            triggerIfNotNull(taskStartedHandler, this);
             return runAndTriggerEvents(wrappedCallable);
-        } catch (InterruptedException ex) {
-            throw new RuntimeException(ex);
         } finally {
             releaseIfNotNull(parallelTasksSemaphore);
-            runIfNotNull(taskCompletionHandler);
+            triggerIfNotNull(taskCompletionHandler);
         }
 
     }
 
-    private void runIfNotNull(Runnable handler) {
+    private void triggerIfNotNull(Runnable handler) {
         if (handler != null) {
             handler.run();
+        }
+    }
+
+    private void triggerIfNotNull(Consumer<VirtualThreadsManagedFutureTask<V>> handler,
+            VirtualThreadsManagedFutureTask<V> task) {
+        if (handler != null) {
+            handler.accept(task);
         }
     }
 

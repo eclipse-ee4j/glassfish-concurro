@@ -16,6 +16,10 @@
  */
 package org.glassfish.enterprise.concurrent.test.virtualthreads;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+
 import org.glassfish.enterprise.concurrent.test.AwaitableManagedTaskListenerImpl;
 import java.util.Collection;
 import java.util.List;
@@ -66,7 +70,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
     @Test
     public void testShutdown() {
         ManagedExecutorService mes
-                = createManagedExecutor("testShutdown", null);
+                = createManagedExecutorWithMaxOneParallelTask("testShutdown", null);
         assertFalse(mes.isShutdown());
         mes.shutdown();
         assertTrue(mes.isShutdown());
@@ -84,6 +88,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
                 = createManagedExecutor("testShutdown_tasks_behavior", 2, 2); // max tasks=2, queue=2
         ManagedTaskListenerImpl listener1 = new ManagedTaskListenerImpl();
         final BlockingRunnableImpl task1 = new ManagedBlockingRunnableTask(listener1, 0L);
+        logger.log(System.Logger.Level.INFO, "task1: " + task1);
         Future f1 = mes.submit(task1); // this task should be run
 
         ManagedTaskListenerImpl listener2 = new ManagedTaskListenerImpl();
@@ -108,12 +113,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
         assertTrue(listener3.eventCalled(f3, ManagedTaskListenerImpl.ABORTED));
 
         // task1 should be interrupted
-        Util.waitForBoolean(
-                new Util.BooleanValueProducer() {
-            public boolean getValue() {
-                return task1.isInterrupted();
-            }
-        }, true, getLoggerName());
+        Util.waitForBoolean(task1::isInterrupted, true, getLoggerName());
         assertTrue(task1.isInterrupted());
     }
 
@@ -122,11 +122,11 @@ public class VirtualThreadsManagedExecutorServiceTest {
         ManagedExecutorService mes
                 = createManagedExecutor("testShutdown_tasks_behavior", 2, 2); // max tasks=2, queue=2
         ManagedTaskListenerImpl listener1 = new ManagedTaskListenerImpl();
-        final BlockingRunnableImpl task1 = new ManagedBlockingRunnableTask(listener1, 5000L);
+        final BlockingRunnableImpl task1 = new ManagedBlockingRunnableTask(listener1, 0);
         Future f1 = mes.submit(task1); // this task should be run
 
         ManagedTaskListenerImpl listener2 = new ManagedTaskListenerImpl();
-        BlockingRunnableImpl task2 = new ManagedBlockingRunnableTask(listener2, 5000L);
+        BlockingRunnableImpl task2 = new ManagedBlockingRunnableTask(listener2, 0);
         Future f2 = mes.submit(task2); // this task should be queued
 
         // waits for task1 to start
@@ -134,15 +134,19 @@ public class VirtualThreadsManagedExecutorServiceTest {
         assertTrue(Util.waitForTaskStarted(f2, listener2, getLoggerName()));
 
         ManagedTaskListenerImpl listener3 = new ManagedTaskListenerImpl();
-        BlockingRunnableImpl task3 = new ManagedBlockingRunnableTask(listener3, 5000L);
+        RunnableImpl task3 = new ManagedRunnableTask(listener3);
         Future f3 = mes.submit(task3); // this task should be queued
 
+        // wait for some time so tasks have some chance to start before assertions are made
         Thread.sleep(Duration.ofSeconds(1));
 
         // task3 should wait with starting while the other 2 tasks are running
         assertFalse(listener3.eventCalled(f3, ManagedTaskListenerImpl.STARTING));
         assertFalse(f1.isDone());
         assertFalse(f2.isDone());
+
+        task1.stopBlocking();
+        task2.stopBlocking();
 
         // tasks should complete successfully
         assertTrue(Util.waitForTaskComplete(task1, getLoggerName()));
@@ -151,7 +155,6 @@ public class VirtualThreadsManagedExecutorServiceTest {
 
         assertTrue(f1.isDone());
         assertTrue(f2.isDone());
-        logger.log(System.Logger.Level.INFO, "153");
         assertTrue(f3.isDone());
     }
 
@@ -167,7 +170,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
     @Test
     public void testShutdownNow() {
         ManagedExecutorService mes
-                = createManagedExecutor("testShutdownNow", null);
+                = createManagedExecutorWithMaxOneParallelTask("testShutdownNow", null);
         assertFalse(mes.isShutdown());
         List<Runnable> tasks = mes.shutdownNow();
         assertTrue(tasks.isEmpty());
@@ -181,10 +184,11 @@ public class VirtualThreadsManagedExecutorServiceTest {
     @Test
     public void testShutdownNow_unfinishedTask() {
         ManagedExecutorService mes
-                = createManagedExecutor("testShutdown_unfinishedTask", null);
+                = createManagedExecutorWithMaxOneParallelTask("testShutdown_unfinishedTask", null);
         assertFalse(mes.isShutdown());
         ManagedTaskListenerImpl listener = new ManagedTaskListenerImpl();
         BlockingRunnableImpl task1 = new ManagedBlockingRunnableTask(listener, 0L);
+        logger.log(System.Logger.Level.DEBUG, "Submitting task1 = " + task1);
         Future f = mes.submit(task1);
         // waits for task to start
         Util.waitForTaskStarted(f, listener, getLoggerName());
@@ -193,7 +197,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
         List<Runnable> tasks = mes.shutdownNow();
         assertFalse(mes.isTerminated());
 
-        assertTrue(tasks.size() > 0);
+        assertThat(tasks.size(), is(greaterThan(0)));
         task1.stopBlocking();
         assertTrue(mes.isShutdown());
     }
@@ -205,7 +209,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
     @Test
     public void testAwaitsTermination() throws Exception {
         ManagedExecutorService mes
-                = createManagedExecutor("testAwaitsTermination", null);
+                = createManagedExecutorWithMaxOneParallelTask("testAwaitsTermination", null);
         assertFalse(mes.isShutdown());
         ManagedTaskListenerImpl listener = new ManagedTaskListenerImpl();
         BlockingRunnableImpl task = new ManagedBlockingRunnableTask(listener, 0L);
@@ -230,7 +234,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
     @Test
     public void testTaskCounters() {
         final AbstractManagedExecutorService mes
-                = (AbstractManagedExecutorService) createManagedExecutor("testTaskCounters", null);
+                = (AbstractManagedExecutorService) createManagedExecutorWithMaxOneParallelTask("testTaskCounters", null);
         assertEquals(0, mes.getTaskCount());
         assertEquals(0, mes.getCompletedTaskCount());
         RunnableImpl task = new RunnableImpl(null);
@@ -338,7 +342,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
         assertNull(threads);
     }
 
-    protected VirtualThreadsManagedExecutorServiceExt createManagedExecutor(String name,
+    protected VirtualThreadsManagedExecutorServiceExt createManagedExecutorWithMaxOneParallelTask(String name,
             ContextSetupProvider contextCallback) {
         return new VirtualThreadsManagedExecutorServiceExt(name, new VirtualThreadsManagedThreadFactory(name),
                 0, false,
