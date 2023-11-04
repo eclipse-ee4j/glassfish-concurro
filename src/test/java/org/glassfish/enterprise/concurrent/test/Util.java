@@ -16,6 +16,8 @@
 
 package org.glassfish.enterprise.concurrent.test;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,7 +42,7 @@ public class Util {
           }
         value = valueProducer.getValue();
       }
-      return value;      
+      return value;
     }
 
     public static boolean waitForTaskStarted(final Future<?> future, final ManagedTaskListenerImpl listener, String loggerName) {
@@ -86,6 +88,10 @@ public class Util {
 
     public static String generateName() {
         return new java.util.Date(System.currentTimeMillis()).toString();
+    }
+
+    public static void log(String message) {
+        System.out.println(DateTimeFormatter.ISO_TIME.format(LocalDateTime.now()) + ": " + message);
     }
 
 }

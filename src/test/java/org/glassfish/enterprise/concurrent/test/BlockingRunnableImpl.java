@@ -16,12 +16,15 @@
 
 package org.glassfish.enterprise.concurrent.test;
 
+import static java.lang.System.Logger.Level.DEBUG;
+
 public class BlockingRunnableImpl extends RunnableImpl {
 
     private long blockTime;
     private volatile boolean interrupted;
     private volatile boolean stopBlocking;
-    private static final boolean DEBUG = true;
+
+    private final System.Logger logger = System.getLogger(this.getClass().getName());
 
     public BlockingRunnableImpl(ManagedTaskListenerImpl taskListener,
             long blockTime) {
@@ -60,6 +63,7 @@ public class BlockingRunnableImpl extends RunnableImpl {
             blockForSpecifiedTime();
         }
         debug("BlockingRunnableImpl.run() done " + this);
+        runCalled = true;
     }
 
     public boolean isInterrupted() {
@@ -71,8 +75,6 @@ public class BlockingRunnableImpl extends RunnableImpl {
     }
 
     public void debug(String msg) {
-        if (DEBUG) {
-            System.err.println(msg);
-        }
+        logger.log(DEBUG, msg);
     }
 }

@@ -19,11 +19,7 @@ import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.enterprise.concurrent.ManagedExecutors;
 import jakarta.enterprise.concurrent.ManagedTask;
 import org.glassfish.enterprise.concurrent.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.SynchronousQueue;
 import jakarta.enterprise.concurrent.ManagedTaskListener;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,6 +29,8 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 
@@ -52,29 +50,11 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
 
     private AtomicLong tasksCompleted = new AtomicLong();
 
-    public VirtualThreadsManagedExecutorService(String name,
-            VirtualThreadsManagedThreadFactory managedThreadFactory,
-            long hungTaskThreshold,
-            boolean longRunningTasks,
-            int maxParallelTasks,
-            ContextServiceImpl contextService,
-            RejectPolicy rejectPolicy,
-            BlockingQueue<Runnable> queue) {
-        super(name, longRunningTasks,
-                contextService,
-                contextService != null ? contextService.getContextSetupProvider() : null,
-                rejectPolicy);
+    private Semaphore parallelTasksSemaphore = null;
+    int maxParallelTasks;
 
-        this.managedThreadFactory = managedThreadFactory != null ? managedThreadFactory : createDefaultManagedThreadFactory(name);
-        this.managedThreadFactory.setHungTaskThreshold(hungTaskThreshold);
-
-        // TODO - use the maxParallelTasks and queue to queue tasks if maxParallelTasks number of tasks is running
-        if (maxParallelTasks <= 0) {
-            throw new IllegalArgumentException("maxParallelTasks must be greater than 0, was " + maxParallelTasks);
-        }
-        executor = Executors.newThreadPerTaskExecutor(getManagedThreadFactory());
-        adapter = new ManagedExecutorServiceAdapter(this);
-    }
+    private Semaphore queuedTasksSemaphore = null;
+    int queueCapacity;
 
     public VirtualThreadsManagedExecutorService(String name,
             VirtualThreadsManagedThreadFactory managedThreadFactory,
@@ -84,24 +64,24 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
             int queueCapacity,
             ContextServiceImpl contextService,
             RejectPolicy rejectPolicy) {
-        this(name, managedThreadFactory, hungTaskThreshold, longRunningTasks, maxParallelTasks, contextService, rejectPolicy, createQueue(queueCapacity));
-    }
+        super(name, longRunningTasks,
+                contextService,
+                contextService != null ? contextService.getContextSetupProvider() : null,
+                rejectPolicy);
 
-    // Create a queue based on the value of queueCapacity.
-    // If queueCapacity is 0, direct handoff queuing strategy will be used and a
-    // SynchronousQueue will be created.
-    // If queueCapacity is Integer.MAX_VALUE, an unbounded queue will be used.
-    // For any other valid value for queueCapacity, a bounded queue will be created.
-    private static BlockingQueue<Runnable> createQueue(int queueCapacity) throws IllegalArgumentException {
-        BlockingQueue<Runnable> queue;
-        if (queueCapacity == Integer.MAX_VALUE) {
-            queue = new LinkedBlockingQueue<>();
-        } else if (queueCapacity == 0) {
-            queue = new SynchronousQueue<>();
-        } else {
-            queue = new ArrayBlockingQueue<>(queueCapacity);
+        this.managedThreadFactory = managedThreadFactory != null ? managedThreadFactory : createDefaultManagedThreadFactory(name);
+        this.managedThreadFactory.setHungTaskThreshold(hungTaskThreshold);
+
+        this.maxParallelTasks = maxParallelTasks;
+        this.queueCapacity = queueCapacity;
+        if (maxParallelTasks > 0) {
+            parallelTasksSemaphore = new Semaphore(maxParallelTasks, true);
+            if (queueCapacity > 0) {
+                queuedTasksSemaphore = new Semaphore(queueCapacity + maxParallelTasks, true);
+            }
         }
-        return queue;
+        executor = Executors.newThreadPerTaskExecutor(getManagedThreadFactory());
+        adapter = new ManagedExecutorServiceAdapter(this);
     }
 
     private VirtualThreadsManagedThreadFactory createDefaultManagedThreadFactory(String name) {
@@ -121,9 +101,13 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
     final Set<ManagedFutureTask<?>> runningFutures = Collections.synchronizedSet(new HashSet<>());
 
     protected void executeManagedFutureTask(ManagedFutureTask<?> task) {
-        task.submitted();
-        getThreadPoolExecutor().execute(task);
-        runningFutures.add(task);
+        if (queuedTasksSemaphore == null || queuedTasksSemaphore.tryAcquire()) {
+            task.submitted();
+            getThreadPoolExecutor().execute(task);
+            runningFutures.add(task);
+        } else {
+            throw new RejectedExecutionException("Too many tasks submitted (maxParallelTasks=" + maxParallelTasks + ", queueCapacity=" + queueCapacity);
+        }
     }
 
     @Override
@@ -172,22 +156,44 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
 
     @Override
     protected <V> ManagedFutureTask<V> getNewTaskFor(Runnable r, V result) {
-        Runnable task = r;
-        ManagedTaskListener originalListener = null;
-        Map<String, String> originalExecutionProperties = null;
-        if (task instanceof ManagedTask) {
-            ManagedTask managedTask = (ManagedTask) task;
-            originalListener = managedTask.getManagedTaskListener();
-            originalExecutionProperties = managedTask.getExecutionProperties();
-        }
-        task = ManagedExecutors.managedTask(task, originalExecutionProperties,
-                new MultiManagedTaskListener(this, originalListener));
-        return new EventTriggeringManagedFutureTask<>(this, task, result);
+        Runnable task = turnToTaskWithListener(r, result, this);
+        return new VirtualThreadsManagedFutureTask<>(this, task, result, parallelTasksSemaphore,
+                () -> {
+                    if (queuedTasksSemaphore != null) {
+                        queuedTasksSemaphore.release();
+                    }
+                });
     }
 
     @Override
     protected ManagedFutureTask getNewTaskFor(Callable callable) {
-        return new ManagedFutureTask(this, callable);
+        Callable task = turnToTaskWithListener(callable, this);
+        return new VirtualThreadsManagedFutureTask<>(this, task, parallelTasksSemaphore,
+                queuedTasksSemaphore::release);
+    }
+
+    private <V> Runnable turnToTaskWithListener(Runnable r, V result, ManagedTaskListener listener) throws IllegalArgumentException {
+        Runnable task = r;
+        ManagedTaskListener originalListener = null;
+        Map<String, String> originalExecutionProperties = null;
+        if (task instanceof ManagedTask managedTask) {
+            originalListener = managedTask.getManagedTaskListener();
+            originalExecutionProperties = managedTask.getExecutionProperties();
+        }
+        return ManagedExecutors.managedTask(task, originalExecutionProperties,
+                new MultiManagedTaskListener(listener, originalListener));
+    }
+
+    private <V> Callable turnToTaskWithListener(Callable c, ManagedTaskListener listener) throws IllegalArgumentException {
+        Callable task = c;
+        ManagedTaskListener originalListener = null;
+        Map<String, String> originalExecutionProperties = null;
+        if (task instanceof ManagedTask managedTask) {
+            originalListener = managedTask.getManagedTaskListener();
+            originalExecutionProperties = managedTask.getExecutionProperties();
+        }
+        return ManagedExecutors.managedTask(task, originalExecutionProperties,
+                new MultiManagedTaskListener(listener, originalListener));
     }
 
     @Override

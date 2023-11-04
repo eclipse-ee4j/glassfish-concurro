@@ -19,7 +19,6 @@ package org.glassfish.enterprise.concurrent.test.virtualthreads;
 import org.glassfish.enterprise.concurrent.test.AwaitableManagedTaskListenerImpl;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +39,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
@@ -129,13 +129,9 @@ public class VirtualThreadsManagedExecutorServiceTest {
         BlockingRunnableImpl task2 = new ManagedBlockingRunnableTask(listener2, 5000L);
         Future f2 = mes.submit(task2); // this task should be queued
 
-        System.out.println("Waiting for start");
-
         // waits for task1 to start
-        Util.waitForTaskStarted(f1, listener1, getLoggerName());
-        Util.waitForTaskStarted(f2, listener2, getLoggerName());
-
-        System.out.println("Started");
+        assertTrue(Util.waitForTaskStarted(f1, listener1, getLoggerName()));
+        assertTrue(Util.waitForTaskStarted(f2, listener2, getLoggerName()));
 
         ManagedTaskListenerImpl listener3 = new ManagedTaskListenerImpl();
         BlockingRunnableImpl task3 = new ManagedBlockingRunnableTask(listener3, 5000L);
@@ -144,19 +140,25 @@ public class VirtualThreadsManagedExecutorServiceTest {
         Thread.sleep(Duration.ofSeconds(1));
 
         // task3 should wait with starting while the other 2 tasks are running
-        System.out.println("Assertion");
         assertFalse(listener3.eventCalled(f3, ManagedTaskListenerImpl.STARTING));
         assertFalse(f1.isDone());
         assertFalse(f2.isDone());
 
         // tasks should complete successfully
-        Util.waitForTaskComplete(task1, getLoggerName());
-        Util.waitForTaskComplete(task2, getLoggerName());
-        Util.waitForTaskComplete(task3, getLoggerName());
+        assertTrue(Util.waitForTaskComplete(task1, getLoggerName()));
+        assertTrue(Util.waitForTaskComplete(task2, getLoggerName()));
+        assertTrue(Util.waitForTaskComplete(task3, getLoggerName()));
 
         assertTrue(f1.isDone());
         assertTrue(f2.isDone());
+        logger.log(System.Logger.Level.INFO, "153");
         assertTrue(f3.isDone());
+    }
+
+    @Test
+    public void testMaxQueueSize_limitation() {
+        fail("To be implemented...test that tasks are thrown away if max queue size reached");
+        // also test that tasks can be created it queue size is -1 (unlimited)
     }
 
     /**
@@ -367,10 +369,6 @@ public class VirtualThreadsManagedExecutorServiceTest {
     }
 
     public static class VirtualThreadsManagedExecutorServiceExt extends VirtualThreadsManagedExecutorService {
-
-        public VirtualThreadsManagedExecutorServiceExt(String name, VirtualThreadsManagedThreadFactory managedThreadFactory, long hungTaskThreshold, boolean longRunningTasks, int maxParallelTasks, ContextServiceImpl contextService, RejectPolicy rejectPolicy, BlockingQueue<Runnable> queue) {
-            super(name, managedThreadFactory, hungTaskThreshold, longRunningTasks, maxParallelTasks, contextService, rejectPolicy, queue);
-        }
 
         public VirtualThreadsManagedExecutorServiceExt(String name, VirtualThreadsManagedThreadFactory managedThreadFactory, long hungTaskThreshold, boolean longRunningTasks, int maxParallelTasks, int queueCapacity, ContextServiceImpl contextService, RejectPolicy rejectPolicy) {
             super(name, managedThreadFactory, hungTaskThreshold, longRunningTasks, maxParallelTasks, queueCapacity, contextService, rejectPolicy);
