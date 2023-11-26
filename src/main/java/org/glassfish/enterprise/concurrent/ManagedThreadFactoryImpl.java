@@ -187,20 +187,18 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         return result;
     }
     public void taskStarting(Thread t, ManagedFutureTask task) {
-        if (t instanceof ManagedThread) {
-            ManagedThread mt = (ManagedThread) t;
+        if (t instanceof ThreadWithTiming) {
+            ThreadWithTiming mt = (ThreadWithTiming) t;
             // called in thread t, so no need to worry about synchronization
-            mt.taskStartTime = System.currentTimeMillis();
-            mt.task = task;
+            mt.notifyTaskStarting(task);
         }
     }
 
     public void taskDone(Thread t) {
-        if (t instanceof ManagedThread) {
-            ManagedThread mt = (ManagedThread) t;
+        if (t instanceof ThreadWithTiming) {
+            ThreadWithTiming mt = (ThreadWithTiming) t;
             // called in thread t, so no need to worry about synchronization
-            mt.taskStartTime = 0L;
-            mt.task = null;
+            mt.notifyTaskDone();
         }
     }
 
@@ -255,7 +253,9 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             } else if (contextSetupProvider != null) {
                 contextHandleForSetup = contextSetupProvider.saveContext(contextService);
             }
-            return createWorkerThread(pool, contextHandleForSetup);
+            ForkJoinWorkerThread newThread = createWorkerThread(pool, contextHandleForSetup);
+            threads.add(newThread);
+            return newThread;
         } finally {
             lock.unlock();
         }
@@ -268,17 +268,28 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         }
     }
 
-    class WorkerThread extends ForkJoinWorkerThread {
+    /**
+     * Thread aware of starting time and knowing, if it is hung.
+     */
+    public interface ThreadWithTiming {
+
+        public void notifyTaskDone();
+
+        public void notifyTaskStarting(ManagedFutureTask task);
+
+        boolean isTaskHung(long now);
+    }
+
+    class WorkerThread extends ForkJoinWorkerThread implements ThreadWithTiming {
+
+        public static final long NOT_STARTED = -1;
+
+        volatile long taskStartTime = NOT_STARTED;
         final ContextHandle contextHandleForSetup;
 
         public WorkerThread(ForkJoinPool pool, ContextHandle contextHandleForSetup) {
             super(pool);
             this.contextHandleForSetup = contextHandleForSetup;
-        }
-
-        @Override
-        protected void onStart() {
-            super.onStart();
         }
 
         @Override
@@ -300,12 +311,26 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             }
         }
 
+        @Override
+        public boolean isTaskHung(long now) {
+            return taskStartTime != NOT_STARTED && now - taskStartTime > hungTaskThreshold;
+        }
+
+        @Override
+        public void notifyTaskDone() {
+            taskStartTime = NOT_STARTED;
+        }
+
+        @Override
+        public void notifyTaskStarting(ManagedFutureTask task) {
+            taskStartTime = System.currentTimeMillis();
+        }
     }
 
     /**
      * ManageableThread to be returned by {@code ManagedThreadFactory.newThread()}
      */
-    public class ManagedThread extends AbstractManagedThread {
+    public class ManagedThread extends AbstractManagedThread implements ThreadWithTiming {
         final ContextHandle contextHandleForSetup;
         volatile ManagedFutureTask task = null;
         volatile long taskStartTime = 0L;
@@ -371,12 +396,23 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         }
 
         @Override
-        boolean isTaskHung(long now) {
+        public boolean isTaskHung(long now) {
             if (hungTaskThreshold > 0) {
                 return getTaskRunTime(now) - hungTaskThreshold > 0;
             }
             return false;
         }
 
+        @Override
+        public void notifyTaskDone() {
+            taskStartTime = 0L;
+            task = null;
+        }
+
+        @Override
+        public void notifyTaskStarting(ManagedFutureTask task) {
+            taskStartTime = System.currentTimeMillis();
+            this.task = task;
+        }
     }
 }
