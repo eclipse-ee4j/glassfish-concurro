@@ -30,8 +30,8 @@ public class ManagedTaskListenerImpl implements ManagedTaskListener {
 
     public static final String SUBMITTED = "taskSubmitted", STARTING = "taskStarting",
             DONE = "taskDone", ABORTED = "taskAborted";
-    private ConcurrentHashMap<Future, HashMap<String, CallbackParameters>> callParameters =
-            new ConcurrentHashMap<Future, HashMap<String, CallbackParameters>>();
+    private ConcurrentHashMap<Future, HashMap<String, CallbackParameters>> callParameters
+            = new ConcurrentHashMap<>();
     volatile Future<?> startingFuture = null, submittedFuture = null,
             abortedFuture = null, doneFuture = null;
 

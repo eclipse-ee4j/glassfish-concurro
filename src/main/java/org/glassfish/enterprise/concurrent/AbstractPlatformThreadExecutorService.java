@@ -24,7 +24,7 @@ import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
  */
 public abstract class AbstractPlatformThreadExecutorService extends AbstractManagedExecutorService {
 
-    protected final ManagedThreadFactoryImpl managedThreadFactory; // FIXME aubi replace with virtual method getManagedThreadFactory
+    protected final ManagedThreadFactoryImpl managedThreadFactory;
 
     public AbstractPlatformThreadExecutorService(String name, ManagedThreadFactoryImpl managedThreadFactory, long hungTaskThreshold, boolean longRunningTasks, ContextServiceImpl contextService, ContextSetupProvider contextCallback, RejectPolicy rejectPolicy) {
         super(name, longRunningTasks, contextService, contextCallback, rejectPolicy);
