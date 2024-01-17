@@ -28,6 +28,7 @@ import org.glassfish.enterprise.concurrent.test.TestContextService;
  */
 public class ManagedScheduledExecutorServiceImplTest extends ManagedExecutorServiceImplTest {
 
+    @Override
     protected ManagedExecutorService createManagedExecutor(String name, ContextSetupProvider contextCallback) {
         return new ManagedScheduledExecutorServiceImpl(name, null, 0, false,
                     1,  

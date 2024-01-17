@@ -37,7 +37,6 @@ import org.glassfish.enterprise.concurrent.test.ManagedTaskListenerImpl;
 import org.glassfish.enterprise.concurrent.test.RunnableImpl;
 import org.glassfish.enterprise.concurrent.test.TestContextService;
 import org.glassfish.enterprise.concurrent.test.Util;
-import org.glassfish.enterprise.concurrent.test.Util.BooleanValueProducer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -100,12 +99,7 @@ public class ForkJoinManagedExecutorServiceImplTest {
         assertTrue(listener3.eventCalled(f3, ManagedTaskListenerImpl.ABORTED));
         
         // task1 should be interrupted
-        Util.waitForBoolean(
-            new Util.BooleanValueProducer() {
-              public boolean getValue() {
-                return task1.isInterrupted();   
-              }
-            }, true, getLoggerName());        
+        Util.waitForBoolean(task1::isInterrupted, true, getLoggerName());
         assertTrue(task1.isInterrupted());
     }
 
@@ -194,12 +188,7 @@ public class ForkJoinManagedExecutorServiceImplTest {
             Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
         }
         assertTrue(future.isDone());
-        Util.waitForBoolean(new BooleanValueProducer() {
-            @Override
-            public boolean getValue() {
-                return (mes.getTaskCount() > 0) && (mes.getCompletedTaskCount() > 0);
-            }
-        }, true, getLoggerName());
+        Util.waitForBoolean(() -> (mes.getTaskCount() > 0) && (mes.getCompletedTaskCount() > 0), true, getLoggerName());
 
         assertEquals(1, mes.getTaskCount());
         assertEquals(1, mes.getCompletedTaskCount()); 
@@ -225,12 +214,8 @@ public class ForkJoinManagedExecutorServiceImplTest {
         threads = mes.getThreads();
         assertEquals(1, threads.size());
         System.out.println("Waiting for threads to expire due to threadLifeTime");
-        Util.waitForBoolean(new BooleanValueProducer() {
-            public boolean getValue() {
-                // wait for all threads get expired
-                return mes.getThreads() == null;
-            }
-        }, true, getLoggerName());
+        // wait for all threads get expired
+        Util.waitForBoolean(() -> mes.getThreads() == null, true, getLoggerName());
         
     }
         
