@@ -89,11 +89,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.release>11</maven.compiler.release>
         <jakarta.enterprise.concurrent-api.version>3.0.1</jakarta.enterprise.concurrent-api.version>
         <jakarta.interceptor-api.version>2.1.0</jakarta.interceptor-api.version>    
         <jakarta.transaction-api.version>2.0.1</jakarta.transaction-api.version>    
         <jakarta.enterprise.cdi-api.version>4.0.1</jakarta.enterprise.cdi-api.version>    
+        <java21.sourceDirectory>${project.basedir}/src/main/java21</java21.sourceDirectory>
+        <java21.testSourceDirectory>${project.basedir}/src/test/java21</java21.testSourceDirectory>
     </properties>
 
     <dependencies>
@@ -141,12 +143,45 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.10.1</version>
+                    <version>3.12.1</version>
+                    <executions>
+                        <execution>
+                            <id>Java21</id>
+                            <phase>compile</phase>
+                            <goals>
+                                <goal>compile</goal>
+                            </goals>
+                            <configuration>
+                                <release>21</release>
+                                <compileSourceRoots>
+                                    <compileSourceRoot>${java21.sourceDirectory}</compileSourceRoot>
+                                </compileSourceRoots>
+                                <multiReleaseOutput>true</multiReleaseOutput>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>Java21-tests</id>
+                            <phase>test-compile</phase>
+                            <goals>
+                                <goal>testCompile</goal>
+                            </goals>
+                            <configuration>
+                                <release>21</release>
+                                <compileSourceRoots>
+                                    <compileSourceRoot>${java21.testSourceDirectory}</compileSourceRoot>
+                                </compileSourceRoots>
+                                <compilerArgs>
+                                    <arg>-cp</arg>
+                                    <arg>${project.build.testOutputDirectory}${path.separator}${project.build.outputDirectory}${path.separator}${testClasspath}${path.separator}${project.build.outputDirectory}/META-INF/versions/21</arg>
+                                </compilerArgs>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.0.0-M7</version>
+                    <version>3.2.5</version>
                     <configuration>
                         <systemProperties>
                             <property>
@@ -154,6 +189,9 @@
                                 <value>src/test/resources/logging.properties</value>
                             </property>
                         </systemProperties>
+                        <additionalClasspathElements>
+                            <additionalClasspathElement>${project.build.outputDirectory}/META-INF/versions/21</additionalClasspathElement>
+                        </additionalClasspathElements>
                     </configuration>
                 </plugin>
             </plugins>
@@ -175,6 +213,24 @@
                                     <version>3.6.0</version>
                                 </requireMavenVersion>
                             </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>build-classpath</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>build-classpath</goal>
+                        </goals>
+                        <configuration>
+                            <outputProperty>testClasspath</outputProperty>
                         </configuration>
                     </execution>
                 </executions>

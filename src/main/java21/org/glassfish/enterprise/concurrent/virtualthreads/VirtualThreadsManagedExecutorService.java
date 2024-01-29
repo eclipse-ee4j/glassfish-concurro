@@ -15,6 +15,7 @@
  */
 package org.glassfish.enterprise.concurrent.virtualthreads;
 
+import org.glassfish.enterprise.concurrent.internal.MultiManagedTaskListener;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.enterprise.concurrent.ManagedExecutors;
 import jakarta.enterprise.concurrent.ManagedTask;
