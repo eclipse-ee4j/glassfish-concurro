@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023-2024 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2022 Payara Foundation and/or its affiliates.
  *
@@ -32,14 +33,14 @@ public class ManagedScheduledExecutorServiceImpl extends AbstractPlatformThreadE
 
     protected ManagedScheduledThreadPoolExecutor threadPoolExecutor;
     protected final ManagedScheduledExecutorServiceAdapter adapter;
-    
 
-    public ManagedScheduledExecutorServiceImpl(String name, 
-            ManagedThreadFactoryImpl managedThreadFactory, 
-            long hungTaskThreshold, 
-            boolean longRunningTasks, 
-            int corePoolSize, 
-            long keepAliveTime, 
+
+    public ManagedScheduledExecutorServiceImpl(String name,
+            ManagedThreadFactoryImpl managedThreadFactory,
+            long hungTaskThreshold,
+            boolean longRunningTasks,
+            int corePoolSize,
+            long keepAliveTime,
             TimeUnit keepAliveTimeUnit,
             long threadLifeTime,
             ContextServiceImpl contextService,
@@ -49,13 +50,13 @@ public class ManagedScheduledExecutorServiceImpl extends AbstractPlatformThreadE
                 contextService != null? contextService.getContextSetupProvider(): null,
                 rejectPolicy);
 
-        threadPoolExecutor = new ManagedScheduledThreadPoolExecutor(corePoolSize, 
+        threadPoolExecutor = new ManagedScheduledThreadPoolExecutor(corePoolSize,
                 this.managedThreadFactory);
         threadPoolExecutor.setKeepAliveTime(keepAliveTime, keepAliveTimeUnit);
         threadPoolExecutor.setThreadLifeTime(threadLifeTime);
         adapter = new ManagedScheduledExecutorServiceAdapter(this);
     }
-    
+
     @Override
     public ScheduledFuture<?> schedule(Runnable command, Trigger trigger) {
         return threadPoolExecutor.schedule(this, command, trigger);
@@ -91,7 +92,7 @@ public class ManagedScheduledExecutorServiceImpl extends AbstractPlatformThreadE
     public void execute(Runnable command) {
         threadPoolExecutor.schedule(this, command, null, 0L, TimeUnit.NANOSECONDS);
     }
-    
+
     @Override
     public Future<?> submit(Runnable task) {
         return threadPoolExecutor.schedule(this, task, null, 0L, TimeUnit.NANOSECONDS);
@@ -115,8 +116,8 @@ public class ManagedScheduledExecutorServiceImpl extends AbstractPlatformThreadE
    /**
      * Returns an adapter for the ManagedScheduledExceutorService instance which
      * has its life cycle operations disabled.
-     * 
-     * @return The ManagedScheduledExecutorService instance with life cycle 
+     *
+     * @return The ManagedScheduledExecutorService instance with life cycle
      *         operations disabled for use by application components.
      */
     public ManagedScheduledExecutorServiceAdapter getAdapter() {
@@ -137,7 +138,7 @@ public class ManagedScheduledExecutorServiceImpl extends AbstractPlatformThreadE
     protected <V> ManagedFutureTask<V> getNewTaskFor(Callable<V> callable) {
         return threadPoolExecutor.newTaskFor(this, callable);
     }
-    
+
     @Override
     protected void executeManagedFutureTask(ManagedFutureTask task) {
         // task.submitted() will be called from threadPoolExecutor.delayExecute()
@@ -148,7 +149,7 @@ public class ManagedScheduledExecutorServiceImpl extends AbstractPlatformThreadE
     public long getTaskCount() {
         return threadPoolExecutor.getTaskCount();
     }
-    
+
     @Override
     public long getCompletedTaskCount() {
         return threadPoolExecutor.getCompletedTaskCount();
