@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023, 2024 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2022 Payara Foundation and/or its affiliates.
  *
@@ -34,12 +35,12 @@ import java.util.function.Supplier;
  * The ManagedExecutorService instance to be handed to the
  * application components, with all life cycle operations disabled.
  */
-public class ManagedExecutorServiceAdapter extends AbstractManagedExecutorServiceAdapter 
+public class ManagedExecutorServiceAdapter extends AbstractManagedExecutorServiceAdapter
 implements ManagedExecutorService {
-    
-    protected ManagedExecutorServiceImpl executor;
 
-    public ManagedExecutorServiceAdapter(ManagedExecutorServiceImpl executor) {
+    protected AbstractManagedExecutorService executor;
+
+    public ManagedExecutorServiceAdapter(AbstractManagedExecutorService executor) {
         this.executor = executor;
     }
 

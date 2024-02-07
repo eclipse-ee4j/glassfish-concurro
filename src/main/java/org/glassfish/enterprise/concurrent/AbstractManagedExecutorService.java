@@ -1,6 +1,6 @@
 /*
+ * Copyright (c) 2022, 2024 Contributors to the Eclipse Foundation.
  * Copyright (c) 2022 Payara Foundation and/or its affiliates.
- * Copyright (c) 2022 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -43,14 +43,14 @@ import jakarta.enterprise.concurrent.ContextService;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 
 /**
- * Abstract base class for {@code ManagedExecutorService} and
- * {@code ManagedScheduledExecutorService}
- * implementation classes. Lifecycle operations are available for use by the
- * application server. Application components should be handed instances
- * that extends from  AbstractManagedExecutorServiceAdapter instead, which have
- * their lifecycle operations disabled.
- * Instances of subclasses of this class could be used by the Java EE
- * product provider to control the life cycle.
+ * Abstract base class for {@code ManagedExecutorService},
+ * {@code ManagedScheduledExecutorService} and
+ * {@code VirtualThreadsManagedExecutorService} implementation classes.
+ * Lifecycle operations are available for use by the application server.
+ * Application components should be handed instances that extends from
+ * AbstractManagedExecutorServiceAdapter instead, which have their lifecycle
+ * operations disabled. Instances of subclasses of this class could be used by
+ * the Java EE product provider to control the life cycle.
  */
 public abstract class AbstractManagedExecutorService
 extends AbstractExecutorService implements ManagedExecutorService {
@@ -63,14 +63,11 @@ extends AbstractExecutorService implements ManagedExecutorService {
     protected final String name;
     protected final ContextSetupProvider contextSetupProvider;
     protected final ContextServiceImpl contextService;
-    protected final ManagedThreadFactoryImpl managedThreadFactory;
     protected RejectPolicy rejectPolicy; // currently unused
     protected final boolean contextualCallback;
     protected boolean longRunningTasks;
 
     public AbstractManagedExecutorService(String name,
-            ManagedThreadFactoryImpl managedThreadFactory,
-            long hungTaskThreshold,
             boolean longRunningTasks,
             ContextServiceImpl contextService,
             ContextSetupProvider contextCallback,
@@ -81,16 +78,14 @@ extends AbstractExecutorService implements ManagedExecutorService {
         this.rejectPolicy = rejectPolicy;
         this.contextualCallback = false;
         this.longRunningTasks = longRunningTasks;
-        if (managedThreadFactory == null) {
-            managedThreadFactory = new ManagedThreadFactoryImpl(
-                    name + "-ManagedThreadFactory",
-                    null,
-                    Thread.NORM_PRIORITY);
-        }
-        managedThreadFactory.setHungTaskThreshold(hungTaskThreshold);
-
-        this.managedThreadFactory = managedThreadFactory;
     }
+
+    @Override
+    public abstract void execute(Runnable command);
+
+    public abstract ManagedThreadFactoryImpl getManagedThreadFactory();
+
+    protected abstract ExecutorService getThreadPoolExecutor();
 
     protected <T> T doInvokeAny(Collection<? extends Callable<T>> tasks, boolean timed, long nanos) throws InterruptedException, ExecutionException, TimeoutException {
         // adopted from java.util.concurrent.AbstractExecutorService.doInvokeAny()
@@ -174,16 +169,16 @@ extends AbstractExecutorService implements ManagedExecutorService {
         return contextualCallback;
     }
 
-    public Collection<AbstractManagedThread> getHungThreads() {
+    public Collection<Thread> getHungThreads() {
         if (longRunningTasks) {
             return null;
         }
-        Collection<AbstractManagedThread> hungThreads = null;
-        Collection<AbstractManagedThread> allThreads = getThreads();
+        Collection<Thread> hungThreads = null;
+        Collection<Thread> allThreads = getThreads();
         if (allThreads != null) {
             long now = System.currentTimeMillis();
-            for (AbstractManagedThread thread: allThreads) {
-                if (thread.isTaskHung(now)) {
+            for (Thread thread : allThreads) {
+                if (isTaskHung(thread, now)) {
                     if (hungThreads == null) {
                         hungThreads = new ArrayList<>();
                     }
@@ -192,10 +187,6 @@ extends AbstractExecutorService implements ManagedExecutorService {
             }
         }
         return hungThreads;
-    }
-
-    public ManagedThreadFactoryImpl getManagedThreadFactory() {
-        return managedThreadFactory;
     }
 
     public String getName() {
@@ -220,8 +211,8 @@ extends AbstractExecutorService implements ManagedExecutorService {
      * @return an array of threads in this Managed[Scheduled]ExecutorService.
      *         It returns null if there is no thread.
      */
-    public Collection<AbstractManagedThread> getThreads() {
-        return managedThreadFactory.getThreads();
+    public Collection<Thread> getThreads() {
+        return getManagedThreadFactory().getThreads();
     }
 
     @Override
@@ -381,13 +372,18 @@ extends AbstractExecutorService implements ManagedExecutorService {
         return ftask;
     }
 
-    protected abstract ExecutorService getThreadPoolExecutor();
-
-    @Override
-    public abstract void execute(Runnable command);
+    /**
+     * Determine, if the provided thread is hung. Hung thread runs longer than
+     * managedThreadFactory.hungTaskThreshold.
+     *
+     * @param thread thread to investigate
+     * @param now current time in milliseconds
+     * @return true if the thread runs longer than hungTaskThreshold
+     */
+    protected abstract boolean isTaskHung(Thread thread, long now);
 
     /**
-     * Executes a ManagedFutureTask created by getNewTaskFor()
+     * Executes a ManagedFutureTask created by getNewTaskFor().
      *
      * @param task The ManagedFutureTask to be run
      */

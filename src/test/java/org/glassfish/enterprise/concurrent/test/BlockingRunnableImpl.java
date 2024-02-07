@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023, 2024 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -16,32 +17,38 @@
 
 package org.glassfish.enterprise.concurrent.test;
 
+import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.TRACE;
+
 public class BlockingRunnableImpl extends RunnableImpl {
 
     private long blockTime;
     private volatile boolean interrupted;
     private volatile boolean stopBlocking;
-    private static final boolean DEBUG = false;
-    
-    public BlockingRunnableImpl(ManagedTaskListenerImpl taskListener, 
+
+    private final System.Logger logger = System.getLogger(this.getClass().getName());
+
+    public BlockingRunnableImpl(ManagedTaskListenerImpl taskListener,
             long blockTime) {
         super(taskListener);
         this.blockTime = blockTime;
     }
-   
+
     private void busyWait() {
         // busy wait until stopBlocking is set
         debug("busyWait stopBlocking is " + stopBlocking);
         while (!stopBlocking) {
             try {
+                logger.log(TRACE, "busyWait, sleeping, task = " + this);
                 Thread.sleep(100 /*ms*/);
             } catch (InterruptedException e) {
+                debug("busyWait, InterruptedException, task = " + this);
                 interrupted = true;
             }
         }
         debug("done busyWait. interrupted=" + interrupted );
     }
-    
+
     private void blockForSpecifiedTime() {
         // blocks until timed out or interrupted
         try {
@@ -53,26 +60,25 @@ public class BlockingRunnableImpl extends RunnableImpl {
     }
 
     public void run() {
-        debug("BlockingRunnableImpl.run()");
+        debug("BlockingRunnableImpl.run() " + this);
         if (blockTime == 0) {
             busyWait();
         } else {
             blockForSpecifiedTime();
         }
-        debug("BlockingRunnableImpl.run() done");
+        debug("BlockingRunnableImpl.run() done " + this);
+        runCalled = true;
     }
-    
+
     public boolean isInterrupted() {
         return interrupted;
     }
-    
+
     public void stopBlocking() {
         stopBlocking = true;
     }
-    
+
     public void debug(String msg) {
-        if (DEBUG) {
-            System.err.println(msg);
-        }
+        logger.log(DEBUG, msg);
     }
 }

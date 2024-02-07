@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2023, 2024 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -30,11 +31,11 @@ import org.glassfish.enterprise.concurrent.internal.ManagedThreadPoolExecutor;
 /**
  * Implementation of ManagedExecutorService interface. See {@code AbstractManagedExecutorService}.
  */
-public class ManagedExecutorServiceImpl extends AbstractManagedExecutorService {
-    
+public class ManagedExecutorServiceImpl extends AbstractPlatformThreadExecutorService {
+
     protected final ManagedThreadPoolExecutor threadPoolExecutor;
 
-    // The adapter to be returned to the caller needs to have all the lifecycle 
+    // The adapter to be returned to the caller needs to have all the lifecycle
     // methods disabled
     protected final ManagedExecutorServiceAdapter adapter;
 
@@ -42,7 +43,7 @@ public class ManagedExecutorServiceImpl extends AbstractManagedExecutorService {
             ManagedThreadFactoryImpl managedThreadFactory,
             long hungTaskThreshold,
             boolean longRunningTasks,
-            int corePoolSize, int maxPoolSize, long keepAliveTime, 
+            int corePoolSize, int maxPoolSize, long keepAliveTime,
             TimeUnit keepAliveTimeUnit,
             long threadLifeTime,
             ContextServiceImpl contextService,
@@ -52,19 +53,19 @@ public class ManagedExecutorServiceImpl extends AbstractManagedExecutorService {
                 contextService,
                 contextService != null? contextService.getContextSetupProvider(): null,
                 rejectPolicy);
-        threadPoolExecutor = new ManagedThreadPoolExecutor(corePoolSize, maxPoolSize, 
-                keepAliveTime, keepAliveTimeUnit, queue, 
+        threadPoolExecutor = new ManagedThreadPoolExecutor(corePoolSize, maxPoolSize,
+                keepAliveTime, keepAliveTimeUnit, queue,
                 this.managedThreadFactory);
         threadPoolExecutor.setThreadLifeTime(threadLifeTime);
         adapter = new ManagedExecutorServiceAdapter(this);
     }
-    
+
     public ManagedExecutorServiceImpl(String name,
             ManagedThreadFactoryImpl managedThreadFactory,
             long hungTaskThreshold,
             boolean longRunningTasks,
-            int corePoolSize, int maxPoolSize, long keepAliveTime, 
-            TimeUnit keepAliveTimeUnit, 
+            int corePoolSize, int maxPoolSize, long keepAliveTime,
+            TimeUnit keepAliveTimeUnit,
             long threadLifeTime,
             int queueCapacity,
             ContextServiceImpl contextService,
@@ -98,16 +99,16 @@ public class ManagedExecutorServiceImpl extends AbstractManagedExecutorService {
         } else if (queueCapacity == 0) {
             queue = new SynchronousQueue<>();
         } else {
-            queue = new ArrayBlockingQueue<>(queueCapacity); 
+            queue = new ArrayBlockingQueue<>(queueCapacity);
         }
 
-        threadPoolExecutor = new ManagedThreadPoolExecutor(corePoolSize, maxPoolSize, 
-                keepAliveTime, keepAliveTimeUnit, queue, 
+        threadPoolExecutor = new ManagedThreadPoolExecutor(corePoolSize, maxPoolSize,
+                keepAliveTime, keepAliveTimeUnit, queue,
                 this.managedThreadFactory);
         threadPoolExecutor.setThreadLifeTime(threadLifeTime);
         adapter = new ManagedExecutorServiceAdapter(this);
     }
- 
+
     @Override
     public void execute(Runnable command) {
         ManagedFutureTask<Void> task = getNewTaskFor(command, null);
@@ -118,7 +119,7 @@ public class ManagedExecutorServiceImpl extends AbstractManagedExecutorService {
     /**
      * Returns an adapter for ManagedExecutorService instance which has its
      * life cycle operations disabled.
-     * 
+     *
      * @return The ManagedExecutorService instance with life cycle operations
      *         disabled for use by application components.
      **/
@@ -140,20 +141,20 @@ public class ManagedExecutorServiceImpl extends AbstractManagedExecutorService {
     protected <V> ManagedFutureTask<V> getNewTaskFor(Runnable r, V result) {
         return new ManagedFutureTask<>(this, r, result);
     }
-    
+
     @Override
     protected ManagedFutureTask getNewTaskFor(Callable callable) {
         return new ManagedFutureTask(this, callable);
     }
-    
+
     @Override
     public long getTaskCount() {
         return threadPoolExecutor.getTaskCount();
     }
-    
+
     @Override
     public long getCompletedTaskCount() {
         return threadPoolExecutor.getCompletedTaskCount();
     }
-    
+
 }
