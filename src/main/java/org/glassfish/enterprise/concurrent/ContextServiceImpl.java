@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2022 Payara Foundation and/or its affiliates.
  *
@@ -27,6 +28,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Flow.Processor;
+import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -46,14 +49,14 @@ import org.glassfish.enterprise.concurrent.spi.TransactionSetupProvider;
 public class ContextServiceImpl implements ContextService, Serializable {
 
     static final long serialVersionUID = -386695836029966433L;
-    
+
     protected final ContextSetupProvider contextSetupProvider;
     protected final TransactionSetupProvider transactionSetupProvider;
     protected final String name;
-    
-    final private static String INVALID_PROXY = 
+
+    final private static String INVALID_PROXY =
             "contextObject is not a valid contextual object proxy created with the createContextualProxy method";
-    final private static String NULL_CONTEXTPROPERTIES = 
+    final private static String NULL_CONTEXTPROPERTIES =
             "contextProperties cannot be null";
     final private static String NULL_INSTANCE =
             "instance cannot be null";
@@ -63,12 +66,12 @@ public class ContextServiceImpl implements ContextService, Serializable {
             "Class does not implement at least one of the provided interfaces";
     final private static String DIFFERENT_CONTEXTSERVICE =
             "Proxy is created by a different ContextService object";
-    
+
     public ContextServiceImpl(String name, ContextSetupProvider contextSetupProvider) {
         this(name, contextSetupProvider, null);
     }
 
-    public ContextServiceImpl(String name, ContextSetupProvider contextSetupProvider, 
+    public ContextServiceImpl(String name, ContextSetupProvider contextSetupProvider,
             TransactionSetupProvider transactionSetupProvider) {
         this.name = name;
         this.contextSetupProvider = contextSetupProvider;
@@ -82,11 +85,11 @@ public class ContextServiceImpl implements ContextService, Serializable {
     public ContextSetupProvider getContextSetupProvider() {
         return contextSetupProvider;
     }
-    
+
     public TransactionSetupProvider getTransactionSetupProvider() {
         return transactionSetupProvider;
     }
-    
+
     @Override
     public Object createContextualProxy(Object instance, Class<?>... interfaces) {
         return createContextualProxy(instance, null, interfaces);
@@ -95,7 +98,7 @@ public class ContextServiceImpl implements ContextService, Serializable {
     @Override
     public Object createContextualProxy(Object instance, Map<String, String> executionProperties, Class<?>... interfaces) {
         if (instance == null) {
-            throw new IllegalArgumentException(NULL_INSTANCE); 
+            throw new IllegalArgumentException(NULL_INSTANCE);
         }
         if (interfaces == null || interfaces.length == 0) {
             throw new IllegalArgumentException(NO_INTERFACES);
@@ -104,7 +107,7 @@ public class ContextServiceImpl implements ContextService, Serializable {
         for (Class thisInterface: interfaces) {
             if (! thisInterface.isAssignableFrom(instanceClass)) {
                 throw new IllegalArgumentException(CLASS_DOES_NOT_IMPLEMENT_INTERFACES);
-            }  
+            }
         }
         ContextProxyInvocationHandler handler = new ContextProxyInvocationHandler(this, instance, executionProperties);
         Object proxy = Proxy.newProxyInstance(instance.getClass().getClassLoader(), interfaces, handler);
@@ -115,11 +118,11 @@ public class ContextServiceImpl implements ContextService, Serializable {
     public <T> T createContextualProxy(T instance, Class<T> intf) {
         return createContextualProxy(instance, null, intf);
     }
-    
+
     @Override
     public <T> T createContextualProxy(T instance, Map<String, String> executionProperties, Class<T> intf) {
         if (instance == null) {
-            throw new IllegalArgumentException(NULL_INSTANCE); 
+            throw new IllegalArgumentException(NULL_INSTANCE);
         }
         if (intf == null) {
             throw new IllegalArgumentException(NO_INTERFACES);
@@ -128,13 +131,13 @@ public class ContextServiceImpl implements ContextService, Serializable {
         Object proxy = Proxy.newProxyInstance(instance.getClass().getClassLoader(), new Class[]{intf}, handler);
         return (T) proxy;
     }
-    
+
     @Override
     public Map<String, String> getExecutionProperties(Object contextObject) {
         ContextProxyInvocationHandler handler = verifyHandler(contextObject);
         return handler.getExecutionProperties();
     }
-    
+
     protected void verifyStringValue(Enumeration e) throws ClassCastException {
         while (e.hasMoreElements()) {
             String value = (String)e.nextElement();
@@ -217,7 +220,7 @@ public class ContextServiceImpl implements ContextService, Serializable {
                 newCompletableFuture.completeExceptionally(failure);
             }
         });
-        return (CompletionStage<T>) newCompletableFuture;
+        return newCompletableFuture;
     }
 
     private Executor getDefaultManageExecutorService() {
@@ -228,5 +231,17 @@ public class ContextServiceImpl implements ContextService, Serializable {
                 Integer.MAX_VALUE,
                 this,
                 AbstractManagedExecutorService.RejectPolicy.ABORT);
+    }
+
+    @Override
+    public <T> Subscriber<T> contextualSubscriber(Subscriber<T> subscriber) {
+        // TODO: IMPLEMENT!
+        return null;
+    }
+
+    @Override
+    public <T, R> Processor<T, R> contextualProcessor(Processor<T, R> processor) {
+        // TODO: IMPLEMENT!
+        return null;
     }
 }
