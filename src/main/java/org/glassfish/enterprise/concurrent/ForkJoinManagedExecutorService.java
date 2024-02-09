@@ -33,7 +33,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import org.glassfish.enterprise.concurrent.ManagedThreadFactoryImpl.WorkerThread;
 import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
-import org.glassfish.enterprise.concurrent.virtualthreads.MultiManagedTaskListener;
+import org.glassfish.enterprise.concurrent.internal.MultiManagedTaskListener;
 
 /**
  * Implementation of ManagedExecutorService interface. See
@@ -138,14 +138,14 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
         @Override
         public void run() {
             Thread thread = Thread.currentThread();
-            if (thread instanceof ManagedThreadFactoryImpl.WorkerThread worker) {
-                worker.notifyTaskStarting(task);
+            if (thread instanceof ManagedThreadFactoryImpl.WorkerThread) {
+                ((ManagedThreadFactoryImpl.WorkerThread) thread).notifyTaskStarting(task);
             }
             task.starting(thread);
             runnable.run();
             taskDone(task, adapter, runnable, null);
-            if (thread instanceof ManagedThreadFactoryImpl.WorkerThread worker) {
-                worker.notifyTaskDone();
+            if (thread instanceof ManagedThreadFactoryImpl.WorkerThread) {
+                ((ManagedThreadFactoryImpl.WorkerThread) thread).notifyTaskDone();
             }
         }
 
