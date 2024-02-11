@@ -18,8 +18,6 @@
 
 package org.glassfish.enterprise.concurrent;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -120,17 +118,8 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         }
     }
 
-    protected Thread createThread(final Runnable r, final ContextHandle contextHandleForSetup) {
-        if (System.getSecurityManager() == null) {
-            return createThreadInternal(r, contextHandleForSetup);
-        } else {
-            return (Thread) AccessController.doPrivileged(new PrivilegedAction() {
-                @Override
-                public Object run() {
-                    return createThreadInternal(r, contextHandleForSetup);
-                }
-              });
-        }
+    protected Thread createThread(final Runnable runnable, final ContextHandle contextHandleForSetup) {
+        return createThreadInternal(runnable, contextHandleForSetup);
     }
 
     private Thread createThreadInternal(final Runnable r, final ContextHandle contextHandleForSetup) {
@@ -140,16 +129,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     }
 
     protected ForkJoinWorkerThread createWorkerThread(final ForkJoinPool forkJoinPool, final ContextHandle contextHandleForSetup) {
-        if (System.getSecurityManager() == null) {
-            return createWorkerThreadInternal(forkJoinPool, contextHandleForSetup);
-        } else {
-            return (ForkJoinWorkerThread) AccessController.doPrivileged(new PrivilegedAction() {
-                        @Override
-                        public Object run() {
-                            return createWorkerThreadInternal(forkJoinPool, contextHandleForSetup);
-                        }
-                    });
-        }
+        return createWorkerThreadInternal(forkJoinPool, contextHandleForSetup);
     }
 
     private WorkerThread createWorkerThreadInternal(final ForkJoinPool forkJoinPool, final ContextHandle contextHandleForSetup) {
