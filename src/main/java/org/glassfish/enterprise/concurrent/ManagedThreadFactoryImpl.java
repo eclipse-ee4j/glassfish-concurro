@@ -187,16 +187,14 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         return result;
     }
     public void taskStarting(Thread t, ManagedFutureTask task) {
-        if (t instanceof ThreadWithTiming) {
-            ThreadWithTiming mt = (ThreadWithTiming) t;
+        if (t instanceof ThreadWithTiming mt) {
             // called in thread t, so no need to worry about synchronization
             mt.notifyTaskStarting(task);
         }
     }
 
     public void taskDone(Thread t) {
-        if (t instanceof ThreadWithTiming) {
-            ThreadWithTiming mt = (ThreadWithTiming) t;
+        if (t instanceof ThreadWithTiming mt) {
             // called in thread t, so no need to worry about synchronization
             mt.notifyTaskDone();
         }
@@ -262,8 +260,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     }
 
     protected void shutdown(Thread t) {
-        if (t instanceof AbstractManagedThread) {
-            AbstractManagedThread mt = (AbstractManagedThread) t;
+        if (t instanceof AbstractManagedThread mt) {
             mt.shutdown(); // mark threads as shutting down
         }
     }

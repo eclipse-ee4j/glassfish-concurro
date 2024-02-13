@@ -138,14 +138,14 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
         @Override
         public void run() {
             Thread thread = Thread.currentThread();
-            if (thread instanceof ManagedThreadFactoryImpl.WorkerThread) {
-                ((ManagedThreadFactoryImpl.WorkerThread) thread).notifyTaskStarting(task);
+            if (thread instanceof ManagedThreadFactoryImpl.WorkerThread workerThread) {
+                workerThread.notifyTaskStarting(task);
             }
             task.starting(thread);
             runnable.run();
             taskDone(task, adapter, runnable, null);
-            if (thread instanceof ManagedThreadFactoryImpl.WorkerThread) {
-                ((ManagedThreadFactoryImpl.WorkerThread) thread).notifyTaskDone();
+            if (thread instanceof ManagedThreadFactoryImpl.WorkerThread workerThread) {
+                workerThread.notifyTaskDone();
             }
         }
 
