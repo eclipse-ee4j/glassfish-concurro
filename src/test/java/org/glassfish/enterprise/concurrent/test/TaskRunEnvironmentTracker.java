@@ -24,8 +24,7 @@ public class TaskRunEnvironmentTracker {
     protected final ManagedTaskListenerImpl taskListener;
     protected int taskStartingCount = 0, taskSubmittedCount = 0;
     public ClassLoader taskRunClassLoader = null;
-    protected Future<?> taskStartingFuture = null, taskSubmittedFuture = null,
-            taskAbortedFuture = null, taskDoneFuture = null;
+    protected Future<?> taskAbortedFuture = null, taskDoneFuture = null;
     protected ManagedExecutorService taskStartingExecutor = null, 
             taskSubmittedExecutor = null;
     protected int threadPriority = 0;
@@ -63,7 +62,7 @@ public class TaskRunEnvironmentTracker {
         daemonThread = Thread.currentThread().isDaemon();
         if (taskListener != null) {
             
-            taskStartingFuture = taskListener.startingFuture;
+            Future<?> taskStartingFuture = taskListener.startingFuture;
             if (taskStartingFuture != null) {
                 ManagedTaskListenerImpl.CallbackParameters starting = 
                         taskListener.find(taskStartingFuture, taskListener.STARTING);
@@ -71,7 +70,7 @@ public class TaskRunEnvironmentTracker {
                 taskStartingCount = starting.getCount();
             }
             
-            taskSubmittedFuture = taskListener.submittedFuture;
+            Future<?> taskSubmittedFuture = taskListener.submittedFuture;
             if (taskSubmittedFuture != null) {
                 ManagedTaskListenerImpl.CallbackParameters submitting = 
                         taskListener.find(taskStartingFuture, taskListener.SUBMITTED);

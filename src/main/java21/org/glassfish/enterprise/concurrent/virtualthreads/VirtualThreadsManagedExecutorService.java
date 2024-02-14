@@ -103,6 +103,7 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
         executeManagedFutureTask(task);
     }
 
+    @Override
     protected void executeManagedFutureTask(ManagedFutureTask<?> task) {
         if (queuedTasksSemaphore == null || queuedTasksSemaphore.tryAcquire()) {
             task.submitted();

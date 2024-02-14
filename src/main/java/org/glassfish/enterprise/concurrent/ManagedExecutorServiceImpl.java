@@ -29,7 +29,8 @@ import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
 import org.glassfish.enterprise.concurrent.internal.ManagedThreadPoolExecutor;
 
 /**
- * Implementation of ManagedExecutorService interface. See {@code AbstractManagedExecutorService}.
+ * Implementation of ManagedExecutorService interface with Platform threads. See
+  {@code AbstractManagedExecutorService}.
  */
 public class ManagedExecutorServiceImpl extends AbstractPlatformThreadExecutorService {
 
