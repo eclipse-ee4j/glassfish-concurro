@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2022, 2024 Contributors to the Eclipse Foundation.
- * Copyright (c) 2022 Payara Foundation and/or its affiliates.
+ * Copyright (c) 2022 - 2024 Payara Foundation and/or its affiliates.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -96,8 +96,8 @@ extends AbstractExecutorService implements ManagedExecutorService {
         if (ntasks == 0) {
             throw new IllegalArgumentException();
         }
-        List<Future<T>> futures = new ArrayList<Future<T>>(ntasks);
-        ManagedExecutorCompletionService<T> ecs = new ManagedExecutorCompletionService<T>(this);
+        List<Future<T>> futures = new ArrayList<>(ntasks);
+        ManagedExecutorCompletionService<T> ecs = new ManagedExecutorCompletionService<>(this);
         // For efficiency, especially in executors with limited
         // parallelism, check to see if previously submitted tasks are
         // done before submitting more of them. This interleaving
