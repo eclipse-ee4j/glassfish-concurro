@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2018 - 2024 [Payara Foundation and/or its affiliates].
  *
@@ -22,6 +23,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+
+import static jakarta.enterprise.concurrent.ManagedTask.IDENTITY_NAME;
+
 import jakarta.enterprise.concurrent.AbortedException;
 import jakarta.enterprise.concurrent.ContextService;
 import jakarta.enterprise.concurrent.ManagedTask;
@@ -31,27 +35,25 @@ import org.glassfish.enterprise.concurrent.spi.ContextHandle;
 import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
 
 /**
- * Future implementation to be returned by methods in ManagedExecutorSerivceImpl.
- * This class is responsible for saving and restoring thread context, as well
- * as invoking ManagedTaskListener methods.
+ * Future implementation to be returned by methods in ManagedExecutorSerivceImpl. This class is responsible for saving
+ * and restoring thread context, as well as invoking ManagedTaskListener methods.
  */
 public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
 
-
+    final protected Object task;
     final protected AbstractManagedExecutorService executor;
     final protected ManagedTaskListener taskListener;
-    protected ContextHandle contextHandleForSetup = null;
-    protected ContextHandle contextHandleForReset = null;
-    protected Object task;
-    protected Throwable taskRunThrowable;
-    protected TaskDoneCallback taskDoneCallback;
     final boolean isContextualCallback;
-    IllegalStateException contextSetupException = null;
-    
-    public ManagedFutureTask(
-            AbstractManagedExecutorService executor,
-            Runnable runnable,
-            V result) {
+
+    protected ContextHandle contextHandleForSetup;
+    protected ContextHandle contextHandleForReset;
+
+    protected Throwable taskRunThrowable;
+    protected TaskDoneCallback<V> taskDoneCallback;
+
+    IllegalStateException contextSetupException;
+
+    public ManagedFutureTask(AbstractManagedExecutorService executor, Runnable runnable, V result) {
         super(runnable, result);
         this.task = runnable;
         this.executor = executor;
@@ -59,22 +61,21 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
         this.isContextualCallback = isTaskContextualCallback(task) || executor.isContextualCallback();
         captureContext(executor);
     }
-    
-    public ManagedFutureTask(
-            AbstractManagedExecutorService executor,
-            Callable callable) {
+
+    public ManagedFutureTask(AbstractManagedExecutorService executor, Callable<V> callable) {
         super(callable);
         this.task = callable;
         this.executor = executor;
         this.taskListener = getManagedTaskListener(task);
         this.isContextualCallback = isTaskContextualCallback(task) || executor.isContextualCallback();
-        captureContext (executor);
+        captureContext(executor);
     }
 
     private ManagedTaskListener getManagedTaskListener(Object task) {
-        if (task instanceof ManagedTask) {
-            return ((ManagedTask) task).getManagedTaskListener();
+        if (task instanceof ManagedTask managedTask) {
+            return managedTask.getManagedTaskListener();
         }
+
         return null;
     }
 
@@ -87,38 +88,37 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
         ContextSetupProvider contextSetupProvider = executor.getContextSetupProvider();
         ContextService contextService = executor.getContextService();
         if (contextService != null && contextSetupProvider != null) {
-            contextHandleForSetup = contextSetupProvider.saveContext(contextService);            
+            contextHandleForSetup = contextSetupProvider.saveContext(contextService);
         }
     }
-    
+
     public void setupContext() {
         ContextSetupProvider contextSetupProvider = executor.getContextSetupProvider();
         if (contextSetupProvider != null) {
             try {
                 contextHandleForReset = contextSetupProvider.setup(contextHandleForSetup);
             } catch (IllegalStateException ex) {
-                // context handle not in valid state. Do not run the task.
+                // Context handle not in valid state. Do not run the task.
                 contextSetupException = ex;
             }
         }
     }
-    
+
     public void resetContext() {
         if (contextSetupException == null) {
-            // only call reset() if setupContext() was called successfully
+            // Only call reset() if setupContext() was called successfully
             ContextSetupProvider contextSetupProvider = executor.getContextSetupProvider();
             if (contextSetupProvider != null) {
                 contextSetupProvider.reset(contextHandleForReset);
             }
         }
     }
- 
+
     @Override
     public void run() {
         if (contextSetupException == null) {
             super.run();
-        }
-        else {
+        } else {
             abort();
         }
     }
@@ -126,11 +126,11 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
     @Override
     public boolean runAndReset() {
         if (contextSetupException == null) {
-           return super.runAndReset();
-        }
-        else {
+            return super.runAndReset();
+        } else {
             abort();
         }
+
         return false;
     }
 
@@ -142,31 +142,25 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
                 if (isContextualCallback) {
                     setupContext();
                 }
-                taskListener.taskAborted(this, 
-                        executor.getExecutorForTaskListener(),
-                        task,
-                        new CancellationException());
-            }
-            finally {
+                taskListener.taskAborted(this, executor.getExecutorForTaskListener(), task, new CancellationException());
+            } finally {
                 if (isContextualCallback) {
                     resetContext();
                 }
             }
         }
+
         return result;
     }
-    
+
     public void submitted() {
         if (taskListener != null) {
             try {
                 if (isContextualCallback) {
                     setupContext();
                 }
-                taskListener.taskSubmitted(this,  
-                        executor.getExecutorForTaskListener(),
-                        task);
-            }
-            finally {
+                taskListener.taskSubmitted(this, executor.getExecutorForTaskListener(), task);
+            } finally {
                 if (isContextualCallback) {
                     resetContext();
                 }
@@ -175,23 +169,20 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
     }
 
     @Override
-    protected void done() { 
-        // for calling taskDone for cancelled tasks
+    protected void done() {
+        // For calling taskDone for cancelled tasks
         super.done();
         if (taskDoneCallback != null) {
             taskDoneCallback.taskDone(this);
         }
+
         if (taskListener != null && isCancelled()) { // FIXME: only when cancelled?!?
             try {
                 if (isContextualCallback) {
                     setupContext();
                 }
-                taskListener.taskDone(this, 
-                        executor.getExecutorForTaskListener(),
-                        task,
-                        new CancellationException());
-            }
-            finally {
+                taskListener.taskDone(this, executor.getExecutorForTaskListener(), task, new CancellationException());
+            } finally {
                 if (isContextualCallback) {
                     resetContext();
                 }
@@ -204,73 +195,62 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
         super.setException(t);
         taskRunThrowable = t;
     }
-    
+
     public void starting(Thread t) {
         if (executor.getManagedThreadFactory() != null) {
             executor.getManagedThreadFactory().taskStarting(t, this);
         }
-        
+
         if (taskListener != null) {
-            taskListener.taskStarting(this, 
-                    executor.getExecutorForTaskListener(),
-                    task);
+            taskListener.taskStarting(this, executor.getExecutorForTaskListener(), task);
         }
     }
-    
+
     /**
-     * Call by ThreadPoolExecutor after a task is done execution.
-     * This is called on the thread where the task is run, so there is no
-     * need to set up thread context before calling the ManagedTaskListener
-     * callback method.
-     * 
-     * @param t any runtime exception encountered during executing the task. But
-     * any Throwable thrown during executing of running the task would have
-     * been caught by FutureTask and would have been set by setException(). So
-     * t is ignored here.
+     * Call by ThreadPoolExecutor after a task is done execution. This is called on the thread where the task is run, so
+     * there is no need to set up thread context before calling the ManagedTaskListener callback method.
+     *
+     * @param t any runtime exception encountered during executing the task. But any Throwable thrown during executing of
+     * running the task would have been caught by FutureTask and would have been set by setException(). So t is ignored
+     * here.
      */
     public void done(Throwable t) {
         if (executor.getManagedThreadFactory() != null) {
             executor.getManagedThreadFactory().taskDone(Thread.currentThread());
         }
-        
+
         if (taskListener != null) {
-            taskListener.taskDone(this, 
-                    executor.getExecutorForTaskListener(),
-                    task,
-                    t != null? t: taskRunThrowable);
+            taskListener.taskDone(this, executor.getExecutorForTaskListener(), task, t != null ? t : taskRunThrowable);
         }
     }
 
-    public void setTaskDoneCallback(TaskDoneCallback taskDoneCallback) {
+    public void setTaskDoneCallback(TaskDoneCallback<V> taskDoneCallback) {
         this.taskDoneCallback = taskDoneCallback;
     }
 
     public String getTaskIdentityName() {
-        if (task instanceof ManagedTask) {
-          Map<String, String> executionProperties = ((ManagedTask)task).getExecutionProperties();
-          if (executionProperties != null) {
-              String taskName = executionProperties.get(ManagedTask.IDENTITY_NAME);
-              if (taskName != null) {
-                  return taskName;
-              }
-          }
+        if (task instanceof ManagedTask managedTask) {
+            Map<String, String> executionProperties = managedTask.getExecutionProperties();
+            if (executionProperties != null) {
+                String taskName = executionProperties.get(IDENTITY_NAME);
+                if (taskName != null) {
+                    return taskName;
+                }
+            }
         }
         // if a name is not provided for the task, use toString() as the name
         return task.toString();
     }
 
     private void abort() {
-        // context handle not in valid state, throws AbortedException and
+        // Context handle not in valid state, throws AbortedException and
         // do not run the task
         AbortedException ex = new AbortedException(contextSetupException.getMessage());
         setException(ex);
         if (taskListener != null) {
             // notify listener. No need to set context here as it wouldn't work
             // anyway
-            taskListener.taskAborted(this,
-                    executor.getExecutorForTaskListener(),
-                    task,
-                    ex);
+            taskListener.taskAborted(this, executor.getExecutorForTaskListener(), task, ex);
         }
     }
 
