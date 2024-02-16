@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -12,11 +13,6 @@
  * https://www.gnu.org/software/classpath/license.html.
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
- */
-
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
  */
 package org.glassfish.enterprise.concurrent;
 
@@ -595,7 +591,6 @@ public class ManagedExecutorServiceAdapterTest  {
         final String classloaderName = "testInvokeAny_withListener" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ArrayList<CallableImpl<String>> tasks = new ArrayList<>();
-        ArrayList<String>results = new ArrayList<>();
         CallableImpl<String> goodTask = null;
         ManagedTaskListenerImpl listenerForGoodTask = null;
         
@@ -914,35 +909,35 @@ public class ManagedExecutorServiceAdapterTest  {
                 new CancellationException());
     }
 
-    @Test (expected = IllegalStateException.class)
+    @Test(expected = IllegalStateException.class)
     public void testShutdown() {
         ManagedExecutorService mes = 
                 createManagedExecutor("testShutdown", null);
         mes.shutdown();
     }
     
-    @Test (expected = IllegalStateException.class)
+    @Test(expected = IllegalStateException.class)
     public void testIsShutdown() {
         ManagedExecutorService mes = 
                 createManagedExecutor("testShutdown", null);
         mes.isShutdown();
     }
     
-    @Test (expected = IllegalStateException.class)
+    @Test(expected = IllegalStateException.class)
     public void testIsShutdownNow() {
         ManagedExecutorService mes = 
                 createManagedExecutor("testShutdownNow", null);
         mes.shutdownNow();
     }
     
-    @Test (expected = IllegalStateException.class)
+    @Test(expected = IllegalStateException.class)
     public void testIsTerminated() {
         ManagedExecutorService mes = 
                 createManagedExecutor("isTerminated", null);
         mes.isTerminated();
     }
     
-    @Test (expected = IllegalStateException.class)
+    @Test(expected = IllegalStateException.class)
     public void testAwaitTermination() throws InterruptedException {
         ManagedExecutorService mes = 
                 createManagedExecutor("awaitTermination", null);

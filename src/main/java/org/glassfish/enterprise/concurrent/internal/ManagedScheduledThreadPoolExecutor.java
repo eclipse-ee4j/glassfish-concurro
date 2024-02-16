@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2022 Payara Foundation and/or its affiliates.
+ * Copyright (c) 2022 - 2024 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -41,7 +41,8 @@ import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService;
 import org.glassfish.enterprise.concurrent.AbstractManagedThread;
 
 /**
- * ThreadPoolExecutor for running tasks submitted to ScheduledManagedExecutorServiceImpl.
+ * ThreadPoolExecutor for running tasks submitted to
+ * ScheduledManagedExecutorServiceImpl.
  */
 public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecutor {
 
@@ -84,7 +85,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
     /**
      * Returns current nanosecond time.
      */
-    final long now() {
+    final static long now() {
         return System.nanoTime();
     }
 
@@ -362,7 +363,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
      * to provide extended functionalities.
      */
     private class ManagedScheduledFutureTask<V>
-        extends ManagedFutureTask<V> implements RunnableScheduledFuture<V> {
+            extends ManagedFutureTask<V> implements RunnableScheduledFuture<V> {
 
         /** Sequence number to break ties FIFO */
         protected final long sequenceNumber;
