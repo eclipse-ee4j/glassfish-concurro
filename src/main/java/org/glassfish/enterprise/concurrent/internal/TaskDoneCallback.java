@@ -17,11 +17,10 @@
 package org.glassfish.enterprise.concurrent.internal;
 
 /**
- * Callback to be notified when the taskDone() method in FutureTask is called.
- * Use by tasks created by ManagedExecutorCompletionService.
- * 
+ * Callback to be notified when the taskDone() method in FutureTask is called. Use by tasks created by
+ * ManagedExecutorCompletionService.
+ *
  */
-public interface TaskDoneCallback {
-    
-    public void taskDone(ManagedFutureTask future);
+public interface TaskDoneCallback<V> {
+    void taskDone(ManagedFutureTask<V> future);
 }
