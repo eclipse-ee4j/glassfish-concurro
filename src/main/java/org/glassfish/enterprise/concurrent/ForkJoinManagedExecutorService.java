@@ -101,6 +101,7 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
      * disabled for use by application components.
      *
      */
+    @Override
     public ManagedExecutorServiceAdapter getAdapter() {
         return adapter;
     }

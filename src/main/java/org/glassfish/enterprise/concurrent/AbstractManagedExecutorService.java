@@ -85,6 +85,8 @@ extends AbstractExecutorService implements ManagedExecutorService {
 
     public abstract ManagedThreadFactoryImpl getManagedThreadFactory();
 
+    public abstract ManagedExecutorService getAdapter();
+
     protected abstract ExecutorService getThreadPoolExecutor();
 
     protected <T> T doInvokeAny(Collection<? extends Callable<T>> tasks, boolean timed, long nanos) throws InterruptedException, ExecutionException, TimeoutException {
