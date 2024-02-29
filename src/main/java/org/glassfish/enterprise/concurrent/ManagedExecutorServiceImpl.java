@@ -124,6 +124,7 @@ public class ManagedExecutorServiceImpl extends AbstractPlatformThreadExecutorSe
      * @return The ManagedExecutorService instance with life cycle operations
      *         disabled for use by application components.
      **/
+    @Override
     public ManagedExecutorServiceAdapter getAdapter() {
         return adapter;
     }

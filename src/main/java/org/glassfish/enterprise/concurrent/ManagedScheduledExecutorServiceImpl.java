@@ -120,6 +120,7 @@ public class ManagedScheduledExecutorServiceImpl extends AbstractPlatformThreadE
      * @return The ManagedScheduledExecutorService instance with life cycle
      *         operations disabled for use by application components.
      */
+    @Override
     public ManagedScheduledExecutorServiceAdapter getAdapter() {
         return adapter  ;
     }
