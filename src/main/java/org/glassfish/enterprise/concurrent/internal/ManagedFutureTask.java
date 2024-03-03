@@ -245,13 +245,14 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
     private void abort() {
         // Context handle not in valid state, throws AbortedException and
         // do not run the task
-        AbortedException ex = new AbortedException(contextSetupException.getMessage());
+        AbortedException ex = new AbortedException(contextSetupException.getMessage(), contextSetupException);
         setException(ex);
         if (taskListener != null) {
             // notify listener. No need to set context here as it wouldn't work
             // anyway
             taskListener.taskAborted(this, executor.getExecutorForTaskListener(), task, ex);
         }
+        throw new RuntimeException(ex);
     }
 
 }
