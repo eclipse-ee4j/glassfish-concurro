@@ -13,15 +13,15 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
-package org.glassfish.enterprise.concurrent.test.virtualthreads;
+package org.glassfish.concurro.test.virtualthreads;
 
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
-import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService;
-import org.glassfish.enterprise.concurrent.ManagedScheduledExecutorServiceAdapterTest;
-import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
-import org.glassfish.enterprise.concurrent.test.TestContextService;
-import org.glassfish.enterprise.concurrent.virtualthreads.VirtualThreadsManagedScheduledExecutorService;
+import org.glassfish.concurro.AbstractManagedExecutorService;
+import org.glassfish.concurro.ManagedScheduledExecutorServiceAdapterTest;
+import org.glassfish.concurro.spi.ContextSetupProvider;
+import org.glassfish.concurro.test.TestContextService;
+import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedScheduledExecutorService;
 
 /**
  * Tests for VirtualThreadsManagedScheduledService.

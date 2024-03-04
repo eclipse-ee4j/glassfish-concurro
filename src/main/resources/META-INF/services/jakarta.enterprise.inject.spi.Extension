@@ -1,1 +1,1 @@
-org.glassfish.enterprise.concurrent.cdi.ConcurrentCDIExtension
+org.glassfish.concurro.cdi.ConcurrentCDIExtension

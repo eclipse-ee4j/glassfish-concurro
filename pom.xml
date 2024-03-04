@@ -28,12 +28,14 @@
     </parent>
 
     <groupId>org.glassfish</groupId>
-    <artifactId>jakarta.enterprise.concurrent</artifactId>
+    <artifactId>concurro</artifactId>
     <version>3.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>org.glassfish.jakarta.enterprise.concurrent</name>
-    <description>Compatible Implementation of Jakarta Concurrency</description>
+    <name>Concurro</name>
+    <description>
+        Eclipse compatible implementation of Jakarta Concurrency.
+    </description>
     <url>https://projects.eclipse.org/projects/ee4j.glassfish</url>
     <organization>
         <name>Oracle Corporation</name>
@@ -262,7 +264,7 @@
                     <groups>
                         <group>
                             <title>Concurro ${project.version}</title>
-                            <packages>org.glassfish.enterprise.concurrent</packages>
+                            <packages>org.glassfish.concurro</packages>
                         </group>
                     </groups>
                     <bottom><![CDATA[
@@ -270,7 +272,7 @@ Comments to: <a href="mailto:glassfish-dev@eclipse.org">glassfish-dev@eclipse.or
 Copyright &#169; 2021, 2024 Eclipse Foundation. All rights reserved.<br>
 Use is subject to <a href="http://www.eclipse.org/legal/epl-2.0" target="_top">license terms</a>.]]>
                     </bottom>
-                    <excludePackageNames>org.glassfish.enterprise.concurrent.management</excludePackageNames>
+                    <excludePackageNames>org.glassfish.concurro.management</excludePackageNames>
                 </configuration>
                 <executions>
                     <execution>

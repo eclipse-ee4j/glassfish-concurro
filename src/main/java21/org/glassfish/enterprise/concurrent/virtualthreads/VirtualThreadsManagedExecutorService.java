@@ -13,13 +13,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
-package org.glassfish.enterprise.concurrent.virtualthreads;
+package org.glassfish.concurro.virtualthreads;
 
-import org.glassfish.enterprise.concurrent.internal.MultiManagedTaskListener;
+import org.glassfish.concurro.internal.MultiManagedTaskListener;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.enterprise.concurrent.ManagedExecutors;
 import jakarta.enterprise.concurrent.ManagedTask;
-import org.glassfish.enterprise.concurrent.*;
+import org.glassfish.concurro.*;
 import java.util.concurrent.ExecutorService;
 import jakarta.enterprise.concurrent.ManagedTaskListener;
 import java.util.ArrayList;
@@ -34,7 +34,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
-import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
+import org.glassfish.concurro.internal.ManagedFutureTask;
 
 /**
  * Implementation of ManagedExecutorService interface using Virtual Threads. See {@code AbstractManagedExecutorService}.
