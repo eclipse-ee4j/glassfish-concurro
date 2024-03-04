@@ -1,0 +1,21 @@
+name: Concurro CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  build:
+    name: "Build and test"
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout for build
+      uses: actions/checkout@v4
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: 21
+    - name: Build with Maven
+      run: mvn -V -ntp -P staging -Ddash.skip verify
