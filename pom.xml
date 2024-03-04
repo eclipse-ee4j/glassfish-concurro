@@ -382,6 +382,17 @@ Use is subject to <a href="http://www.eclipse.org/legal/epl-2.0" target="_top">l
                                 </additionalClasspathElements>
                             </configuration>
                         </plugin>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-jar-plugin</artifactId>
+                            <configuration>
+                                <archive>
+                                    <manifestEntries>
+                                        <Multi-Release>true</Multi-Release>
+                                    </manifestEntries>
+                                </archive>
+                            </configuration>
+                        </plugin>
                     </plugins>
                 </pluginManagement>
             </build>
