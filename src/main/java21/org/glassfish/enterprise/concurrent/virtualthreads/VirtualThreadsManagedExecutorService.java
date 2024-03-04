@@ -83,7 +83,12 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
         if (maxParallelTasks > 0) {
             parallelTasksSemaphore = new Semaphore(maxParallelTasks, true);
             if (queueCapacity > 0) {
-                queuedTasksSemaphore = new Semaphore(queueCapacity + maxParallelTasks, true);
+                int virtualCapacity = queueCapacity + maxParallelTasks;
+                if (virtualCapacity <= 0) {
+                    // int overflow; queue capacity is often MAX_VALUE
+                    virtualCapacity = Integer.MAX_VALUE;
+                }
+                queuedTasksSemaphore = new Semaphore(virtualCapacity, true);
             }
         }
         executor = Executors.newThreadPerTaskExecutor(getManagedThreadFactory());
@@ -111,7 +116,7 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
             getThreadPoolExecutor().execute(task);
             runningFutures.add(task);
         } else {
-            throw new RejectedExecutionException("Too many tasks submitted (maxParallelTasks=" + maxParallelTasks + ", queueCapacity=" + queueCapacity);
+            throw new RejectedExecutionException("Too many tasks submitted (available = " + (queuedTasksSemaphore == null ? "UNUSED" : queuedTasksSemaphore.availablePermits()) + ", maxParallelTasks = " + maxParallelTasks + ", queueCapacity = " + queueCapacity);
         }
     }
 
