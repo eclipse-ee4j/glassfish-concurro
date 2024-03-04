@@ -13,18 +13,18 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
-package org.glassfish.enterprise.concurrent.virtualthreads;
+package org.glassfish.concurro.virtualthreads;
 
 import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.Logger.Level.INFO;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.glassfish.enterprise.concurrent.ContextServiceImpl;
-import org.glassfish.enterprise.concurrent.ManagedThreadFactoryImpl;
-import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
-import org.glassfish.enterprise.concurrent.internal.ThreadExpiredException;
-import org.glassfish.enterprise.concurrent.spi.ContextHandle;
+import org.glassfish.concurro.ContextServiceImpl;
+import org.glassfish.concurro.ManagedThreadFactoryImpl;
+import org.glassfish.concurro.internal.ManagedFutureTask;
+import org.glassfish.concurro.internal.ThreadExpiredException;
+import org.glassfish.concurro.spi.ContextHandle;
 
 /**
  *

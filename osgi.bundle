@@ -15,7 +15,7 @@
 #
 
 -exportcontents: \
-                        org.glassfish.enterprise.concurrent; \
-                        org.glassfish.enterprise.concurrent.internal; \
-                        org.glassfish.enterprise.concurrent.spi; \
-                        org.glassfish.enterprise.concurrent.virtualthreads; version=3.1
+                        org.glassfish.concurro; \
+                        org.glassfish.concurro.internal; \
+                        org.glassfish.concurro.spi; \
+                        org.glassfish.concurro.virtualthreads; version=3.1

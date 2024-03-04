@@ -14,13 +14,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
-package org.glassfish.enterprise.concurrent.test.virtualthreads;
+package org.glassfish.concurro.test.virtualthreads;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 
-import org.glassfish.enterprise.concurrent.test.AwaitableManagedTaskListenerImpl;
+import org.glassfish.concurro.test.AwaitableManagedTaskListenerImpl;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -29,15 +29,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
-import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService.RejectPolicy;
-import org.glassfish.enterprise.concurrent.spi.ContextSetupProvider;
-import org.glassfish.enterprise.concurrent.test.BlockingRunnableImpl;
-import org.glassfish.enterprise.concurrent.test.ManagedBlockingRunnableTask;
-import org.glassfish.enterprise.concurrent.test.ManagedTaskListenerImpl;
-import org.glassfish.enterprise.concurrent.test.RunnableImpl;
-import org.glassfish.enterprise.concurrent.test.TestContextService;
-import org.glassfish.enterprise.concurrent.test.Util;
-import org.glassfish.enterprise.concurrent.test.Util.BooleanValueProducer;
+import org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy;
+import org.glassfish.concurro.spi.ContextSetupProvider;
+import org.glassfish.concurro.test.BlockingRunnableImpl;
+import org.glassfish.concurro.test.ManagedBlockingRunnableTask;
+import org.glassfish.concurro.test.ManagedTaskListenerImpl;
+import org.glassfish.concurro.test.RunnableImpl;
+import org.glassfish.concurro.test.TestContextService;
+import org.glassfish.concurro.test.Util;
+import org.glassfish.concurro.test.Util.BooleanValueProducer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -50,12 +50,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
-import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService;
-import org.glassfish.enterprise.concurrent.ContextServiceImpl;
-import org.glassfish.enterprise.concurrent.ManagedExecutorServiceAdapterTest;
-import org.glassfish.enterprise.concurrent.test.ManagedRunnableTask;
-import org.glassfish.enterprise.concurrent.virtualthreads.VirtualThreadsManagedExecutorService;
-import org.glassfish.enterprise.concurrent.virtualthreads.VirtualThreadsManagedThreadFactory;
+import org.glassfish.concurro.AbstractManagedExecutorService;
+import org.glassfish.concurro.ContextServiceImpl;
+import org.glassfish.concurro.ManagedExecutorServiceAdapterTest;
+import org.glassfish.concurro.test.ManagedRunnableTask;
+import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedExecutorService;
+import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
 import org.junit.Test;
 
 /**

@@ -13,14 +13,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
-package org.glassfish.enterprise.concurrent.virtualthreads;
+package org.glassfish.concurro.virtualthreads;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import org.glassfish.enterprise.concurrent.AbstractManagedExecutorService;
-import org.glassfish.enterprise.concurrent.internal.ManagedFutureTask;
+import org.glassfish.concurro.AbstractManagedExecutorService;
+import org.glassfish.concurro.internal.ManagedFutureTask;
 
 /**
  * A ManagedFutureTask for virtual threads executors. Automatically triggeres events before and after executing the
