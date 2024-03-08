@@ -719,14 +719,6 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             private V result;
             private ZonedDateTime scheduledStart, runStart, runEnd;
 
-//            public LastExecutionImpl(V result, long scheduledStart,
-//                    long runStart, long runEnd) {
-//                this.result = result;
-//                this.scheduledStart = scheduledStart == 0L ? null : ZonedDateTime.ofInstant(Instant.ofEpochMilli(scheduledStart), ZoneId.systemDefault());
-//                this.runStart = runStart == 0L ? null : ZonedDateTime.ofInstant(Instant.ofEpochMilli(runStart), ZoneId.systemDefault());
-//                this.runEnd = runEnd == 0L ? null : ZonedDateTime.ofInstant(Instant.ofEpochMilli(runEnd), ZoneId.systemDefault());
-//            }
-
             public LastExecutionImpl(V result, ZonedDateTime scheduledStart,
                     ZonedDateTime runStart, ZonedDateTime runEnd) {
                 this.result = result;
