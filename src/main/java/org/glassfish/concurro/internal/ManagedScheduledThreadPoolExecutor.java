@@ -527,7 +527,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         extends ManagedScheduledFutureTask<V> {
 
         private TriggerControllerFuture controller;
-        private final long scheduledRunTime;
+        private final ZonedDateTime scheduledRunTime;
         
         ManagedTriggerSingleFutureTask(AbstractManagedExecutorService executor, 
                                  Callable<V> callable,
@@ -536,7 +536,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
                                  TriggerControllerFuture controller) {
             super(executor, callable, ns);
             this.controller = controller;
-            this.scheduledRunTime = scheduledRunTime;
+            this.scheduledRunTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(scheduledRunTime), ZoneId.systemDefault());
         }
 
         ManagedTriggerSingleFutureTask(AbstractManagedExecutorService executor, 
@@ -546,7 +546,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
                                  TriggerControllerFuture controller) {
             super(executor, r, null, ns);
             this.controller = controller;
-            this.scheduledRunTime = scheduledRunTime;
+            this.scheduledRunTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(scheduledRunTime), ZoneId.systemDefault());
         }
         
         private long getDelayFromDate(Date nextRunTime) {
@@ -560,17 +560,17 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
 
         @Override
         public void run() {
-            if (controller.skipRun(new Date(scheduledRunTime))) {
+            if (controller.skipRun(Date.from(scheduledRunTime.toInstant()))) {
                 return;
             }
-            long lastRunStartTime = System.currentTimeMillis();
+            ZonedDateTime lastRunStartTime = ZonedDateTime.now();
             Object lastResult = null;
             try {
                 super.run();
                 lastResult = get();
             } catch (Throwable t) {             
             }
-            long lastRunEndTime = System.currentTimeMillis();
+            ZonedDateTime lastRunEndTime = ZonedDateTime.now();
             controller.doneExecution(lastResult, 
                     scheduledRunTime, lastRunStartTime, lastRunEndTime);
         }
@@ -680,7 +680,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             return skip;
         }
 
-        void doneExecution(V result, long scheduledStart, long runStart, long runEnd) {
+        void doneExecution(V result, ZonedDateTime scheduledStart, ZonedDateTime runStart, ZonedDateTime runEnd) {
             lastExecution = new LastExecutionImpl(result, scheduledStart,
                     runStart, runEnd);
             // schedule next run
@@ -719,12 +719,12 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             private V result;
             private ZonedDateTime scheduledStart, runStart, runEnd;
 
-            public LastExecutionImpl(V result, long scheduledStart,
-                    long runStart, long runEnd) {
+            public LastExecutionImpl(V result, ZonedDateTime scheduledStart,
+                    ZonedDateTime runStart, ZonedDateTime runEnd) {
                 this.result = result;
-                this.scheduledStart = scheduledStart == 0L ? null : ZonedDateTime.ofInstant(Instant.ofEpochMilli(scheduledStart), ZoneId.systemDefault());
-                this.runStart = runStart == 0L ? null : ZonedDateTime.ofInstant(Instant.ofEpochMilli(runStart), ZoneId.systemDefault());
-                this.runEnd = runEnd == 0L ? null : ZonedDateTime.ofInstant(Instant.ofEpochMilli(runEnd), ZoneId.systemDefault());
+                this.scheduledStart = scheduledStart;
+                this.runStart = runStart;
+                this.runEnd = runEnd;
             }
 
             @Override
