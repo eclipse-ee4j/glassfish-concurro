@@ -234,13 +234,11 @@ public class ContextServiceImpl implements ContextService, Serializable {
 
     @Override
     public <T> Subscriber<T> contextualSubscriber(Subscriber<T> subscriber) {
-        // TODO: IMPLEMENT!
-        return null;
+        return createContextualProxy(subscriber, null, Subscriber.class);
     }
 
     @Override
     public <T, R> Processor<T, R> contextualProcessor(Processor<T, R> processor) {
-        // TODO: IMPLEMENT!
-        return null;
+        return createContextualProxy(processor, null, Processor.class);
     }
 }
