@@ -605,6 +605,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             this.callable = callable;
             this.taskScheduledTime = new Date(System.currentTimeMillis());
             scheduleNextRun();
+            skipped = trigger.skipRun(lastExecution, taskScheduledTime);
             submitted();
         }
 
@@ -614,6 +615,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             this.callable = Executors.callable(runnable);
             this.taskScheduledTime = new Date(System.currentTimeMillis());
             scheduleNextRun();
+            skipped = trigger.skipRun(lastExecution, taskScheduledTime);
             submitted();
         }
 
