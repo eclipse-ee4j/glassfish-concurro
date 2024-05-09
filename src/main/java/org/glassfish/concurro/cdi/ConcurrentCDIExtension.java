@@ -26,21 +26,21 @@ import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Default;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.spi.AfterBeanDiscovery;
-import jakarta.enterprise.inject.spi.AfterDeploymentValidation;
 import jakarta.enterprise.inject.spi.AnnotatedMethod;
 import jakarta.enterprise.inject.spi.AnnotatedType;
+import jakarta.enterprise.inject.spi.Bean;
 import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.enterprise.inject.spi.BeforeBeanDiscovery;
-import jakarta.enterprise.inject.spi.BeforeShutdown;
 import jakarta.enterprise.inject.spi.Extension;
 import jakarta.enterprise.inject.spi.ProcessAnnotatedType;
-import jakarta.enterprise.inject.spi.ProcessInjectionTarget;
-import jakarta.enterprise.inject.spi.ProcessProducer;
+import jakarta.enterprise.inject.spi.ProcessBean;
 import jakarta.enterprise.inject.spi.WithAnnotations;
 import jakarta.transaction.Transactional;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -60,6 +60,10 @@ import org.glassfish.concurro.internal.ConcurrencyManagedCDIBeans;
 public class ConcurrentCDIExtension implements Extension {
 
     private static final Logger log = Logger.getLogger(ConcurrentCDIExtension.class.getName());
+    private boolean isCSProduced = false;
+    private boolean isMTFProduced = false;
+    private boolean isMESProduced = false;
+    private boolean isMSESProduced = false;
 
     public void beforeBeanDiscovery(@Observes BeforeBeanDiscovery beforeBeanDiscovery, BeanManager beanManager) {
         log.finest("ConcurrentCDIExtension.beforeBeanDiscovery");
@@ -70,6 +74,14 @@ public class ConcurrentCDIExtension implements Extension {
         beforeBeanDiscovery.addAnnotatedType(asynchronousInterceptor, AsynchronousInterceptor.class.getName());
     }
 
+    /**
+     * Check correct usage of the {@link Asynchronous} annotation.
+     *
+     * @param <T>
+     * @param processAnnotatedType
+     * @param beanManager
+     * @throws Exception
+     */
     public <T> void processAnnotatedType(@Observes @WithAnnotations({Asynchronous.class}) ProcessAnnotatedType<T> processAnnotatedType,
             BeanManager beanManager) throws Exception {
         log.finest("ConcurrentCDIExtension.processAnnotatedType");
@@ -107,88 +119,66 @@ public class ConcurrentCDIExtension implements Extension {
     }
 
     /**
-     * 1: BeforeBeanDiscovery.
+     * Check, which default types are available via factories.
      *
+     * @param <T>
      * @param event
      */
-    public void beforeBeanDiscovery2(@Observes final BeforeBeanDiscovery event) {
-        log.severe("addScope");
+    public <T> void processBean(@Observes ProcessBean<T> event) {
+        Bean<T> bean = event.getBean();
+        Set<Type> types = bean.getTypes();
+        log.finest(() -> "processBean, types: " + types);
+        log.finest(() -> "processBean, qualifiers: " + bean.getQualifiers());
+        // Check, if there is a producer method for the default beans
+        boolean defaultQualifiers = bean.getQualifiers().equals(new HashSet<>(Arrays.asList(Default.Literal.INSTANCE, Any.Literal.INSTANCE)));
+        isCSProduced |= types.contains(ContextService.class) && defaultQualifiers;
+        isMTFProduced |= types.contains(ManagedThreadFactory.class) && defaultQualifiers;
+        isMESProduced |= types.contains(ManagedExecutorService.class) && defaultQualifiers;
+        isMSESProduced |= types.contains(ManagedScheduledExecutorService.class) && defaultQualifiers;
     }
 
     /**
-     * 2: ProcessAnnotatedType.
-     *
-     * @param <T>
-     * @param processAnnotatedType
-     * @param beanManager
-     * @throws Exception
-     */
-    public <T> void processAnyAnnotatedType(@Observes ProcessAnnotatedType<T> processAnnotatedType,
-            BeanManager beanManager) throws Exception {
-        log.severe("I'm here, class: " + processAnnotatedType.getClass());
-        if (processAnnotatedType.getClass().getName().startsWith("ee.")) {
-            log.severe("HERE!!!");
-        }
-    }
-
-    /**
-     * 3: ProcessInjectionTarget.
-     *
-     * @param <T>
-     * @param pit
-     */
-    public <T> void processInjectionTarget(@Observes ProcessInjectionTarget<T> pit) {
-        if (pit.getAnnotatedType().getJavaClass().getName().startsWith("ee.")) {
-            // TOOD create contextual proxy
-            log.severe("processInjectionTarget " + pit.getInjectionTarget());
-        }
-    }
-
-    /**
-     * 4: ProcessProducer.
-     *
-     * @param <T>
-     * @param <X>
-     * @param event
-     */
-    public <T, X> void processProducer(@Observes ProcessProducer<T, X> event) {
-        log.severe("processProducer, " + event.getProducer());
-    }
-
-    /**
-     * 5: AfterBeanDiscovery.
+     * During AfterBeanDiscovery event, define the CDI beans depending on data
+     * collected during annotations scan.
      *
      * @param event
      */
     void afterBeanDiscovery(@Observes final AfterBeanDiscovery event, BeanManager beanManager) {
         try {
             log.severe("afterBeanDiscovery");
-
             // define default beans
-            event.addBean()
-                    .beanClass(ContextService.class)
-                    .types(ContextService.class)
-                    .scope(ApplicationScoped.class)
-                    .addQualifiers(Default.Literal.INSTANCE, Any.Literal.INSTANCE)
-                    .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, "java:comp/DefaultContextService"));
-            event.addBean()
-                    .beanClass(ManagedThreadFactory.class)
-                    .types(ManagedThreadFactory.class)
-                    .scope(ApplicationScoped.class)
-                    .addQualifiers(Default.Literal.INSTANCE, Any.Literal.INSTANCE)
-                    .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, "java:comp/DefaultManagedThreadFactory"));
-            event.addBean()
-                    .beanClass(ManagedExecutorService.class)
-                    .types(ManagedExecutorService.class)
-                    .scope(ApplicationScoped.class)
-                    .addQualifiers(Default.Literal.INSTANCE, Any.Literal.INSTANCE)
-                    .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, "java:comp/DefaultManagedExecutorService"));
-            event.addBean()
-                    .beanClass(ManagedScheduledExecutorService.class)
-                    .types(ManagedScheduledExecutorService.class)
-                    .scope(ApplicationScoped.class)
-                    .addQualifiers(Default.Literal.INSTANCE, Any.Literal.INSTANCE)
-                    .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, "java:comp/DefaultManagedScheduledExecutorService"));
+            if (!isCSProduced) {
+                event.addBean()
+                        .beanClass(ContextService.class)
+                        .types(ContextService.class)
+                        .scope(ApplicationScoped.class)
+                        .addQualifiers(Default.Literal.INSTANCE, Any.Literal.INSTANCE)
+                        .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, "java:comp/DefaultContextService"));
+            }
+            if (!isMTFProduced) {
+                event.addBean()
+                        .beanClass(ManagedThreadFactory.class)
+                        .types(ManagedThreadFactory.class)
+                        .scope(ApplicationScoped.class)
+                        .addQualifiers(Default.Literal.INSTANCE, Any.Literal.INSTANCE)
+                        .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, "java:comp/DefaultManagedThreadFactory"));
+            }
+            if (!isMESProduced) {
+                event.addBean()
+                        .beanClass(ManagedExecutorService.class)
+                        .types(ManagedExecutorService.class)
+                        .scope(ApplicationScoped.class)
+                        .addQualifiers(Default.Literal.INSTANCE, Any.Literal.INSTANCE)
+                        .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, "java:comp/DefaultManagedExecutorService"));
+            }
+            if (!isMSESProduced) {
+                event.addBean()
+                        .beanClass(ManagedScheduledExecutorService.class)
+                        .types(ManagedScheduledExecutorService.class)
+                        .scope(ApplicationScoped.class)
+                        .addQualifiers(Default.Literal.INSTANCE, Any.Literal.INSTANCE)
+                        .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, "java:comp/DefaultManagedScheduledExecutorService"));
+            }
 
             // pick up ConcurrencyManagedCDIBeans definitions from JNDI
             InitialContext ctx = new InitialContext();
@@ -198,58 +188,40 @@ public class ConcurrentCDIExtension implements Extension {
                 String jndiName = beanDefinition.jndiName();
                 Set<Annotation> annotations = new HashSet<>();
                 Set<String> classNames = beanDefinition.qualifiers();
-                for (String className : classNames) {
-                    Class<? extends Annotation> annoCls = Thread.currentThread().getContextClassLoader().loadClass(className).asSubclass(Annotation.class);
-                    Annotation annotationProxy = Annotation.class.cast(Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(),
-                            new Class<?>[]{Annotation.class, annoCls},
-                            new QualifierAnnotationProxy(annoCls)));
-                    annotations.add(annotationProxy);
-                }
-                
-                Class<?> beanClass = switch (beanDefinition.definitionType()) {
-                    case CONTEXT_SERVICE ->
-                        ContextService.class;
-                    case MANAGED_THREAD_FACTORY ->
-                        ManagedThreadFactory.class;
-                    case MANAGED_EXECUTOR_SERVICE ->
-                        ManagedExecutorService.class;
-                    case MANAGED_SCHEDULED_EXECUTOR_SERVICE ->
-                        ManagedScheduledExecutorService.class;
-                };
+                if (!classNames.isEmpty()) {
+                    for (String className : classNames) {
+                        Class<? extends Annotation> annoCls = Thread.currentThread().getContextClassLoader().loadClass(className).asSubclass(Annotation.class);
+                        Annotation annotationProxy = Annotation.class.cast(Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(),
+                                new Class<?>[]{Annotation.class, annoCls},
+                                new QualifierAnnotationProxy(annoCls)));
+                        annotations.add(annotationProxy);
+                    }
 
-                // register bean
-                event.addBean()
-                        .beanClass(beanClass)
-                        .types(beanClass)
-                        .scope(ApplicationScoped.class)
-                        .addQualifiers(annotations)
-                        .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, jndiName));
+                    Class<?> beanClass = switch (beanDefinition.definitionType()) {
+                        case CONTEXT_SERVICE ->
+                            ContextService.class;
+                        case MANAGED_THREAD_FACTORY ->
+                            ManagedThreadFactory.class;
+                        case MANAGED_EXECUTOR_SERVICE ->
+                            ManagedExecutorService.class;
+                        case MANAGED_SCHEDULED_EXECUTOR_SERVICE ->
+                            ManagedScheduledExecutorService.class;
+                    };
+
+                    // register bean
+                    event.addBean()
+                            .beanClass(beanClass)
+                            .types(beanClass)
+                            .scope(ApplicationScoped.class)
+                            .addQualifiers(annotations)
+                            .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, jndiName));
+                }
             }
         } catch (NamingException ex) {
-            log.log(Level.SEVERE, "Unable to load '" + ConcurrencyManagedCDIBeans.JDNI_NAME + "' from JNDI! " + ex.getMessage(), ex);
+            log.log(Level.FINEST, "Unable to load '" + ConcurrencyManagedCDIBeans.JDNI_NAME + "' from JNDI, probably no concurrency definitions annotations found during scanning " + ex.getMessage(), ex);
         } catch (ClassNotFoundException ex) {
-            log.log(Level.SEVERE, ex.getMessage(), ex);
+            log.log(Level.SEVERE, "Unable to load class from application's classloader: " + ex.getMessage(), ex);
         }
-    }
-
-    /**
-     * 6. AfterDeploymentValidation.
-     *
-     * @param event
-     * @param beanManager
-     */
-    public void afterDeploymentValidation(@Observes AfterDeploymentValidation event, BeanManager beanManager) {
-        log.severe("afterDeploymentValidation");
-    }
-
-    /**
-     * 7: BeforeShutdown.
-     *
-     * @param event
-     * @param beanManager
-     */
-    public void beforeShutdown(@Observes BeforeShutdown event, BeanManager beanManager) {
-        log.severe("beforeShutdown");
     }
 
 // This is not working as the annotation doesn't need to be on CDI bean
