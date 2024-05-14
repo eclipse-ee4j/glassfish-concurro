@@ -15,7 +15,8 @@
  */
 package org.glassfish.concurro.internal;
 
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -23,7 +24,7 @@ import java.util.Set;
  * scanning. Consist of the concurrency type (e.g. ManagedExecutorService),
  * user-defined qualifier class, and JDNI name.
  *
- * @author aubi
+ * @author Petr Aubrecht
  */
 public class ConcurrencyManagedCDIBeans {
     public enum Type {
@@ -38,12 +39,12 @@ public class ConcurrencyManagedCDIBeans {
      */
     public static final String JDNI_NAME = "java:app/concurrent/__ConcurrencyManagedCDIBeans";
 
-    private final Set<ConfiguredCDIBean> beans = new HashSet<>();
+    private final Map<String, ConfiguredCDIBean> beans = new HashMap<>();
 
     public ConcurrencyManagedCDIBeans() {
     }
 
-    public Set<ConfiguredCDIBean> getBeans() {
+    public Map<String, ConfiguredCDIBean> getBeans() {
         return beans;
     }
 
@@ -51,13 +52,17 @@ public class ConcurrencyManagedCDIBeans {
             ConcurrencyManagedCDIBeans.Type concurrencyType,
             Set<String> qualifiers,
             String jndiName) {
-        beans.add(new ConfiguredCDIBean(concurrencyType, qualifiers, jndiName));
+        beans.put(jndiName, new ConfiguredCDIBean(concurrencyType, qualifiers));
     }
 
     public record ConfiguredCDIBean(
             ConcurrencyManagedCDIBeans.Type definitionType,
-            Set<String> qualifiers,
-            String jndiName) {
+            Set<String> qualifiers) {
 
+    }
+
+    @Override
+    public String toString() {
+        return "ConcurrencyManagedCDIBeans{" + "beans=" + beans + '}';
     }
 }

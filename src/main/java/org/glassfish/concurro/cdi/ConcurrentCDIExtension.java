@@ -17,9 +17,13 @@ package org.glassfish.concurro.cdi;
 
 import jakarta.enterprise.concurrent.Asynchronous;
 import jakarta.enterprise.concurrent.ContextService;
+import jakarta.enterprise.concurrent.ContextServiceDefinition;
+import jakarta.enterprise.concurrent.ManagedExecutorDefinition;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
+import jakarta.enterprise.concurrent.ManagedScheduledExecutorDefinition;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.concurrent.ManagedThreadFactory;
+import jakarta.enterprise.concurrent.ManagedThreadFactoryDefinition;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.Any;
@@ -42,11 +46,14 @@ import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import org.glassfish.concurro.AsynchronousInterceptor;
@@ -64,6 +71,8 @@ public class ConcurrentCDIExtension implements Extension {
     private boolean isMTFProduced = false;
     private boolean isMESProduced = false;
     private boolean isMSESProduced = false;
+
+    private ConcurrencyManagedCDIBeans configs = new ConcurrencyManagedCDIBeans();
 
     public void beforeBeanDiscovery(@Observes BeforeBeanDiscovery beforeBeanDiscovery, BeanManager beanManager) {
         log.finest("ConcurrentCDIExtension.beforeBeanDiscovery");
@@ -118,6 +127,43 @@ public class ConcurrentCDIExtension implements Extension {
         }
     }
 
+    private void addDefinition(ConcurrencyManagedCDIBeans configs, ConcurrencyManagedCDIBeans.Type type, Class<?>[] qualifiers, String jndiName) {
+        if (qualifiers.length > 0) {
+            configs.addDefinition(type,
+                    Stream.of(qualifiers).map(c -> c.getName()).collect(Collectors.toSet()),
+                    jndiName);
+        }
+    }
+
+    /**
+     * Process concurrency annotations on CDI beans.
+     *
+     * @param <T>
+     * @param processAnnotatedType A class containing the annotations
+     * @param beanManager CDI bean manager
+     * @throws Exception no exception is thrown from this method
+     */
+    public <T> void processAnnotatedContextServiceDefinition(
+            @Observes @WithAnnotations({ContextServiceDefinition.class, ManagedExecutorDefinition.class, ManagedThreadFactoryDefinition.class, ManagedScheduledExecutorDefinition.class}) ProcessAnnotatedType<T> processAnnotatedType,
+            BeanManager beanManager) throws Exception {
+        Set<ContextServiceDefinition> contextServiceDefinitions = processAnnotatedType.getAnnotatedType().getAnnotations(ContextServiceDefinition.class);
+        for (ContextServiceDefinition definition : contextServiceDefinitions) {
+            addDefinition(configs, ConcurrencyManagedCDIBeans.Type.CONTEXT_SERVICE, definition.qualifiers(), definition.name());
+        }
+        Set<ManagedThreadFactoryDefinition> managedThreadFactoryDefinitions = processAnnotatedType.getAnnotatedType().getAnnotations(ManagedThreadFactoryDefinition.class);
+        for (ManagedThreadFactoryDefinition definition : managedThreadFactoryDefinitions) {
+            addDefinition(configs, ConcurrencyManagedCDIBeans.Type.MANAGED_THREAD_FACTORY, definition.qualifiers(), definition.name());
+        }
+        Set<ManagedExecutorDefinition> managedExecutorDefinitions = processAnnotatedType.getAnnotatedType().getAnnotations(ManagedExecutorDefinition.class);
+        for (ManagedExecutorDefinition definition : managedExecutorDefinitions) {
+            addDefinition(configs, ConcurrencyManagedCDIBeans.Type.MANAGED_EXECUTOR_SERVICE, definition.qualifiers(), definition.name());
+        }
+        Set<ManagedScheduledExecutorDefinition> managedScheduledExecutorDefinitions = processAnnotatedType.getAnnotatedType().getAnnotations(ManagedScheduledExecutorDefinition.class);
+        for (ManagedScheduledExecutorDefinition definition : managedScheduledExecutorDefinitions) {
+            addDefinition(configs, ConcurrencyManagedCDIBeans.Type.MANAGED_SCHEDULED_EXECUTOR_SERVICE, definition.qualifiers(), definition.name());
+        }
+    }
+
     /**
      * Check, which default types are available via factories.
      *
@@ -125,16 +171,16 @@ public class ConcurrentCDIExtension implements Extension {
      * @param event
      */
     public <T> void processBean(@Observes ProcessBean<T> event) {
-        Bean<T> bean = event.getBean();
+        Bean<T> bean = event.getBean(); //bean.getBeanClass().getName().startsWith("ee.jakarta.tck")
         Set<Type> types = bean.getTypes();
-        log.finest(() -> "processBean, types: " + types);
-        log.finest(() -> "processBean, qualifiers: " + bean.getQualifiers());
         // Check, if there is a producer method for the default beans
         boolean defaultQualifiers = bean.getQualifiers().equals(new HashSet<>(Arrays.asList(Default.Literal.INSTANCE, Any.Literal.INSTANCE)));
-        isCSProduced |= types.contains(ContextService.class) && defaultQualifiers;
-        isMTFProduced |= types.contains(ManagedThreadFactory.class) && defaultQualifiers;
-        isMESProduced |= types.contains(ManagedExecutorService.class) && defaultQualifiers;
-        isMSESProduced |= types.contains(ManagedScheduledExecutorService.class) && defaultQualifiers;
+        if (defaultQualifiers) {
+            isCSProduced |= types.contains(ContextService.class);
+            isMTFProduced |= types.contains(ManagedThreadFactory.class);
+            isMESProduced |= types.contains(ManagedExecutorService.class);
+            isMSESProduced |= types.contains(ManagedScheduledExecutorService.class);
+        }
     }
 
     /**
@@ -146,7 +192,7 @@ public class ConcurrentCDIExtension implements Extension {
     void afterBeanDiscovery(@Observes final AfterBeanDiscovery event, BeanManager beanManager) {
         try {
             log.severe("afterBeanDiscovery");
-            // define default beans
+            // define default beans, if there is no user-defined factory
             if (!isCSProduced) {
                 event.addBean()
                         .beanClass(ContextService.class)
@@ -180,12 +226,24 @@ public class ConcurrentCDIExtension implements Extension {
                         .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, "java:comp/DefaultManagedScheduledExecutorService"));
             }
 
-            // pick up ConcurrencyManagedCDIBeans definitions from JNDI
-            InitialContext ctx = new InitialContext();
-            ConcurrencyManagedCDIBeans configs = (ConcurrencyManagedCDIBeans) ctx.lookup(ConcurrencyManagedCDIBeans.JDNI_NAME);
+            try {
+                // pick up ConcurrencyManagedCDIBeans definitions from JNDI, merge with CDI scanning, JNDI has a priority
+                InitialContext ctx = new InitialContext();
+                ConcurrencyManagedCDIBeans jndiConfigs = (ConcurrencyManagedCDIBeans) ctx.lookup(ConcurrencyManagedCDIBeans.JDNI_NAME);
+                for (Map.Entry<String, ConcurrencyManagedCDIBeans.ConfiguredCDIBean> beanDefinitionEntry : configs.getBeans().entrySet()) {
+                    jndiConfigs.addDefinition(beanDefinitionEntry.getValue().definitionType(),
+                            beanDefinitionEntry.getValue().qualifiers(),
+                            beanDefinitionEntry.getKey());
 
-            for (ConcurrencyManagedCDIBeans.ConfiguredCDIBean beanDefinition : configs.getBeans()) {
-                String jndiName = beanDefinition.jndiName();
+                }
+                configs = jndiConfigs;
+            } catch (NamingException ex) {
+                log.log(Level.FINEST, "Unable to load '" + ConcurrencyManagedCDIBeans.JDNI_NAME + "' from JNDI, probably no concurrency definitions annotations found during scanning " + ex.getMessage(), ex);
+            }
+
+            for (Map.Entry<String, ConcurrencyManagedCDIBeans.ConfiguredCDIBean> beanDefinitionEntry : configs.getBeans().entrySet()) {
+                ConcurrencyManagedCDIBeans.ConfiguredCDIBean beanDefinition = beanDefinitionEntry.getValue();
+                String jndiName = beanDefinitionEntry.getKey();
                 Set<Annotation> annotations = new HashSet<>();
                 Set<String> classNames = beanDefinition.qualifiers();
                 if (!classNames.isEmpty()) {
@@ -217,8 +275,6 @@ public class ConcurrentCDIExtension implements Extension {
                             .produceWith((Instance<Object> inst) -> createInstanceContextService(inst, jndiName));
                 }
             }
-        } catch (NamingException ex) {
-            log.log(Level.FINEST, "Unable to load '" + ConcurrencyManagedCDIBeans.JDNI_NAME + "' from JNDI, probably no concurrency definitions annotations found during scanning " + ex.getMessage(), ex);
         } catch (ClassNotFoundException ex) {
             log.log(Level.SEVERE, "Unable to load class from application's classloader: " + ex.getMessage(), ex);
         }
