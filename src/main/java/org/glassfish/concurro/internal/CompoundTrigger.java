@@ -21,7 +21,10 @@ import jakarta.enterprise.concurrent.LastExecution;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.concurrent.Trigger;
 import jakarta.interceptor.InvocationContext;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -34,12 +37,14 @@ import java.util.List;
 public class CompoundTrigger implements Trigger {
 
     private final ManagedScheduledExecutorService mses;
-    private final List<CronTrigger> triggers;
+    private final List<LateAwareTrigger> triggers = new ArrayList<>();
     private final InvocationContext context;
+    private long secondsLate;
+    private LateAwareTrigger currentTrigger = null;
+    private ZonedDateTime nextField = null;
 
-    public CompoundTrigger(ManagedScheduledExecutorService mses, List<CronTrigger> triggers, InvocationContext context) {
+    public CompoundTrigger(ManagedScheduledExecutorService mses, InvocationContext context) {
         this.mses = mses;
-        this.triggers = triggers;
         this.context = context;
     }
 
@@ -47,10 +52,13 @@ public class CompoundTrigger implements Trigger {
     public Date getNextRunTime(LastExecution lastExecutionInfo, Date taskScheduledTime) {
         ZonedDateTime now = ZonedDateTime.now();
         ZonedDateTime next = null;
-        for (CronTrigger trigger : triggers) {
-            ZonedDateTime nextTime = trigger.getNextRunTime(lastExecutionInfo, now);
+        for (LateAwareTrigger trigger : triggers) {
+            ZonedDateTime nextTime = trigger.trigger().getNextRunTime(lastExecutionInfo, now);
             if (next == null || next.isAfter(nextTime)) {
                 next = nextTime;
+                secondsLate = trigger.skipIfLateBySeconds();
+                currentTrigger = trigger;
+                nextField = next;
             }
         }
         return next == null ? null : Date.from(next.toInstant());
@@ -58,7 +66,21 @@ public class CompoundTrigger implements Trigger {
 
     @Override
     public boolean skipRun(LastExecution lastExecutionInfo, Date scheduledRunTime) {
-        // TODO
-        return false;
+        ZonedDateTime scheduledRunTimeJT = ZonedDateTime.ofInstant(
+                scheduledRunTime.toInstant(), ZoneId.systemDefault());
+        ZonedDateTime now = ZonedDateTime.now();
+        System.out.println("DEBUGDEBUG: Current trigger: " + nextField);
+        System.out.println("DEBUGDEBUG: scheduledRunTime: " + scheduledRunTimeJT);
+        boolean doSkip = scheduledRunTimeJT.plus(secondsLate, ChronoUnit.SECONDS)
+                .isBefore(now);
+        return doSkip;
+    }
+
+    public void addTrigger(CronTrigger trigger, long skipIfLateBySeconds) {
+        triggers.add(new LateAwareTrigger(trigger, skipIfLateBySeconds));
+    }
+
+    private record LateAwareTrigger(CronTrigger trigger, long skipIfLateBySeconds) {
+
     }
 }

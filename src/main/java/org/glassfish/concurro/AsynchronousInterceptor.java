@@ -36,8 +36,6 @@ import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
 import java.lang.reflect.Method;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import org.glassfish.concurro.internal.AsynchronousScheduledAction;
 import org.glassfish.concurro.internal.CompoundTrigger;
@@ -126,9 +124,12 @@ public class AsynchronousInterceptor {
         executor = executor != null ? executor : "java:comp/DefaultManagedExecutorService"; // provide default value if there is none
         lookupMES(ManagedExecutorService.class, executor, method.getName());
 
-        List<CronTrigger> triggers = new ArrayList<>();
+        ManagedScheduledExecutorService mses = lookupMES(ManagedScheduledExecutorService.class, "java:comp/DefaultManagedScheduledExecutorService", method.getName());
+        CompletableFuture<Object> future = mses.newIncompleteFuture();
+        CompoundTrigger compoundTrigger = new CompoundTrigger(mses, context);
+
         for (Schedule schedule : asynchAnnotation.runAt()) {
-            // TODO schedule.skipIfLateBy()
+            long skipIfLateBySeconds = schedule.skipIfLateBy();
             ZoneId zone = schedule.zone().isEmpty() ? ZoneId.systemDefault() : ZoneId.of(schedule.zone());
             CronTrigger trigger;
             if (schedule.cron().isEmpty()) {
@@ -142,15 +143,10 @@ public class AsynchronousInterceptor {
             } else {
                 trigger = new CronTrigger(schedule.cron(), zone);
             }
-            triggers.add(trigger);
-            //new ManagedScheduledExecutorServiceImpl(name, managedThreadFactory, 0, validReturnType, 0, 0, TimeUnit.MILLISECONDS, 0, contextService, AbstractManagedExecutorService.RejectPolicy.RETRY_ABORT)
-            //ZonedDateTime firstTime = trigger.getNextRunTime(null, ZonedDateTime.now());
+            compoundTrigger.addTrigger(trigger, skipIfLateBySeconds);
         }
-        ManagedScheduledExecutorService mses = lookupMES(ManagedScheduledExecutorService.class, "java:comp/DefaultManagedScheduledExecutorService", method.getName());
-        CompletableFuture<Object> future = mses.newIncompleteFuture();
         AsynchronousScheduledAction action = new AsynchronousScheduledAction(context, future);
-        CompoundTrigger trigger = new CompoundTrigger(mses, triggers, context);
-        final ScheduledFuture<?> scheduledFuture = mses.schedule(action, trigger);
+        final ScheduledFuture<?> scheduledFuture = mses.schedule(action, compoundTrigger);
         action.setScheduledFuture(scheduledFuture);
         return future;
     }

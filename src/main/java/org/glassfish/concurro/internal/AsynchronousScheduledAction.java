@@ -46,7 +46,6 @@ public class AsynchronousScheduledAction implements Runnable {
                 cancelScheduler = true;
             }
         } catch (Exception e) {
-            //throw new IllegalStateException("Invocation context proceed failed!", e);
             future.completeExceptionally(e);
         } finally {
             Asynchronous.Result.setFuture(null);
