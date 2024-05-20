@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024 Contributors to the Eclipse Foundation
  * Copyright (c) 2022-2024 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
@@ -57,7 +58,6 @@ import java.util.stream.Stream;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import org.glassfish.concurro.AsynchronousInterceptor;
-import org.glassfish.concurro.internal.ConcurrencyManagedCDIBeans;
 
 /**
  * CDI Extension for Jakarta Concurrent implementation backported from Payara.
