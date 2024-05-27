@@ -16,6 +16,7 @@
 
 -exportcontents: \
                         org.glassfish.concurro; \
+                        org.glassfish.concurro.cdi; \
                         org.glassfish.concurro.internal; \
                         org.glassfish.concurro.spi; \
                         org.glassfish.concurro.virtualthreads; version=3.1
