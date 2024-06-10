@@ -22,7 +22,7 @@ import java.util.Set;
 /**
  * Set of annotations of concurrency XYDefinitions, identified during annotation
  * scanning. Consist of the concurrency type (e.g. ManagedExecutorService),
- * user-defined qualifier class, and JDNI name.
+ * user-defined qualifier class, and JNDI name.
  *
  * @author Petr Aubrecht
  */
@@ -37,7 +37,7 @@ public class ConcurrencyManagedCDIBeans {
     /**
      * Annotation scanner stores this instance in JNDI under JNDI_NAME name.
      */
-    public static final String JDNI_NAME = "java:app/concurrent/__ConcurrencyManagedCDIBeans";
+    public static final String JNDI_NAME = "java:app/concurrent/__ConcurrencyManagedCDIBeans";
 
     private final Map<String, ConfiguredCDIBean> beans = new HashMap<>();
 

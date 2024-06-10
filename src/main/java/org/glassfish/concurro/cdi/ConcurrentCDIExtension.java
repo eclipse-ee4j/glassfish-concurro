@@ -229,7 +229,7 @@ public class ConcurrentCDIExtension implements Extension {
             try {
                 // pick up ConcurrencyManagedCDIBeans definitions from JNDI, merge with CDI scanning, JNDI has a priority
                 InitialContext ctx = new InitialContext();
-                ConcurrencyManagedCDIBeans jndiConfigs = (ConcurrencyManagedCDIBeans) ctx.lookup(ConcurrencyManagedCDIBeans.JDNI_NAME);
+                ConcurrencyManagedCDIBeans jndiConfigs = (ConcurrencyManagedCDIBeans) ctx.lookup(ConcurrencyManagedCDIBeans.JNDI_NAME);
                 for (Map.Entry<String, ConcurrencyManagedCDIBeans.ConfiguredCDIBean> beanDefinitionEntry : jndiConfigs.getBeans().entrySet()) {
                     configs.addDefinition(beanDefinitionEntry.getValue().definitionType(),
                             beanDefinitionEntry.getValue().qualifiers(),
@@ -237,7 +237,7 @@ public class ConcurrentCDIExtension implements Extension {
 
                 }
             } catch (NamingException ex) {
-                log.log(Level.FINEST, "Unable to load '" + ConcurrencyManagedCDIBeans.JDNI_NAME + "' from JNDI, probably no concurrency definitions annotations found during scanning " + ex.getMessage(), ex);
+                log.log(Level.FINEST, "Unable to load '" + ConcurrencyManagedCDIBeans.JNDI_NAME + "' from JNDI, probably no concurrency definitions annotations found during scanning " + ex.getMessage(), ex);
             }
 
             for (Map.Entry<String, ConcurrencyManagedCDIBeans.ConfiguredCDIBean> beanDefinitionEntry : configs.getBeans().entrySet()) {
