@@ -190,8 +190,8 @@ public class ConcurrentCDIExtension implements Extension {
      * @param event
      */
     void afterBeanDiscovery(@Observes final AfterBeanDiscovery event, BeanManager beanManager) {
+        log.finest("ConcurrentCDIExtension.afterBeanDiscovery");
         try {
-            log.severe("afterBeanDiscovery");
             // define default beans, if there is no user-defined factory
             if (!isCSProduced) {
                 event.addBean()
