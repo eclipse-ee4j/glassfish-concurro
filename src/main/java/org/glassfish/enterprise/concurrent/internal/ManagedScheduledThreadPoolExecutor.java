@@ -645,7 +645,9 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             // cancel the next scheduled task if there is one
             ManagedTriggerSingleFutureTask<V> future = getCurrentFuture();
             if (future != null) {
-                return future.cancel(mayInterruptIfRunning);
+                boolean alreadyDone = future.isDone();
+                //  return true if the currentFuture is "Completed normally"
+                return future.cancel(mayInterruptIfRunning) || alreadyDone;
             }
             return true;
         }
