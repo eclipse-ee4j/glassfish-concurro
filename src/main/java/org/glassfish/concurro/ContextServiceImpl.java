@@ -55,8 +55,6 @@ public class ContextServiceImpl implements ContextService, Serializable {
 
     final private static String INVALID_PROXY =
             "contextObject is not a valid contextual object proxy created with the createContextualProxy method";
-    final private static String NULL_CONTEXTPROPERTIES =
-            "contextProperties cannot be null";
     final private static String NULL_INSTANCE =
             "instance cannot be null";
     final private static String NO_INTERFACES =
