@@ -29,7 +29,7 @@
 
     <groupId>org.glassfish</groupId>
     <artifactId>jakarta.enterprise.concurrent</artifactId>
-    <version>3.0.1</version>
+    <version>3.0.2-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>org.glassfish.jakarta.enterprise.concurrent</name>
