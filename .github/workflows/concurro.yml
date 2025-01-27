@@ -19,3 +19,9 @@ jobs:
         java-version: 21
     - name: Build with Maven
       run: mvn -V -ntp -P staging -Ddash.skip verify
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: glassfish-concurro
+        path: target/*.jar
+        retention-days: 7
