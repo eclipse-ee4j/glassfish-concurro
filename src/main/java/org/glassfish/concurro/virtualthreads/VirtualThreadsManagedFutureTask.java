@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Payara Foundation and/or its affiliates.
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -28,12 +28,12 @@ import org.glassfish.concurro.internal.ManagedFutureTask;
 public class VirtualThreadsManagedFutureTask<V> extends ManagedFutureTask<V> {
 
     public VirtualThreadsManagedFutureTask(AbstractManagedExecutorService executor, Runnable runnable, V result, Semaphore parallelTasksSemaphore) {
-        super(executor, runnable, result);
+        super(null, null, null);
         throw new UnsupportedOperationException("This feature is only supported for Java 21+");
     }
 
     public VirtualThreadsManagedFutureTask(AbstractManagedExecutorService executor, Callable<V> callable, Semaphore parallelTasksSemaphore) {
-        super(executor, callable);
+        super(null, null);
         throw new UnsupportedOperationException("This feature is only supported for Java 21+");
     }
 

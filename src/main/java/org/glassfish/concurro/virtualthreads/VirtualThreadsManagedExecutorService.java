@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Payara Foundation and/or its affiliates.
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -41,10 +41,10 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
             int queueCapacity,
             ContextServiceImpl contextService,
             RejectPolicy rejectPolicy) {
-        super(name, longRunningTasks,
-                contextService,
-                contextService != null ? contextService.getContextSetupProvider() : null,
-                rejectPolicy);
+        super(null, false,
+                null,
+                null,
+                null);
         throw new UnsupportedOperationException("This feature is only supported for Java 21+");
     }
 
