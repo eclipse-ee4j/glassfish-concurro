@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 OmniFish and/or its affiliates.
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -16,9 +16,6 @@
 package org.glassfish.concurro.cdi.lock;
 
 import jakarta.annotation.Priority;
-import jakarta.enterprise.inject.Intercepted;
-import jakarta.enterprise.inject.spi.Bean;
-import jakarta.inject.Inject;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
