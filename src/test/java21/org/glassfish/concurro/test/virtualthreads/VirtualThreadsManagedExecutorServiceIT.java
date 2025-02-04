@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2023, 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -62,7 +62,7 @@ import org.junit.Test;
  * Tests for Life cycle APIs in VirtualThreadsManagedExecutorService
  *
  */
-public class VirtualThreadsManagedExecutorServiceTest {
+public class VirtualThreadsManagedExecutorServiceIT {
 
     System.Logger logger = System.getLogger(this.getClass().getName());
 
@@ -264,13 +264,13 @@ public class VirtualThreadsManagedExecutorServiceTest {
         try {
             assertFalse(mes.awaitTermination(1, TimeUnit.SECONDS));
         } catch (InterruptedException ex) {
-            Logger.getLogger(VirtualThreadsManagedExecutorServiceTest.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(VirtualThreadsManagedExecutorServiceIT.class.getName()).log(Level.SEVERE, null, ex);
         }
         execution1.task.stopBlocking();
         try {
             assertTrue(mes.awaitTermination(10, TimeUnit.SECONDS));
         } catch (InterruptedException ex) {
-            Logger.getLogger(VirtualThreadsManagedExecutorServiceTest.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(VirtualThreadsManagedExecutorServiceIT.class.getName()).log(Level.SEVERE, null, ex);
         }
         assertTrue(mes.isTerminated());
     }
@@ -320,7 +320,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
         try {
             f.get();
         } catch (Exception ex) {
-            Logger.getLogger(VirtualThreadsManagedExecutorServiceTest.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(VirtualThreadsManagedExecutorServiceIT.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         taskListener.whenDone().get(5, TimeUnit.SECONDS);
@@ -413,7 +413,7 @@ public class VirtualThreadsManagedExecutorServiceTest {
     }
 
     public String getLoggerName() {
-        return VirtualThreadsManagedExecutorServiceTest.class.getName();
+        return VirtualThreadsManagedExecutorServiceIT.class.getName();
     }
 
     public static class VirtualThreadsManagedExecutorServiceExt extends VirtualThreadsManagedExecutorService {
