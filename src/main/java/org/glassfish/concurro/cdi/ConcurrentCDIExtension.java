@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Contributors to the Eclipse Foundation
+ * Copyright (c) 2024, 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2022-2024 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
@@ -58,6 +58,7 @@ import java.util.stream.Stream;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import org.glassfish.concurro.AsynchronousInterceptor;
+import org.glassfish.concurro.cdi.lock.LockInterceptor;
 
 /**
  * CDI Extension for Jakarta Concurrent implementation backported from Payara.
@@ -76,11 +77,11 @@ public class ConcurrentCDIExtension implements Extension {
 
     public void beforeBeanDiscovery(@Observes BeforeBeanDiscovery beforeBeanDiscovery, BeanManager beanManager) {
         log.finest("ConcurrentCDIExtension.beforeBeanDiscovery");
+
         // Add each of the Concurrent interceptors
-        beforeBeanDiscovery.addInterceptorBinding(Asynchronous.class);
-        AnnotatedType<AsynchronousInterceptor> asynchronousInterceptor
-                = beanManager.createAnnotatedType(AsynchronousInterceptor.class);
-        beforeBeanDiscovery.addAnnotatedType(asynchronousInterceptor, AsynchronousInterceptor.class.getName());
+        addAnnotatedTypes(beforeBeanDiscovery, beanManager,
+            Asynchronous.class, AsynchronousInterceptor.class,
+            Lock.class, LockInterceptor.class);
     }
 
     /**
@@ -282,7 +283,7 @@ public class ConcurrentCDIExtension implements Extension {
 // This is not working as the annotation doesn't need to be on CDI bean
 //    public <T> void processAnnotatedType(@Observes @WithAnnotations(ContextServiceDefinition.class) ProcessAnnotatedType<T> pat) {
 //    }
-//    
+//
     private Object createInstanceContextService(Instance<Object> inst, String jndi) {
         try {
             InitialContext ctx = new InitialContext();
@@ -291,6 +292,12 @@ public class ConcurrentCDIExtension implements Extension {
         } catch (NamingException ex) {
             Logger.getLogger(ConcurrentCDIExtension.class.getName()).log(Level.SEVERE, null, ex);
             throw new RuntimeException("Unable to fine JNDI '" + jndi + "': " + ex.getMessage(), ex);
+        }
+    }
+
+    private static void addAnnotatedTypes(BeforeBeanDiscovery beforeBean, BeanManager beanManager, Class<?>... types) {
+        for (Class<?> type : types) {
+            beforeBean.addAnnotatedType(beanManager.createAnnotatedType(type), "Concurro " + type.getName());
         }
     }
 
