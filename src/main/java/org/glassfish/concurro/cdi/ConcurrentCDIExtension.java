@@ -57,7 +57,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import org.glassfish.concurro.AsynchronousInterceptor;
+
+import org.glassfish.concurro.cdi.asynchronous.AsynchronousInterceptor;
 import org.glassfish.concurro.cdi.lock.LockInterceptor;
 
 /**
