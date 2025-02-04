@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022, 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2024 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
@@ -54,7 +54,7 @@ public class AsynchronousInterceptor {
     @AroundInvoke
     public Object intercept(InvocationContext context) throws Exception {
         Method method = context.getMethod();
-        Asynchronous asynchAnnotation = method.getAnnotation(Asynchronous.class);
+        Asynchronous asynchAnnotation = context.getInterceptorBinding(Asynchronous.class);
 
         if (asynchAnnotation.runAt().length > 0) {
             return schedule(context, method, asynchAnnotation);
