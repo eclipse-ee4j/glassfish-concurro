@@ -58,6 +58,7 @@ import java.util.stream.Stream;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import org.glassfish.concurro.AsynchronousInterceptor;
+import org.glassfish.concurro.cdi.lock.LockInterceptor;
 
 /**
  * CDI Extension for Jakarta Concurrent implementation backported from Payara.

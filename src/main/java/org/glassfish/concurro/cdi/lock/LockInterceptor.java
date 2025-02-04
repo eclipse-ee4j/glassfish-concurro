@@ -13,7 +13,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
-package org.glassfish.concurro.cdi;
+package org.glassfish.concurro.cdi.lock;
 
 import jakarta.annotation.Priority;
 import jakarta.interceptor.AroundInvoke;
@@ -23,6 +23,8 @@ import jakarta.interceptor.InvocationContext;
 import java.io.Serializable;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.glassfish.concurro.cdi.Lock;
 
 import static jakarta.interceptor.Interceptor.Priority.PLATFORM_BEFORE;
 import static org.glassfish.concurro.cdi.Lock.Type.READ;
