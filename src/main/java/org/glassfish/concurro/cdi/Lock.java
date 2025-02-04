@@ -13,14 +13,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
-package org.glassfish.concurro.cdi.lock;
+package org.glassfish.concurro.cdi;
 
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.glassfish.concurro.cdi.lock.Lock.TimeoutType.TIMEOUT;
-import static org.glassfish.concurro.cdi.lock.Lock.Type.WRITE;
+import static org.glassfish.concurro.cdi.Lock.TimeoutType.TIMEOUT;
+import static org.glassfish.concurro.cdi.Lock.Type.WRITE;
 
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
