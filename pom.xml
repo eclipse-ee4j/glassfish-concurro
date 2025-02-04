@@ -166,7 +166,7 @@
                             <configuration>
                                 <release>21</release>
                                 <compileSourceRoots>
-                                    <compileSourceRoot>${project.basedir}/src/main/java21</compileSourceRoot>
+                                    <compileSourceRoot>${java21.sourceDirectory}</compileSourceRoot>
                                 </compileSourceRoots>
                             </configuration>
                         </execution>
