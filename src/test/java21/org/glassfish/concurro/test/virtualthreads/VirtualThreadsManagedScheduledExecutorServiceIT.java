@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Contributors to the Eclipse Foundation
+ * Copyright (c) 2024-2025 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -28,7 +28,7 @@ import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedScheduledExecu
  *
  * @author aubi
  */
-public class VirtualThreadsManagedScheduledExecutorServiceTest extends ManagedScheduledExecutorServiceAdapterTest {
+public class VirtualThreadsManagedScheduledExecutorServiceIT extends ManagedScheduledExecutorServiceAdapterTest {
 
     /**
      * Override creation of executor for ManagedExecutorServiceAdapterTest.

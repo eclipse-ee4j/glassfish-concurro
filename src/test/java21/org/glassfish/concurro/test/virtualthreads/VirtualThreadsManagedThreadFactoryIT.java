@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2023, 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -39,7 +39,7 @@ import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.Util;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
 
-public class VirtualThreadsManagedThreadFactoryTest {
+public class VirtualThreadsManagedThreadFactoryIT {
 
     @Test
     public void testNewThread_default() throws Exception {
@@ -54,7 +54,7 @@ public class VirtualThreadsManagedThreadFactoryTest {
 
     @Test
     public void testNewThread_context() throws Exception {
-        final String CLASSLOADER_NAME = "VirtualThreadsManagedThreadFactoryTest:" + new java.util.Date(System.currentTimeMillis());
+        final String CLASSLOADER_NAME = "VirtualThreadsManagedThreadFactoryIT:" + new java.util.Date(System.currentTimeMillis());
         ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(CLASSLOADER_NAME);
         ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
         VirtualThreadsManagedThreadFactory factory = new VirtualThreadsManagedThreadFactory("test1", contextService);
@@ -97,7 +97,7 @@ public class VirtualThreadsManagedThreadFactoryTest {
 
     @Test
     public void testNewThreadForkJoinPoolContext() throws Exception {
-        final String CLASSLOADER_NAME = "VirtualThreadsManagedThreadFactoryTest:" + new java.util.Date(System.currentTimeMillis());
+        final String CLASSLOADER_NAME = "VirtualThreadsManagedThreadFactoryIT:" + new java.util.Date(System.currentTimeMillis());
         ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(CLASSLOADER_NAME);
         ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
         VirtualThreadsManagedThreadFactory factory = new VirtualThreadsManagedThreadFactory("test1", contextService);
@@ -128,7 +128,7 @@ public class VirtualThreadsManagedThreadFactoryTest {
     }
 
     private String getLoggerName() {
-        return VirtualThreadsManagedThreadFactoryTest.class.getName();
+        return VirtualThreadsManagedThreadFactoryIT.class.getName();
     }
 
     static class TestRunnable implements Runnable {
