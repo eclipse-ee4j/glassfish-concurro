@@ -16,9 +16,11 @@
  */
 package org.glassfish.concurro.cdi.asynchronous;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -142,15 +144,28 @@ public class AsynchronousInterceptor {
 
     static final CronTrigger getCronTrigger(Schedule schedule, ZoneId zone) {
         if (schedule.cron().isEmpty()) {
-            return new CronTrigger(zone)
-                    .seconds(schedule.seconds())
-                    .minutes(schedule.minutes())
-                    .hours(schedule.hours())
-                    .daysOfWeek(schedule.daysOfWeek())
-                    .daysOfMonth(schedule.daysOfMonth())
-                    .months(schedule.months());
+            var trigger = new CronTrigger(zone);
+            setIfNotEmpty(trigger::seconds, schedule.seconds());
+            setIfNotEmpty(trigger::minutes, schedule.minutes());
+            setIfNotEmpty(trigger::hours, schedule.hours());
+            setIfNotEmpty(trigger::daysOfWeek, schedule.daysOfWeek());
+            setIfNotEmpty(trigger::daysOfMonth, schedule.daysOfMonth());
+            setIfNotEmpty(trigger::months, schedule.months());
+            return trigger;
         } else {
             return new CronTrigger(schedule.cron(), zone);
         }
+    }
+
+    static final void setIfNotEmpty(Consumer<int[]> consumer, int[] data) {
+        Optional.ofNullable(data)
+                .filter(a -> a.length > 0)
+                .ifPresent(consumer);
+    }
+
+    static final <T> void setIfNotEmpty(Consumer<T[]> consumer, T[] data) {
+        Optional.ofNullable(data)
+                .filter(a -> a.length > 0)
+                .ifPresent(consumer);
     }
 }
