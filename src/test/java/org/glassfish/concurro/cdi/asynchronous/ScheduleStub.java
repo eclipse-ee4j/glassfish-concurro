@@ -95,4 +95,8 @@ class ScheduleStub implements Schedule {
         schedule.cron(cron);
         return schedule;
     }
+
+    static Schedule newScheduleWithDefaults() {
+        return new ScheduleStub();
+    }
 }
