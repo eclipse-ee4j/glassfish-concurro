@@ -131,18 +131,7 @@ public class AsynchronousInterceptor {
         for (Schedule schedule : asynchAnnotation.runAt()) {
             long skipIfLateBySeconds = schedule.skipIfLateBy();
             ZoneId zone = schedule.zone().isEmpty() ? ZoneId.systemDefault() : ZoneId.of(schedule.zone());
-            CronTrigger trigger;
-            if (schedule.cron().isEmpty()) {
-                trigger = new CronTrigger(zone)
-                        .seconds(schedule.seconds())
-                        .minutes(schedule.minutes())
-                        .hours(schedule.hours())
-                        .daysOfWeek(schedule.daysOfWeek())
-                        .daysOfMonth(schedule.daysOfMonth())
-                        .months(schedule.months());
-            } else {
-                trigger = new CronTrigger(schedule.cron(), zone);
-            }
+            CronTrigger trigger = getCronTrigger(schedule, zone);
             compoundTrigger.addTrigger(trigger, skipIfLateBySeconds);
         }
         AsynchronousScheduledAction action = new AsynchronousScheduledAction(context, future);
@@ -151,4 +140,17 @@ public class AsynchronousInterceptor {
         return future;
     }
 
+    static final CronTrigger getCronTrigger(Schedule schedule, ZoneId zone) {
+        if (schedule.cron().isEmpty()) {
+            return new CronTrigger(zone)
+                    .seconds(schedule.seconds())
+                    .minutes(schedule.minutes())
+                    .hours(schedule.hours())
+                    .daysOfWeek(schedule.daysOfWeek())
+                    .daysOfMonth(schedule.daysOfMonth())
+                    .months(schedule.months());
+        } else {
+            return new CronTrigger(schedule.cron(), zone);
+        }
+    }
 }
