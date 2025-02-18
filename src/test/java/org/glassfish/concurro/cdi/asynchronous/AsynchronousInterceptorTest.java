@@ -33,6 +33,9 @@ public class AsynchronousInterceptorTest {
     public void testGettingCronTriggerFromSchedule() {
         var scheduleWithDefaults = ScheduleStub.newScheduleWithDefaults();
 
-        AsynchronousInterceptor.getCronTrigger(scheduleWithDefaults, null);
+        var trigger = AsynchronousInterceptor.getCronTrigger(scheduleWithDefaults, null);
+
+        var representation = trigger.toString();
+        assert representation.matches("CronTrigger@.* seconds 0, minutes 0, hours 0, \\* \\* \\*") : representation;
     }
 }
