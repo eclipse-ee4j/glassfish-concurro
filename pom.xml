@@ -171,6 +171,7 @@
                             </goals>
                             <configuration>
                                 <release>21</release>
+                                <multiReleaseOutput>true</multiReleaseOutput>
                                 <compileSourceRoots>
                                     <compileSourceRoot>${java21.sourceDirectory}</compileSourceRoot>
                                 </compileSourceRoots>
