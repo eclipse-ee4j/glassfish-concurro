@@ -99,6 +99,11 @@
           
         <java21.sourceDirectory>${project.basedir}/src/main/java21</java21.sourceDirectory>
         <java21.testSourceDirectory>${project.basedir}/src/test/java21</java21.testSourceDirectory>
+
+        <!-- speed up test execution - run all tests in parallel -->
+        <parallel>classesAndMethods</parallel>
+        <useUnlimitedThreads>true</useUnlimitedThreads>
+
     </properties>
 
     <dependencies>
