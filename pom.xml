@@ -285,9 +285,8 @@
                 <executions>
                     <execution>
                         <id>attach-sources</id>
-                        <phase>validate</phase>
                         <goals>
-                            <goal>jar</goal>
+                            <goal>jar-no-fork</goal>
                         </goals>
                     </execution>
                 </executions>
