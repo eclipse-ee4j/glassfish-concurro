@@ -38,8 +38,8 @@
     </description>
     <url>https://projects.eclipse.org/projects/ee4j.glassfish</url>
     <organization>
-        <name>Oracle Corporation</name>
-        <url>http://www.oracle.com/</url>
+        <name>Eclipse Foundation</name>
+        <url>https://www.eclipse.org/</url>
     </organization>
     <licenses>
         <license>
