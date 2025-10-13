@@ -25,7 +25,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -47,15 +46,18 @@ import org.glassfish.concurro.test.Util;
 import org.glassfish.concurro.test.Util.BooleanValueProducer;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedExecutorService;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
-import org.hamcrest.collection.IsEmptyCollection;
 import org.junit.Test;
 
+import static java.lang.System.Logger.Level.INFO;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.logging.Level.SEVERE;
+import static org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy.ABORT;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -73,43 +75,39 @@ public class VirtualThreadsManagedExecutorServiceIT {
      */
     @Test
     public void testShutdown() {
-        ManagedExecutorService mes
-                = createManagedExecutorWithMaxOneParallelTask("testShutdown", null);
-        assertFalse(mes.isShutdown());
-        mes.shutdown();
-        assertTrue(mes.isShutdown());
+        ManagedExecutorService managedExecutorService = createManagedExecutorWithMaxOneParallelTask("testShutdown", null);
+        assertFalse(managedExecutorService.isShutdown());
+
+        managedExecutorService.shutdown();
+        assertTrue(managedExecutorService.isShutdown());
     }
 
     /**
-     * Verifies that when the executor is shut down using shutdownNow() - all submitted tasks are cancelled if not
-     * running, and - all running task threads are interrupted, and - all registered ManagedTaskListeners are invoked
+     * Verifies that when the executor is shut down using shutdownNow() - all submitted tasks are cancelled if not running,
+     * and - all running task threads are interrupted, and - all registered ManagedTaskListeners are invoked
      *
      *
      */
     @Test
     public void testShutdownNow_tasks_behavior() throws InterruptedException, InterruptedException {
-        ManagedExecutorService mes
-                = createManagedExecutor("testShutdown_tasks_behavior", 2, 2); // max tasks=2, queue=2
-        TestableExecution<ManagedBlockingRunnableTask> execution1
-                = new TestableExecution<>("task1", TestableExecution::busyWaitingTask);
+        ManagedExecutorService managedExecutorService = createManagedExecutor("testShutdown_tasks_behavior", 2, 2); // max tasks=2, queue=2
+        TestableExecution<ManagedBlockingRunnableTask> execution1 = new TestableExecution<>("task1", TestableExecution::busyWaitingTask);
         logger.log(System.Logger.Level.INFO, execution1.name + ": " + execution1.task);
-        execution1.submitTo(mes); // this task should be run
+        execution1.submitTo(managedExecutorService); // this task should be run
 
-        TestableExecution<ManagedBlockingRunnableTask> execution2
-                = new TestableExecution<>("task2", TestableExecution::busyWaitingTask);
-        execution2.submitTo(mes); // this task should be queued
+        TestableExecution<ManagedBlockingRunnableTask> execution2 = new TestableExecution<>("task2", TestableExecution::busyWaitingTask);
+        execution2.submitTo(managedExecutorService); // this task should be queued
 
-        TestableExecution<ManagedBlockingRunnableTask> execution3
-                = new TestableExecution<>("task3", TestableExecution::busyWaitingTask);
-        execution3.submitTo(mes); // this task should be queued
+        TestableExecution<ManagedBlockingRunnableTask> execution3 = new TestableExecution<>("task3", TestableExecution::busyWaitingTask);
+        execution3.submitTo(managedExecutorService); // this task should be queued
+
         // waits for task1 to start
         execution1.assertTaskStarted();
 
-        mes.shutdownNow();
+        managedExecutorService.shutdownNow();
 
         // task2 and task3 should be cancelled
         execution2.assertTaskAborted();
-
         execution3.assertTaskAborted();
 
         // task1 should be interrupted
@@ -119,22 +117,21 @@ public class VirtualThreadsManagedExecutorServiceIT {
 
     @Test
     public void testMaxParallelTasks_limitation() throws InterruptedException {
-        ManagedExecutorService mes
-                = createManagedExecutor("testShutdown_tasks_behavior", 2, 2); // max tasks=2, queue=2
-        TestableExecution<ManagedBlockingRunnableTask> execution1
-                = new TestableExecution<>("task1", exec -> new ManagedBlockingRunnableTask(exec.listener, 0));
+        ManagedExecutorService mes = createManagedExecutor("testShutdown_tasks_behavior", 2, 2); // max tasks=2, queue=2
+        TestableExecution<ManagedBlockingRunnableTask> execution1 = new TestableExecution<>("task1",
+                exec -> new ManagedBlockingRunnableTask(exec.listener, 0));
         execution1.submitTo(mes); // this task should be run
 
-        TestableExecution<ManagedBlockingRunnableTask> execution2
-                = new TestableExecution<>("task2", exec -> new ManagedBlockingRunnableTask(exec.listener, 0));
+        TestableExecution<ManagedBlockingRunnableTask> execution2 = new TestableExecution<>("task2",
+                exec -> new ManagedBlockingRunnableTask(exec.listener, 0));
         execution2.submitTo(mes); // this task should be queued
 
         // waits for task1 & task2 to start
         execution1.assertTaskStarted();
         execution2.assertTaskStarted();
 
-        TestableExecution<ManagedRunnableTask> execution3
-                = new TestableExecution<>("task3", exec -> new ManagedRunnableTask(exec.listener));
+        TestableExecution<ManagedRunnableTask> execution3 = new TestableExecution<>("task3",
+                exec -> new ManagedRunnableTask(exec.listener));
         execution3.submitTo(mes); // this task should be queued
 
         // wait for some time so tasks have some chance to start before assertions are made
@@ -159,41 +156,51 @@ public class VirtualThreadsManagedExecutorServiceIT {
 
     @Test
     public void testMaxQueueSize_limitation() throws InterruptedException {
-        ManagedExecutorService mes
-                = createManagedExecutor("testMaxQueueSize_limitation", 2, 2); // max tasks=2, queue=2
-        TestableExecution<ManagedBlockingRunnableTask> execution1
-                = new TestableExecution<>("task1", exec -> new ManagedBlockingRunnableTask(exec.listener, 0));
-        execution1.submitTo(mes); // this task should be run
+        // Max tasks=2, queue=2
+        ManagedExecutorService managedExecutorService = createManagedExecutor("testMaxQueueSize_limitation", 2, 2);
+        TestableExecution<ManagedBlockingRunnableTask> execution1 =
+            new TestableExecution<>("task1", exec -> new ManagedBlockingRunnableTask(exec.listener, 0));
 
-        TestableExecution<ManagedBlockingRunnableTask> execution2
-                = new TestableExecution<>("task2", exec -> new ManagedBlockingRunnableTask(exec.listener, 0));
-        execution2.submitTo(mes); // this task should be queued
+        // This task should be run
+        execution1.submitTo(managedExecutorService);
 
-        // waits for task1 & task2 to start
+        TestableExecution<ManagedBlockingRunnableTask> execution2 =
+            new TestableExecution<>("task2", exec -> new ManagedBlockingRunnableTask(exec.listener, 0));
+
+        // This task should be queued
+        execution2.submitTo(managedExecutorService);
+
+        // Waits for task1 & task2 to start
         execution1.assertTaskStarted();
         execution2.assertTaskStarted();
 
-        TestableExecution<ManagedRunnableTask> execution3
-                = new TestableExecution<>("task3", exec -> new ManagedRunnableTask(exec.listener));
-        execution3.submitTo(mes); // this task should be queued
+        TestableExecution<ManagedRunnableTask> execution3 =
+            new TestableExecution<>("task3", exec -> new ManagedRunnableTask(exec.listener));
 
-        TestableExecution<ManagedRunnableTask> execution4
-                = new TestableExecution<>("task4", exec -> new ManagedRunnableTask(exec.listener));
-        execution4.submitTo(mes); // this task should be queued
+        // This task should be queued
+        execution3.submitTo(managedExecutorService);
 
-        // wait for some time so tasks have some chance to start before assertions are made
+        TestableExecution<ManagedRunnableTask> execution4 =
+            new TestableExecution<>("task4", exec -> new ManagedRunnableTask(exec.listener));
+
+        // This task should be queued
+        execution4.submitTo(managedExecutorService);
+
+        // Wait for some time so tasks have some chance to start before assertions are made
         Thread.sleep(Duration.ofSeconds(1));
 
-        // task3 and task4 should wait with starting while the other 2 tasks are running
+        // Task3 and task4 should wait with starting while the other 2 tasks are running
         assertFalse(execution3.listener.eventCalled(execution3.future, ManagedTaskListenerImpl.STARTING));
         assertFalse(execution4.listener.eventCalled(execution4.future, ManagedTaskListenerImpl.STARTING));
         assertFalse(execution1.future.isDone());
         assertFalse(execution2.future.isDone());
 
-        TestableExecution<ManagedRunnableTask> execution5
-                = new TestableExecution<>("task5", exec -> new ManagedRunnableTask(exec.listener));
+        TestableExecution<ManagedRunnableTask> execution5 =
+            new TestableExecution<>("task5", exec -> new ManagedRunnableTask(exec.listener));
+
+        // This task should be rejected because the queue is empty
         RejectedExecutionException ex = assertThrows(RejectedExecutionException.class, () -> {
-            execution5.submitTo(mes); // this task should be rejected because the queue is empty
+            execution5.submitTo(managedExecutorService);
         });
 
         execution1.task.stopBlocking();
@@ -213,13 +220,13 @@ public class VirtualThreadsManagedExecutorServiceIT {
      */
     @Test
     public void testShutdownNow() {
-        ManagedExecutorService mes
-                = createManagedExecutorWithMaxOneParallelTask("testShutdownNow", null);
-        assertFalse(mes.isShutdown());
-        List<Runnable> tasks = mes.shutdownNow();
+        ManagedExecutorService managedExecutorService = createManagedExecutorWithMaxOneParallelTask("testShutdownNow", null);
+        assertFalse(managedExecutorService.isShutdown());
+
+        List<Runnable> tasks = managedExecutorService.shutdownNow();
         assertTrue(tasks.isEmpty());
-        assertTrue(mes.isShutdown());
-        assertTrue(mes.isTerminated());
+        assertTrue(managedExecutorService.isShutdown());
+        assertTrue(managedExecutorService.isTerminated());
     }
 
     /**
@@ -227,25 +234,24 @@ public class VirtualThreadsManagedExecutorServiceIT {
      */
     @Test
     public void testShutdownNow_unfinishedTask() {
-        ManagedExecutorService mes
-                = createManagedExecutorWithMaxOneParallelTask("testShutdown_unfinishedTask", null);
-        assertFalse(mes.isShutdown());
-        TestableExecution<ManagedBlockingRunnableTask> execution1
-                = new TestableExecution<>("task1", TestableExecution::busyWaitingTask);
-        logger.log(System.Logger.Level.DEBUG, "Submitting " + execution1.name + " = " + execution1.task);
-        execution1.submitTo(mes);
+        ManagedExecutorService managedExecutorService = createManagedExecutorWithMaxOneParallelTask("testShutdown_unfinishedTask", null);
+        assertFalse(managedExecutorService.isShutdown());
 
-        // waits for task to start
+        TestableExecution<ManagedBlockingRunnableTask> execution1 = new TestableExecution<>("task1", TestableExecution::busyWaitingTask);
+        logger.log(System.Logger.Level.DEBUG, "Submitting " + execution1.name + " = " + execution1.task);
+        execution1.submitTo(managedExecutorService);
+
+        // Waits for task to start
         execution1.assertTaskStarted();
 
         RunnableImpl task2 = new RunnableImpl(null);
-        mes.submit(task2); // this task cannot start until task1 has finished
-        List<Runnable> tasks = mes.shutdownNow();
-        assertFalse(mes.isTerminated());
+        managedExecutorService.submit(task2); // this task cannot start until task1 has finished
+        List<Runnable> tasks = managedExecutorService.shutdownNow();
+        assertFalse(managedExecutorService.isTerminated());
 
         assertThat(tasks.size(), is(greaterThan(0)));
         execution1.task.stopBlocking();
-        assertTrue(mes.isShutdown());
+        assertTrue(managedExecutorService.isShutdown());
     }
 
     /**
@@ -254,157 +260,169 @@ public class VirtualThreadsManagedExecutorServiceIT {
      */
     @Test
     public void testAwaitsTermination() throws Exception {
-        ManagedExecutorService mes
-                = createManagedExecutorWithMaxOneParallelTask("testAwaitsTermination", null);
-        assertFalse(mes.isShutdown());
-        TestableExecution<ManagedBlockingRunnableTask> execution1
-                = new TestableExecution<>("task1", TestableExecution::busyWaitingTask);
-        execution1.submitTo(mes);
+        ManagedExecutorService managedExecutorService = createManagedExecutorWithMaxOneParallelTask("testAwaitsTermination", null);
+        assertFalse(managedExecutorService.isShutdown());
+        TestableExecution<ManagedBlockingRunnableTask> execution1 = new TestableExecution<>("task1", TestableExecution::busyWaitingTask);
+        execution1.submitTo(managedExecutorService);
+
         // waits for task to start
         execution1.assertTaskStarted();
-        mes.shutdown();
+        managedExecutorService.shutdown();
         try {
-            assertFalse(mes.awaitTermination(1, TimeUnit.SECONDS));
+            assertFalse(managedExecutorService.awaitTermination(1, SECONDS));
         } catch (InterruptedException ex) {
-            Logger.getLogger(VirtualThreadsManagedExecutorServiceIT.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(VirtualThreadsManagedExecutorServiceIT.class.getName()).log(SEVERE, null, ex);
         }
+
         execution1.task.stopBlocking();
         try {
-            assertTrue(mes.awaitTermination(10, TimeUnit.SECONDS));
+            assertTrue(managedExecutorService.awaitTermination(10, SECONDS));
         } catch (InterruptedException ex) {
-            Logger.getLogger(VirtualThreadsManagedExecutorServiceIT.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(VirtualThreadsManagedExecutorServiceIT.class.getName()).log(SEVERE, null, ex);
         }
-        assertTrue(mes.isTerminated());
+        assertTrue(managedExecutorService.isTerminated());
     }
 
     @Test
     public void testTaskCounters() {
-        final AbstractManagedExecutorService mes
-                = createManagedExecutorWithMaxOneParallelTask("testTaskCounters", null);
-        assertEquals(0, mes.getTaskCount());
-        assertEquals(0, mes.getCompletedTaskCount());
+        final AbstractManagedExecutorService managedExecutorService = createManagedExecutorWithMaxOneParallelTask("testTaskCounters", null);
+        assertEquals(0, managedExecutorService.getTaskCount());
+        assertEquals(0, managedExecutorService.getCompletedTaskCount());
         RunnableImpl task = new RunnableImpl(null);
-        Future future = mes.submit(task);
+
+        Future future = managedExecutorService.submit(task);
         try {
             future.get();
         } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(SEVERE, null, ex);
         }
         assertTrue(future.isDone());
         Util.waitForBoolean(new BooleanValueProducer() {
             @Override
             public boolean getValue() {
-                return (mes.getTaskCount() > 0) && (mes.getCompletedTaskCount() > 0);
+                return (managedExecutorService.getTaskCount() > 0) && (managedExecutorService.getCompletedTaskCount() > 0);
             }
-        },
-                true, getLoggerName()
-        );
+        }, true, getLoggerName());
 
-        assertEquals(1, mes.getTaskCount());
-        assertEquals(1, mes.getCompletedTaskCount());
+        assertEquals(1, managedExecutorService.getTaskCount());
+        assertEquals(1, managedExecutorService.getCompletedTaskCount());
     }
 
     @Test
     public void testThreadLifeTime() throws InterruptedException, ExecutionException, TimeoutException {
-        final AbstractManagedExecutorService mes
-                = createManagedExecutor("testThreadLifeTime",
-                        2, 0, 3L, 0L, false);
+        final AbstractManagedExecutorService managedExecutorService =
+            createManagedExecutor("testThreadLifeTime", 2, 0, 3L, 0L, false);
 
-        Collection<Thread> threads = mes.getThreads();
-        assertThat(threads, IsEmptyCollection.empty());
+        Collection<Thread> threads = managedExecutorService.getThreads();
+        assertTrue(threads.isEmpty());
 
         AwaitableManagedTaskListenerImpl taskListener = new AwaitableManagedTaskListenerImpl();
         RunnableImpl runnable = new ManagedRunnableTask(taskListener);
 
-        Future f = mes.submit(runnable);
-        assertThat("threads.size", mes.getThreads(), hasSize(1));
-        try {
-            f.get();
-        } catch (Exception ex) {
-            Logger.getLogger(VirtualThreadsManagedExecutorServiceIT.class.getName()).log(Level.SEVERE, null, ex);
+        Future<?> future = managedExecutorService.submit(runnable);
+
+        // We can either be too fast here (work hasn't started yet) or too slow (work is already done)
+        boolean doneOrBusy = false;
+
+        long startTime = System.currentTimeMillis();
+        while (!future.isDone() || managedExecutorService.getThreads().size() != 1) {
+            Thread.sleep(100);
+            if (System.currentTimeMillis() - startTime > 5000) {
+                break;
+            }
+            doneOrBusy = true;
         }
 
-        taskListener.whenDone().get(5, TimeUnit.SECONDS);
-        assertThat("All virtual threads should be discarded after tasks are done", mes.getThreads(), IsEmptyCollection.empty());
+        // Either we were already done, and then we check that the threads become zero again
+        // later down this test, or the managedExecutorService.getThreads() was 1, meaning the task
+        // started. Both is fine.
+        assertTrue(doneOrBusy);
 
+        try {
+            future.get();
+        } catch (Exception ex) {
+            Logger.getLogger(VirtualThreadsManagedExecutorServiceIT.class.getName()).log(SEVERE, null, ex);
+        }
+
+        taskListener.whenDone().get(5, SECONDS);
+
+        startTime = System.currentTimeMillis();
+        while (!managedExecutorService.getThreads().isEmpty()) {
+            Thread.sleep(100);
+            if (System.currentTimeMillis() - startTime > 5000) {
+                break;
+            }
+        }
+
+        assertTrue("All virtual threads should be discarded after tasks are done", managedExecutorService.getThreads().isEmpty());
     }
 
     @Test
     public void testHungThreads() {
-        final AbstractManagedExecutorService mes
-                = createManagedExecutor("testThreadLifeTime",
-                        2, 0, 0L, 1L, false);
+        final AbstractManagedExecutorService managedExecutorService = createManagedExecutor("testThreadLifeTime", 2, 0, 0L, 1L, false);
 
-        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+        Collection<Thread> threads = managedExecutorService.getHungThreads();
+        assertTrue(threads.isEmpty());
 
         BlockingRunnableImpl runnable = new BlockingRunnableImpl(null, 0L);
-        Future f = mes.submit(runnable);
+        Future<?> future = managedExecutorService.submit(runnable);
         try {
             Thread.sleep(1000); // sleep for 1 second
         } catch (InterruptedException ex) {
         }
 
-        // should get one hung thread
-        assertThat(mes.getHungThreads(), hasSize(1));
+        // Should get one hung thread
+        threads = managedExecutorService.getHungThreads();
+        assertEquals(1, threads.size());
 
-        // tell task to stop waiting
+        // Tell task to stop waiting
         runnable.stopBlocking();
         Util.waitForTaskComplete(runnable, getLoggerName());
 
-        // should not have any more hung threads
-        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+        // Should not have any more hung threads
+        threads = managedExecutorService.getHungThreads();
+        assertTrue(threads.isEmpty());
     }
 
     @Test
     public void testHungThreads_LongRunningTasks() {
-        final AbstractManagedExecutorService mes
-                = createManagedExecutor("testThreadLifeTime",
-                        2, 0, 0L, 1L, true);
+        final AbstractManagedExecutorService managedExecutorService = createManagedExecutor("testThreadLifeTime", 2, 0, 0L, 1L, true);
 
-        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+        Collection<Thread> threads = managedExecutorService.getHungThreads();
+        assertTrue(threads.isEmpty());
 
         BlockingRunnableImpl runnable = new BlockingRunnableImpl(null, 0L);
-        Future f = mes.submit(runnable);
+        Future<?> future = managedExecutorService.submit(runnable);
         try {
             Thread.sleep(1000); // sleep for 1 second
         } catch (InterruptedException ex) {
         }
 
-        // should not get any hung thread because longRunningTasks is true
-        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+        // Should not get any hung thread because longRunningTasks is true
+        threads = managedExecutorService.getHungThreads();
+        assertTrue(threads.isEmpty());
 
-        // tell task to stop waiting
+        // Tell task to stop waiting
         runnable.stopBlocking();
         Util.waitForTaskComplete(runnable, getLoggerName());
 
-        // should not have any more hung threads
-        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+        // Should not have any more hung threads
+        threads = managedExecutorService.getHungThreads();
+        assertTrue(threads.isEmpty());
     }
 
-    protected VirtualThreadsManagedExecutorServiceExt createManagedExecutorWithMaxOneParallelTask(String name,
-            ContextSetupProvider contextCallback) {
-        return new VirtualThreadsManagedExecutorServiceExt(name, new VirtualThreadsManagedThreadFactory(name),
-                0, false,
-                1,
-                Integer.MAX_VALUE,
-                new TestContextService(contextCallback),
-                RejectPolicy.ABORT);
+    protected VirtualThreadsManagedExecutorServiceExt createManagedExecutorWithMaxOneParallelTask(String name, ContextSetupProvider contextCallback) {
+        return new VirtualThreadsManagedExecutorServiceExt(name, new VirtualThreadsManagedThreadFactory(name), 0, false, 1,
+                Integer.MAX_VALUE, new TestContextService(contextCallback), ABORT);
     }
 
     protected VirtualThreadsManagedExecutorServiceExt createManagedExecutor(String name, int maxParallelTasks, int queueSize) {
-        return createManagedExecutor(name, maxParallelTasks,
-                queueSize, 0L, 0L, false);
+        return createManagedExecutor(name, maxParallelTasks, queueSize, 0L, 0L, false);
     }
 
-    protected VirtualThreadsManagedExecutorServiceExt createManagedExecutor(String name,
-            int maxParallelTasks, int queueSize, long threadLifeTime,
-            long hungTask, boolean longRunningTasks) {
-        return new VirtualThreadsManagedExecutorServiceExt(name, new VirtualThreadsManagedThreadFactory(name),
-                hungTask, longRunningTasks,
-                maxParallelTasks,
-                queueSize,
-                new TestContextService(null),
-                RejectPolicy.ABORT);
+    protected VirtualThreadsManagedExecutorServiceExt createManagedExecutor(String name, int maxParallelTasks, int queueSize, long threadLifeTime, long hungTask, boolean longRunningTasks) {
+        return new VirtualThreadsManagedExecutorServiceExt(name, new VirtualThreadsManagedThreadFactory(name), hungTask, longRunningTasks,
+                maxParallelTasks, queueSize, new TestContextService(null), ABORT);
     }
 
     public String getLoggerName() {
@@ -413,8 +431,11 @@ public class VirtualThreadsManagedExecutorServiceIT {
 
     public static class VirtualThreadsManagedExecutorServiceExt extends VirtualThreadsManagedExecutorService {
 
-        public VirtualThreadsManagedExecutorServiceExt(String name, VirtualThreadsManagedThreadFactory managedThreadFactory, long hungTaskThreshold, boolean longRunningTasks, int maxParallelTasks, int queueCapacity, ContextServiceImpl contextService, RejectPolicy rejectPolicy) {
-            super(name, managedThreadFactory, hungTaskThreshold, longRunningTasks, maxParallelTasks, queueCapacity, contextService, rejectPolicy);
+        public VirtualThreadsManagedExecutorServiceExt(String name, VirtualThreadsManagedThreadFactory managedThreadFactory,
+                long hungTaskThreshold, boolean longRunningTasks, int maxParallelTasks, int queueCapacity,
+                ContextServiceImpl contextService, RejectPolicy rejectPolicy) {
+            super(name, managedThreadFactory, hungTaskThreshold, longRunningTasks, maxParallelTasks, queueCapacity, contextService,
+                    rejectPolicy);
         }
 
         @Override
