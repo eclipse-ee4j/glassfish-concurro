@@ -101,9 +101,9 @@
         <java21.testSourceDirectory>${project.basedir}/src/test/java21</java21.testSourceDirectory>
 
         <!-- speed up test execution - run all tests in parallel -->
+        <skipUTs>${skipTests}</skipUTs>
         <parallel>classesAndMethods</parallel>
         <useUnlimitedThreads>true</useUnlimitedThreads>
-
     </properties>
 
     <dependencies>
@@ -196,6 +196,7 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.5.4</version>
                     <configuration>
+                        <skipTests>${skipUTs}</skipTests>
                         <systemPropertyVariables>
                             <java.util.logging.config.file>src/test/resources/logging.properties</java.util.logging.config.file>
                         </systemPropertyVariables>
@@ -203,6 +204,7 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+
         <plugins>
             <plugin>
                 <artifactId>maven-enforcer-plugin</artifactId>
@@ -215,7 +217,7 @@
                         <configuration>
                             <rules>
                                 <requireMavenVersion>
-                                    <version>3.6.0</version>
+                                    <version>3.9.6</version>
                                 </requireMavenVersion>
                                 <requireJavaVersion>
                                     <version>21</version>
@@ -306,7 +308,7 @@
                     </groups>
                     <bottom><![CDATA[
 Comments to: <a href="mailto:glassfish-dev@eclipse.org">glassfish-dev@eclipse.org</a>.<br>
-Copyright &#169; 2021, 2024 Eclipse Foundation. All rights reserved.<br>
+Copyright &#169; 2021, 2025 Eclipse Foundation. All rights reserved.<br>
 Use is subject to <a href="http://www.eclipse.org/legal/epl-2.0" target="_top">license terms</a>.]]>
                     </bottom>
                     <excludePackageNames>org.glassfish.concurro.management</excludePackageNames>
@@ -316,6 +318,21 @@ Use is subject to <a href="http://www.eclipse.org/legal/epl-2.0" target="_top">l
                         <id>attach-javadocs</id>
                         <goals>
                             <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.5.4</version>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -359,20 +376,6 @@ Use is subject to <a href="http://www.eclipse.org/legal/epl-2.0" target="_top">l
                         <phase>clean</phase>
                         <goals>
                             <goal>clean</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.5.4</version>
-                <executions>
-                    <execution>
-                        <id>integration-test</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
                         </goals>
                     </execution>
                 </executions>

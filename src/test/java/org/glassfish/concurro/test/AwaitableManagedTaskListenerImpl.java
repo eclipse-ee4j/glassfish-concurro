@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Contributors to the Eclipse Foundation
+ * Copyright (c) 2023, 2025 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -16,9 +16,9 @@
 package org.glassfish.concurro.test;
 
 import jakarta.enterprise.concurrent.ManagedExecutorService;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import org.glassfish.concurro.test.ManagedTaskListenerImpl;
 
 /**
  *
@@ -26,7 +26,7 @@ import org.glassfish.concurro.test.ManagedTaskListenerImpl;
  */
 public class AwaitableManagedTaskListenerImpl extends ManagedTaskListenerImpl {
 
-    private CompletableFuture taskDone = new CompletableFuture<Void>();
+    private CompletableFuture<Void> taskDone = new CompletableFuture<>();
 
     @Override
     public void taskDone(Future<?> future, ManagedExecutorService executor, Object task, Throwable exception) {
@@ -34,7 +34,7 @@ public class AwaitableManagedTaskListenerImpl extends ManagedTaskListenerImpl {
         taskDone.complete(null);
     }
 
-    public CompletableFuture whenDone() {
+    public CompletableFuture<Void> whenDone() {
         return taskDone;
     }
 
