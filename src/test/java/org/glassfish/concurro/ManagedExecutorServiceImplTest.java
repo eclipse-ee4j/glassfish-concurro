@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2023, 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -17,6 +17,8 @@
 
 package org.glassfish.concurro;
 
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -28,9 +30,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jakarta.enterprise.concurrent.ManagedExecutorService;
-import org.glassfish.concurro.AbstractManagedExecutorService;
-import org.glassfish.concurro.ManagedExecutorServiceImpl;
+
 import org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy;
 import org.glassfish.concurro.spi.ContextSetupProvider;
 import org.glassfish.concurro.test.BlockingRunnableImpl;
@@ -40,12 +40,14 @@ import org.glassfish.concurro.test.RunnableImpl;
 import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.Util;
 import org.glassfish.concurro.test.Util.BooleanValueProducer;
+import org.hamcrest.collection.IsEmptyCollection;
+import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import org.junit.Test;
 
 /**
  * Tests for Life cycle APIs in ManagedExecutorServiceImpl
@@ -103,12 +105,7 @@ public class ManagedExecutorServiceImplTest {
         assertTrue(listener3.eventCalled(f3, ManagedTaskListenerImpl.ABORTED));
 
         // task1 should be interrupted
-        Util.waitForBoolean(
-            new Util.BooleanValueProducer() {
-              public boolean getValue() {
-                return task1.isInterrupted();
-              }
-            }, true, getLoggerName());
+        Util.waitForBoolean(task1::isInterrupted, true, getLoggerName());
         assertTrue(task1.isInterrupted());
     }
 
@@ -263,7 +260,7 @@ public class ManagedExecutorServiceImplTest {
                 1, 2, 0, 3L, 0L, false);
 
         Collection<Thread> threads = mes.getThreads();
-        assertNull(threads);
+        assertThat(threads, IsEmptyCollection.empty());
 
         RunnableImpl runnable = new RunnableImpl(null);
         Future f = mes.submit(runnable);
@@ -273,16 +270,9 @@ public class ManagedExecutorServiceImplTest {
             Logger.getLogger(ManagedExecutorServiceImplTest.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        threads = mes.getThreads();
-        assertEquals(1, threads.size());
+        assertThat("threads.size", mes.getThreads(), hasSize(1));
         System.out.println("Waiting for threads to expire due to threadLifeTime");
-        Util.waitForBoolean(new BooleanValueProducer() {
-            public boolean getValue() {
-                // wait for all threads get expired
-                return mes.getThreads() == null;
-            }
-        }, true, getLoggerName());
-
+        Util.waitForBoolean(() -> mes.getThreads().isEmpty(), true, getLoggerName());
     }
 
     @Test
@@ -291,8 +281,7 @@ public class ManagedExecutorServiceImplTest {
                 createManagedExecutor("testThreadLifeTime",
                 1, 2, 0, 0L, 1L, false);
 
-        Collection<Thread> threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
 
         BlockingRunnableImpl runnable = new BlockingRunnableImpl(null, 0L);
         Future f = mes.submit(runnable);
@@ -302,16 +291,14 @@ public class ManagedExecutorServiceImplTest {
         }
 
         // should get one hung thread
-        threads = mes.getHungThreads();
-        assertEquals(1, threads.size());
+        assertThat(mes.getHungThreads(), hasSize(1));
 
         // tell task to stop waiting
         runnable.stopBlocking();
         Util.waitForTaskComplete(runnable, getLoggerName());
 
         // should not have any more hung threads
-        threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
     }
 
     @Test
@@ -320,8 +307,7 @@ public class ManagedExecutorServiceImplTest {
                 createManagedExecutor("testThreadLifeTime",
                 1, 2, 0, 0L, 1L, true);
 
-        Collection<Thread> threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
 
         BlockingRunnableImpl runnable = new BlockingRunnableImpl(null, 0L);
         Future f = mes.submit(runnable);
@@ -331,16 +317,14 @@ public class ManagedExecutorServiceImplTest {
         }
 
         // should not get any hung thread because longRunningTasks is true
-        threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
 
         // tell task to stop waiting
         runnable.stopBlocking();
         Util.waitForTaskComplete(runnable, getLoggerName());
 
         // should not have any more hung threads
-        threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
     }
 
     protected ManagedExecutorService createManagedExecutor(String name,

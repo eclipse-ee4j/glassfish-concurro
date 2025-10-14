@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Contributors to the Eclipse Foundation
+ * Copyright (c) 2023, 2025 Contributors to the Eclipse Foundation
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -37,6 +37,7 @@ import org.glassfish.concurro.test.ManagedTaskListenerImpl;
 import org.glassfish.concurro.test.RunnableImpl;
 import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.Util;
+import org.hamcrest.collection.IsEmptyCollection;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -44,9 +45,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+
 /**
  * Tests for Life cycle APIs in ManagedExecutorServiceImpl
- * 
+ *
  */
 public class ForkJoinManagedExecutorServiceImplTest {
 
@@ -56,19 +60,19 @@ public class ForkJoinManagedExecutorServiceImplTest {
      */
     @Test
     public void testShutdown() {
-        ManagedExecutorService mes = 
+        ManagedExecutorService mes =
                 createManagedExecutor("testShutdown", null);
         assertFalse(mes.isShutdown());
         mes.shutdown();
         assertTrue(mes.isShutdown());
     }
 
-    /** 
+    /**
      * Verifies that when the executor is shut down using shutdownNow()
      * - all submitted tasks are cancelled if not running, and
      * - all running task threads are interrupted, and
      * - all registered ManagedTaskListeners are invoked
-     * 
+     *
      **/
     @Test
     public void testShutdownNow_tasks_behavior() {
@@ -86,8 +90,8 @@ public class ForkJoinManagedExecutorServiceImplTest {
         BlockingRunnableImpl task3 = new ManagedBlockingRunnableTask(listener3, 0L);
         Future f3 = mes.submit(task3); // this task should be queued
         // waits for task1 to start
-        Util.waitForTaskStarted(f1, listener1, getLoggerName());       
-        
+        Util.waitForTaskStarted(f1, listener1, getLoggerName());
+
         mes.shutdownNow();
 
         // task2 and task3 should be cancelled
@@ -98,7 +102,7 @@ public class ForkJoinManagedExecutorServiceImplTest {
         Util.waitForTaskAborted(f3, listener3, getLoggerName());
         assertTrue(f3.isCancelled());
         assertTrue(listener3.eventCalled(f3, ManagedTaskListenerImpl.ABORTED));
-        
+
         // task1 should be interrupted
         Util.waitForBoolean(task1::isInterrupted, true, getLoggerName());
         assertTrue(task1.isInterrupted());
@@ -111,7 +115,7 @@ public class ForkJoinManagedExecutorServiceImplTest {
      */
     @Test
     public void testShutdownNow() {
-        ManagedExecutorService mes = 
+        ManagedExecutorService mes =
                 createManagedExecutor("testShutdownNow", null);
         assertFalse(mes.isShutdown());
         List<Runnable> tasks = mes.shutdownNow();
@@ -127,7 +131,7 @@ public class ForkJoinManagedExecutorServiceImplTest {
      */
     @Test
     public void testShutdownNow_unfinishedTask() {
-        ManagedExecutorService mes = 
+        ManagedExecutorService mes =
                 createManagedExecutor("testShutdown_unfinishedTask", null);
         assertFalse(mes.isShutdown());
         ManagedTaskListenerImpl listener = new ManagedTaskListenerImpl();
@@ -152,9 +156,9 @@ public class ForkJoinManagedExecutorServiceImplTest {
      */
     @Test
     public void testAwaitsTermination() throws Exception {
-        ManagedExecutorService mes = 
+        ManagedExecutorService mes =
                 createManagedExecutor("testAwaitsTermination", null);
-        assertFalse(mes.isShutdown());        
+        assertFalse(mes.isShutdown());
         ManagedTaskListenerImpl listener = new ManagedTaskListenerImpl();
         BlockingRunnableImpl task = new ManagedBlockingRunnableTask(listener, 0L);
         Future f = mes.submit(task);
@@ -174,7 +178,7 @@ public class ForkJoinManagedExecutorServiceImplTest {
         }
         assertTrue(mes.isTerminated());
     }
-    
+
     @Test
     public void testTaskCounters() {
         final AbstractManagedExecutorService mes
@@ -192,18 +196,18 @@ public class ForkJoinManagedExecutorServiceImplTest {
         Util.waitForBoolean(() -> (mes.getTaskCount() > 0) && (mes.getCompletedTaskCount() > 0), true, getLoggerName());
 
         assertEquals(1, mes.getTaskCount());
-        assertEquals(1, mes.getCompletedTaskCount()); 
+        assertEquals(1, mes.getCompletedTaskCount());
     }
-    
+
     @Test
     public void testThreadLifeTime() {
-        final AbstractManagedExecutorService mes = 
-                createManagedExecutor("testThreadLifeTime", 
+        final AbstractManagedExecutorService mes =
+                createManagedExecutor("testThreadLifeTime",
                         2, 0, 3L, 0L, false);
-        
+
         Collection<Thread> threads = mes.getThreads();
-        assertNull(threads);
-        
+        assertThat("threads.isEmpty", threads, IsEmptyCollection.empty());
+
         RunnableImpl runnable = new RunnableImpl(null);
         Future f = mes.submit(runnable);
         try {
@@ -211,73 +215,66 @@ public class ForkJoinManagedExecutorServiceImplTest {
         } catch (Exception ex) {
             Logger.getLogger(ForkJoinManagedExecutorServiceImplTest.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-        threads = mes.getThreads();
-        assertEquals(1, threads.size());
+
+        assertThat("threads.size", mes.getThreads(), hasSize(1));
         System.out.println("Waiting for threads to expire due to threadLifeTime");
         // wait for all threads get expired
-        Util.waitForBoolean(() -> mes.getThreads() == null, true, getLoggerName());
-        
+        Util.waitForBoolean(() -> mes.getThreads().isEmpty(), true, getLoggerName());
+
     }
-        
+
     @Test
     public void testHungThreads() {
-        final AbstractManagedExecutorService mes = 
-                createManagedExecutor("testThreadLifeTime", 
+        final AbstractManagedExecutorService mes =
+                createManagedExecutor("testThreadLifeTime",
                         2, 0, 0L, 1L, false);
-        
-        Collection<Thread> threads = mes.getHungThreads();
-        assertNull(threads);
-        
+
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+
         BlockingRunnableImpl runnable = new BlockingRunnableImpl(null, 0L);
         Future f = mes.submit(runnable);
         try {
             Thread.sleep(1000); // sleep for 1 second
         } catch (InterruptedException ex) {
         }
-        
+
         // should get one hung thread
-        threads = mes.getHungThreads();
-        assertEquals(1, threads.size());
-        
+        assertThat(mes.getHungThreads(), hasSize(1));
+
         // tell task to stop waiting
         runnable.stopBlocking();
         Util.waitForTaskComplete(runnable, getLoggerName());
 
         // should not have any more hung threads
-        threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
     }
-        
+
     @Test
     public void testHungThreads_LongRunningTasks() {
-        final AbstractManagedExecutorService mes = 
-                createManagedExecutor("testThreadLifeTime", 
+        final AbstractManagedExecutorService mes =
+                createManagedExecutor("testThreadLifeTime",
                         2, 0, 0L, 1L, true);
-        
-        Collection<Thread> threads = mes.getHungThreads();
-        assertNull(threads);
-        
+
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+
         BlockingRunnableImpl runnable = new BlockingRunnableImpl(null, 0L);
         Future f = mes.submit(runnable);
         try {
             Thread.sleep(1000); // sleep for 1 second
         } catch (InterruptedException ex) {
         }
-        
+
         // should not get any hung thread because longRunningTasks is true
-        threads = mes.getHungThreads();
-        assertNull(threads);
-        
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+
         // tell task to stop waiting
         runnable.stopBlocking();
         Util.waitForTaskComplete(runnable, getLoggerName());
 
         // should not have any more hung threads
-        threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
     }
-        
+
     protected ForkJoinManagedExecutorService createManagedExecutor(String name,
             ContextSetupProvider contextCallback) {
         return new ForkJoinManagedExecutorService(name, new ManagedThreadFactoryImpl(name),
@@ -285,8 +282,8 @@ public class ForkJoinManagedExecutorServiceImplTest {
                 1,
                 0, TimeUnit.SECONDS,
                 0L,
-                Integer.MAX_VALUE, 
-                new TestContextService(contextCallback), 
+                Integer.MAX_VALUE,
+                new TestContextService(contextCallback),
                 RejectPolicy.ABORT);
     }
 
@@ -304,8 +301,8 @@ public class ForkJoinManagedExecutorServiceImplTest {
                 maxPoolSize,
                 0, TimeUnit.SECONDS,
                 threadLifeTime,
-                queueSize, 
-                new TestContextService(null), 
+                queueSize,
+                new TestContextService(null),
                 RejectPolicy.ABORT);
     }
 
