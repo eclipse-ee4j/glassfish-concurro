@@ -321,16 +321,8 @@ public class VirtualThreadsManagedExecutorServiceIT {
 
         Future<?> future = managedExecutorService.submit(runnable);
 
-<<<<<<< HEAD
         // We can either be too fast here (work hasn't started yet) or too slow (work is already done)
         boolean doneOrBusy = false;
-=======
-        long startTime = System.currentTimeMillis();
-        while (managedExecutorService.getThreads() == null || managedExecutorService.getThreads().size() != 1) {
-            logger.log(INFO, "Sleeping");
-            Thread.sleep(1);
-            logger.log(INFO, "Slept. Elapsed ms: " + (System.currentTimeMillis() - startTime));
->>>>>>> 2cc81c9 (Use logger)
 
         long startTime = System.currentTimeMillis();
         while (!future.isDone() || managedExecutorService.getThreads().size() != 1) {
