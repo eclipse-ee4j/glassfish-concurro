@@ -32,10 +32,8 @@
     <version>3.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Concurro</name>
-    <description>
-        Eclipse compatible implementation of Jakarta Concurrency.
-    </description>
+    <name>Eclipse Concurro</name>
+    <description>Implementation of Jakarta Concurrency</description>
     <url>https://projects.eclipse.org/projects/ee4j.glassfish</url>
     <organization>
         <name>Eclipse Foundation</name>
@@ -65,6 +63,12 @@
             <name>Steve Millidge</name>
             <organization>Payara</organization>
         </developer>
+        <developer>
+            <id>omnifish</id>
+            <name>OmniFish Developers</name>
+            <organization>OmniFish</organization>
+            <organizationUrl>https://omnifish.ee</organizationUrl>
+        </developer>
     </developers>
 
     <mailingLists>
@@ -87,6 +91,32 @@
         <url>https://github.com/eclipse-ee4j/concurro/issues</url>
     </issueManagement>
 
+    <!-- TODO: Can be removed after it would be removed from parent too -->
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <name>Disabled Sonatype Nexus</name>
+            <url>http://localhost</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <name>Disabled Sonatype Nexus</name>
+            <url>http://localhost</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </distributionManagement>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -101,6 +131,11 @@
         <skipUTs>${skipTests}</skipUTs>
         <parallel>classesAndMethods</parallel>
         <useUnlimitedThreads>true</useUnlimitedThreads>
+
+        <!-- Do not autopublish by default -->
+        <release.autopublish>false</release.autopublish>
+        <!-- By default block until everything is really published -->
+        <release.waitUntil>published</release.waitUntil>
     </properties>
 
     <dependencies>
@@ -164,6 +199,33 @@
                         <systemPropertyVariables>
                             <java.util.logging.config.file>src/test/resources/logging.properties</java.util.logging.config.file>
                         </systemPropertyVariables>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <version>1.7.0</version>
+                    <configuration>
+                        <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>injected-nexus-deploy</id>
+                            <phase>none</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.sonatype.central</groupId>
+                    <artifactId>central-publishing-maven-plugin</artifactId>
+                    <version>0.9.0</version>
+                    <extensions>true</extensions>
+                    <configuration>
+                        <autoPublish>${release.autopublish}</autoPublish>
+                        <centralSnapshotsUrl>https://central.sonatype.com/repository/maven-snapshots</centralSnapshotsUrl>
+                        <deploymentName>Eclipse Concurro ${project.version}</deploymentName>
+                        <publishingServerId>central</publishingServerId>
+                        <waitUntil>${release.waitUntil}</waitUntil>
                     </configuration>
                 </plugin>
             </plugins>
@@ -408,6 +470,29 @@ Use is subject to <a href="http://www.eclipse.org/legal/epl-2.0" target="_top">l
                         </plugin>
                     </plugins>
                 </pluginManagement>
+            </build>
+        </profile>
+        <profile>
+            <id>oss-release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                    </plugin>
+                </plugins>
             </build>
         </profile>
     </profiles>
