@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -16,34 +17,28 @@
 
 package org.glassfish.concurro.test;
 
-import java.util.concurrent.Callable;
+import java.util.Map;
+import jakarta.enterprise.concurrent.ManagedTask;
+import jakarta.enterprise.concurrent.ManagedTaskListener;
 
-public class CallableImpl<T> extends TaskRunEnvironmentTracker implements Callable<T> {
+public class ManagedRunnableTestTask extends FakeRunnableForTest implements ManagedTask {
 
-    final T result;
-    boolean throwsException;
-
-    public CallableImpl(T result) {
-        super(null);
-        this.result = result;
-    }
-    
-    public CallableImpl(T result, ManagedTaskListenerImpl taskListener) {
+    public ManagedRunnableTestTask(ManagedTestTaskListener taskListener) {
         super(taskListener);
-        this.result = result;
     }
 
-    public void setThrowsException(boolean throwsException) {
-        this.throwsException = throwsException;        
+    public ManagedRunnableTestTask(ManagedTestTaskListener taskListener, RuntimeException runException) {
+        super(taskListener, runException);
     }
-    
+
     @Override
-    public T call() throws Exception {
-        captureThreadContexts();
-        if (throwsException) {
-            throw new Exception(result.toString());
-        }
-        return result;
+    public ManagedTaskListener getManagedTaskListener() {
+        return taskListener;
     }
-    
+
+    @Override
+    public Map<String, String> getExecutionProperties() {
+        return null;
+    }
+
 }

@@ -34,7 +34,7 @@ import java.util.stream.LongStream;
 import org.glassfish.concurro.ContextServiceImpl;
 
 import org.glassfish.concurro.test.ClassloaderContextSetupProvider;
-import org.glassfish.concurro.test.RunnableImpl;
+import org.glassfish.concurro.test.FakeRunnableForTest;
 import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.Util;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
@@ -59,7 +59,7 @@ public class VirtualThreadsManagedThreadFactoryIT {
         ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
         VirtualThreadsManagedThreadFactory factory = new VirtualThreadsManagedThreadFactory("test1", contextService);
 
-        RunnableImpl r = new RunnableImpl(null);
+        FakeRunnableForTest r = new FakeRunnableForTest(null);
         Thread newThread = factory.newThread(r);
         newThread.start();
         Util.waitForTaskComplete(r, getLoggerName());
@@ -69,7 +69,7 @@ public class VirtualThreadsManagedThreadFactoryIT {
     @Test (expected = IllegalStateException.class)
     public void testNewThread_shutdown() throws Exception {
         VirtualThreadsManagedThreadFactory factory = new VirtualThreadsManagedThreadFactory("testNewThread_shutdown");
-        Runnable r = new RunnableImpl(null);
+        Runnable r = new FakeRunnableForTest(null);
         factory.stop();
         Thread newThread = factory.newThread(r);
     }

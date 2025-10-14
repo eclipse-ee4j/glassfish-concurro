@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2023, 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2024 Payara Foundation and/or its affiliates.
  *
@@ -17,16 +17,22 @@
  */
 package org.glassfish.concurro.test;
 
-import java.util.*;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+import jakarta.enterprise.concurrent.ManagedTaskListener;
+
+import java.util.HashMap;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import jakarta.enterprise.concurrent.ManagedExecutorService;
-import jakarta.enterprise.concurrent.ManagedTaskListener;
-import static junit.framework.Assert.*;
 
-public class ManagedTaskListenerImpl implements ManagedTaskListener {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+public class ManagedTestTaskListener implements ManagedTaskListener {
 
     public static final String SUBMITTED = "taskSubmitted", STARTING = "taskStarting",
             DONE = "taskDone", ABORTED = "taskAborted";

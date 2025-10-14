@@ -28,7 +28,7 @@ public class TimeRecordingCallableImpl<T> extends ManagedCallableTask<T> {
 
     public boolean DEBUG;
     
-    public TimeRecordingCallableImpl(T result, ManagedTaskListenerImpl taskListener) {
+    public TimeRecordingCallableImpl(T result, ManagedTestTaskListener taskListener) {
         super(result, taskListener);
         invocations.add(System.currentTimeMillis());
     }

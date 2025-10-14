@@ -21,10 +21,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 /**
- *
  * @author Ondro Mihalyi
  */
-public class AwaitableManagedTaskListenerImpl extends ManagedTaskListenerImpl {
+public class AwaitableManagedTestTask extends ManagedTestTaskListener {
 
     private CompletableFuture<String> taskDone = new CompletableFuture<>();
 
@@ -34,6 +33,9 @@ public class AwaitableManagedTaskListenerImpl extends ManagedTaskListenerImpl {
         taskDone.complete("I am ok!");
     }
 
+    /**
+     * @return {@link CompletableFuture} returning <code>"I am ok!"</code> when the task is completed.
+     */
     public CompletableFuture<String> whenDone() {
         return taskDone;
     }

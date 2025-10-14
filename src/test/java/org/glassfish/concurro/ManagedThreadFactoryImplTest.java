@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -51,7 +52,7 @@ public class ManagedThreadFactoryImplTest {
         ContextSetupProvider callback = new ClassloaderContextSetupProvider("ManagedThreadFactoryImplTest");
         ContextServiceImpl contextService = new TestContextService(callback);
         ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("test1", contextService, PRIORITY);
-        Runnable r = new RunnableImpl(null);
+        Runnable r = new FakeRunnableForTest(null);
         Thread newThread = factory.newThread(r);
         verifyThreadProperties(newThread, true, PRIORITY);
 
@@ -67,7 +68,7 @@ public class ManagedThreadFactoryImplTest {
         ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
         ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("test1", contextService);
 
-        RunnableImpl r = new RunnableImpl(null);
+        FakeRunnableForTest r = new FakeRunnableForTest(null);
         Thread newThread = factory.newThread(r);
         newThread.start();
         Util.waitForTaskComplete(r, getLoggerName());
@@ -77,9 +78,9 @@ public class ManagedThreadFactoryImplTest {
     @Test (expected = IllegalStateException.class)
     public void testNewThread_shutdown() throws Exception {
         ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("testNewThread_shutdown");
-        Runnable r = new RunnableImpl(null);
+        Runnable r = new FakeRunnableForTest(null);
         factory.stop();
-        Thread newThread = factory.newThread(r);
+        factory.newThread(r);
     }
 
     @Test
@@ -138,12 +139,13 @@ public class ManagedThreadFactoryImplTest {
     private String getLoggerName() {
         return ManagedThreadFactoryImplTest.class.getName();
     }
-    
+
     static class TestRunnable implements Runnable {
         boolean isInterrupted = false;
-        
+
+        @Override
         public void run() {
-          isInterrupted = Thread.currentThread().isInterrupted();  
+          isInterrupted = Thread.currentThread().isInterrupted();
         }
     }
 }
