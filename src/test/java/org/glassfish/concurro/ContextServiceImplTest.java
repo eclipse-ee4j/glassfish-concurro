@@ -33,12 +33,16 @@ import org.glassfish.concurro.test.DummyTransactionSetupProvider;
 import org.glassfish.concurro.test.FakeRunnableForTest;
 import org.glassfish.concurro.test.ManagedTestTaskListener;
 import org.glassfish.concurro.test.NamedClassLoader;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 
 public class ContextServiceImplTest {
 
@@ -74,30 +78,22 @@ public class ContextServiceImplTest {
 
         // we can cast the proxy to any of the 2 interfaces
         Object proxy = contextService.createContextualProxy(task, Runnable.class, Comparable.class);
-        Comparable comparableProxy = (Comparable) contextService.createContextualProxy(task, Runnable.class, Comparable.class);
-        ComparableRunnable comparableRunnableProxy = contextService.createContextualProxy(task, ComparableRunnable.class);
+        assertThat(contextService.createContextualProxy(task, Runnable.class, Comparable.class),
+            instanceOf(Comparable.class));
+        assertThat(contextService.createContextualProxy(task, ComparableRunnable.class),
+            instanceOf(ComparableRunnable.class));
 
-        // we cannot cast to ComparableRunnable
-        try {
-            ComparableRunnable proxy1 = (ComparableRunnable) contextService.createContextualProxy(task, Runnable.class, Comparable.class);
-            fail("expected exception not found");
-        } catch (ClassCastException expected) {
-            // expected
-        }
-        // we cannot cast to ComparableRunnableImpl
-        try {
-            ComparableRunnableForTest proxy1 = (ComparableRunnableForTest) contextService.createContextualProxy(task, Runnable.class, Comparable.class);
-            fail("expected exception not found");
-        } catch (ClassCastException expected) {
-            // expected
-        }
+        assertThat(contextService.createContextualProxy(task, Runnable.class, Comparable.class),
+            not(instanceOf(ComparableRunnable.class)));
+        assertThat(contextService.createContextualProxy(task, Runnable.class, Comparable.class),
+            not(instanceOf(ComparableRunnableForTest.class)));
 
         ClassLoader original = Thread.currentThread().getContextClassLoader();
         // Use proxy as Runnable to run on same thread
-        ((Runnable)proxy).run();
+        ((Runnable) proxy).run();
 
         // Can also use proxy as Comparable
-        Comparable compProxy = (Comparable)proxy;
+        Comparable compProxy = (Comparable) proxy;
 
         task.verifyAfterRun(classloaderName);
         assertNull(contextSetupProvider.contextServiceProperties);

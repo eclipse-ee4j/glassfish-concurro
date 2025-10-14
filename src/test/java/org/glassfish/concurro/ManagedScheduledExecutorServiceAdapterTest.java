@@ -51,14 +51,14 @@ import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.TimeRecordingCallableImpl;
 import org.glassfish.concurro.test.TimeRecordingRunnableImpl;
 import org.glassfish.concurro.test.Util;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 
 public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorServiceAdapterTest {
@@ -653,15 +653,14 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         assertTrue(future.isDone());
         assertTrue(future.isCancelled());
 
-        assertTrue("timeout waiting for taskAborted call", Util.waitForTaskAborted(future, taskListener, getLoggerName()));
+        assertTrue(Util.waitForTaskAborted(future, taskListener, getLoggerName()), "timeout waiting for taskAborted call");
         taskListener.verifyCallback(ManagedTestTaskListener.ABORTED, future, instance,
                 task, new CancellationException());
 
         // test also that task only executed once as it should have been cancelled.
         Thread.sleep(2000);
-        assertTrue("Task executions should be 1 as trigger task was cancelled ", taskListener.getCount(future, ManagedTestTaskListener.STARTING) == 1);
-
-
+        assertEquals(1, taskListener.getCount(future, ManagedTestTaskListener.STARTING),
+            "Task executions should be 1 as trigger task was cancelled");
     }
 
 

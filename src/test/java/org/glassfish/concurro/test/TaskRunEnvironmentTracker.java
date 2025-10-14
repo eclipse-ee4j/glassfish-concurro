@@ -17,13 +17,13 @@
 
 package org.glassfish.concurro.test;
 
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+
 import java.util.concurrent.Future;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import jakarta.enterprise.concurrent.ManagedExecutorService;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TaskRunEnvironmentTracker {
     protected final ManagedTestTaskListener taskListener;

@@ -17,27 +17,28 @@
 
 package org.glassfish.concurro.test.virtualthreads;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import org.glassfish.concurro.spi.ContextSetupProvider;
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.LongStream;
-import org.glassfish.concurro.ContextServiceImpl;
 
+import org.glassfish.concurro.ContextServiceImpl;
+import org.glassfish.concurro.spi.ContextSetupProvider;
 import org.glassfish.concurro.test.ClassloaderContextSetupProvider;
 import org.glassfish.concurro.test.FakeRunnableForTest;
 import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.Util;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 public class VirtualThreadsManagedThreadFactoryIT {
 
@@ -66,12 +67,12 @@ public class VirtualThreadsManagedThreadFactoryIT {
         r.verifyAfterRun(CLASSLOADER_NAME);
     }
 
-    @Test (expected = IllegalStateException.class)
+    @Test
     public void testNewThread_shutdown() throws Exception {
         VirtualThreadsManagedThreadFactory factory = new VirtualThreadsManagedThreadFactory("testNewThread_shutdown");
         Runnable r = new FakeRunnableForTest(null);
         factory.stop();
-        Thread newThread = factory.newThread(r);
+        assertThrows(IllegalStateException.class, () -> factory.newThread(r));
     }
 
     @Test
@@ -114,12 +115,12 @@ public class VirtualThreadsManagedThreadFactoryIT {
         assertTrue(atomicReference.get().contains(CLASSLOADER_NAME));
     }
 
-    @Test (expected = IllegalStateException.class)
+    @Test
     public void testNewThreadForkJoinPoolShutdown() throws Exception {
         VirtualThreadsManagedThreadFactory factory = new VirtualThreadsManagedThreadFactory("testNewThreadForkJoinPoolShutdown");
         ForkJoinPool pool = new ForkJoinPool(1);
         factory.stop();
-        factory.newThread(pool);
+        assertThrows(IllegalStateException.class, () -> factory.newThread(pool));
     }
 
     private void verifyThreadProperties(Thread thread, boolean isDaemon, int priority) {
@@ -134,6 +135,7 @@ public class VirtualThreadsManagedThreadFactoryIT {
     static class TestRunnable implements Runnable {
         boolean isInterrupted = false;
 
+        @Override
         public void run() {
           isInterrupted = Thread.currentThread().isInterrupted();
         }
