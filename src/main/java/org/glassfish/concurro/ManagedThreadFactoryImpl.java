@@ -20,6 +20,7 @@ package org.glassfish.concurro;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -56,7 +57,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     final private ContextServiceImpl contextService;
     // If there is a need to save context earlier than during newThread() (e.g. jndi lookup ManagedThreadFactory),
     // it is kept in savedContextHandleForSetup.
-    protected ContextHandle savedContextHandleForSetup = null;
+    protected ContextHandle savedContextHandleForSetup;
     private int priority;
     private long hungTaskThreshold = 0L; // in milliseconds
     private AtomicInteger threadIdSequence = new AtomicInteger();
@@ -102,11 +103,13 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 // Do not create new thread and throw IllegalStateException if stopped
                 throw new IllegalStateException(MANAGED_THREAD_FACTORY_STOPPED);
             }
-            ContextHandle contextHandleForSetup = null;
+            final ContextHandle contextHandleForSetup;
             if (savedContextHandleForSetup != null) {
                 contextHandleForSetup = savedContextHandleForSetup;
             } else if (contextSetupProvider != null) {
                 contextHandleForSetup = contextSetupProvider.saveContext(contextService);
+            } else {
+                contextHandleForSetup = null;
             }
             Thread newThread = createThread(r, contextHandleForSetup);
             newThread.setDaemon(true);
@@ -149,22 +152,15 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     }
 
     /**
-     * Return an array of threads in this ManagedThreadFactoryImpl
-     * @return an array of threads in this ManagedThreadFactoryImpl.
-     *         It returns null if there is no thread.
+     * @return an unmodifiable collection of threads in this ManagedThreadFactory.
      */
     protected Collection<Thread> getThreads() {
-        Collection<Thread> result = null;
         lock.lock();
         try {
-            if (!threads.isEmpty()) {
-                result = new ArrayList<>(threads);
-            }
-        }
-        finally {
+            return List.copyOf(threads);
+        } finally {
             lock.unlock();
         }
-        return result;
     }
     public void taskStarting(Thread t, ManagedFutureTask task) {
         if (t instanceof ThreadWithTiming mt) {

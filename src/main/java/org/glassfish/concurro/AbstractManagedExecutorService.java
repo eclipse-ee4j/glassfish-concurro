@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2022, 2024 Contributors to the Eclipse Foundation.
- * Copyright (c) 2022 - 2024 Payara Foundation and/or its affiliates.
+ * Copyright (c) 2022, 2025 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2022, 2024 Payara Foundation and/or its affiliates.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -34,6 +34,8 @@ import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 import org.glassfish.concurro.internal.ManagedCompletableFuture;
 import org.glassfish.concurro.internal.ManagedFutureTask;
 import org.glassfish.concurro.spi.ContextSetupProvider;
@@ -56,7 +58,7 @@ extends AbstractExecutorService implements ManagedExecutorService {
     public enum RejectPolicy {
 
         ABORT, RETRY_ABORT
-    };
+    }
 
     protected final String name;
     protected final ContextSetupProvider contextSetupProvider;
@@ -169,30 +171,30 @@ extends AbstractExecutorService implements ManagedExecutorService {
         return contextualCallback;
     }
 
+
+    /**
+     * Get a collection of threads which are considered as hung.
+     * As hung are never considered threads created for long running tasks, see
+     * {@link #isLongRunningTasks()}
+     *
+     * @return a collection of threads which are considered as hung.
+     */
     public Collection<Thread> getHungThreads() {
-        if (longRunningTasks) {
-            return null;
+        if (isLongRunningTasks()) {
+            return List.of();
         }
-        Collection<Thread> hungThreads = null;
         Collection<Thread> allThreads = getThreads();
-        if (allThreads != null) {
-            long now = System.currentTimeMillis();
-            for (Thread thread : allThreads) {
-                if (isTaskHung(thread, now)) {
-                    if (hungThreads == null) {
-                        hungThreads = new ArrayList<>();
-                    }
-                    hungThreads.add(thread);
-                }
-            }
-        }
-        return hungThreads;
+        long now = System.currentTimeMillis();
+        return allThreads.stream().filter(thread -> isTaskHung(thread, now)).collect(Collectors.toList());
     }
 
     public String getName() {
         return name;
     }
 
+    /**
+     * @return true to disable detection of hung tasks for long running tasks.
+     */
     public boolean isLongRunningTasks() {
         return longRunningTasks;
     }
@@ -207,9 +209,7 @@ extends AbstractExecutorService implements ManagedExecutorService {
     }
 
     /**
-     * Return an array of threads in this Managed[Scheduled]ExecutorService
-     * @return an array of threads in this Managed[Scheduled]ExecutorService.
-     *         It returns null if there is no thread.
+     * @return an unmodifiable collection of threads in this ExecutorService.
      */
     public Collection<Thread> getThreads() {
         return getManagedThreadFactory().getThreads();

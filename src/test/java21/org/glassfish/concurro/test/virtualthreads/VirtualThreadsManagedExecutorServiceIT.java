@@ -16,47 +16,49 @@
  */
 package org.glassfish.concurro.test.virtualthreads;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
 
-import org.glassfish.concurro.test.AwaitableManagedTaskListenerImpl;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jakarta.enterprise.concurrent.ManagedExecutorService;
+
+import org.glassfish.concurro.AbstractManagedExecutorService;
 import org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy;
+import org.glassfish.concurro.ContextServiceImpl;
+import org.glassfish.concurro.ManagedExecutorServiceAdapterTest;
 import org.glassfish.concurro.spi.ContextSetupProvider;
+import org.glassfish.concurro.test.AwaitableManagedTaskListenerImpl;
 import org.glassfish.concurro.test.BlockingRunnableImpl;
 import org.glassfish.concurro.test.ManagedBlockingRunnableTask;
+import org.glassfish.concurro.test.ManagedRunnableTask;
 import org.glassfish.concurro.test.ManagedTaskListenerImpl;
 import org.glassfish.concurro.test.RunnableImpl;
 import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.Util;
 import org.glassfish.concurro.test.Util.BooleanValueProducer;
+import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedExecutorService;
+import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
+import org.hamcrest.collection.IsEmptyCollection;
+import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-
-import java.time.Duration;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
-import org.glassfish.concurro.AbstractManagedExecutorService;
-import org.glassfish.concurro.ContextServiceImpl;
-import org.glassfish.concurro.ManagedExecutorServiceAdapterTest;
-import org.glassfish.concurro.test.ManagedRunnableTask;
-import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedExecutorService;
-import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
-import org.junit.Test;
 
 /**
  * Tests for Life cycle APIs in VirtualThreadsManagedExecutorService
@@ -278,7 +280,7 @@ public class VirtualThreadsManagedExecutorServiceIT {
     @Test
     public void testTaskCounters() {
         final AbstractManagedExecutorService mes
-                = (AbstractManagedExecutorService) createManagedExecutorWithMaxOneParallelTask("testTaskCounters", null);
+                = createManagedExecutorWithMaxOneParallelTask("testTaskCounters", null);
         assertEquals(0, mes.getTaskCount());
         assertEquals(0, mes.getCompletedTaskCount());
         RunnableImpl task = new RunnableImpl(null);
@@ -309,14 +311,13 @@ public class VirtualThreadsManagedExecutorServiceIT {
                         2, 0, 3L, 0L, false);
 
         Collection<Thread> threads = mes.getThreads();
-        assertNull(threads);
+        assertThat(threads, IsEmptyCollection.empty());
 
         AwaitableManagedTaskListenerImpl taskListener = new AwaitableManagedTaskListenerImpl();
         RunnableImpl runnable = new ManagedRunnableTask(taskListener);
 
         Future f = mes.submit(runnable);
-        threads = mes.getThreads();
-        assertEquals(1, threads.size());
+        assertThat("threads.size", mes.getThreads(), hasSize(1));
         try {
             f.get();
         } catch (Exception ex) {
@@ -324,7 +325,7 @@ public class VirtualThreadsManagedExecutorServiceIT {
         }
 
         taskListener.whenDone().get(5, TimeUnit.SECONDS);
-        assertNull("All virtual threads should be discarded after tasks are done", mes.getThreads());
+        assertThat("All virtual threads should be discarded after tasks are done", mes.getThreads(), IsEmptyCollection.empty());
 
     }
 
@@ -334,8 +335,7 @@ public class VirtualThreadsManagedExecutorServiceIT {
                 = createManagedExecutor("testThreadLifeTime",
                         2, 0, 0L, 1L, false);
 
-        Collection<Thread> threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
 
         BlockingRunnableImpl runnable = new BlockingRunnableImpl(null, 0L);
         Future f = mes.submit(runnable);
@@ -345,16 +345,14 @@ public class VirtualThreadsManagedExecutorServiceIT {
         }
 
         // should get one hung thread
-        threads = mes.getHungThreads();
-        assertEquals(1, threads.size());
+        assertThat(mes.getHungThreads(), hasSize(1));
 
         // tell task to stop waiting
         runnable.stopBlocking();
         Util.waitForTaskComplete(runnable, getLoggerName());
 
         // should not have any more hung threads
-        threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
     }
 
     @Test
@@ -363,8 +361,7 @@ public class VirtualThreadsManagedExecutorServiceIT {
                 = createManagedExecutor("testThreadLifeTime",
                         2, 0, 0L, 1L, true);
 
-        Collection<Thread> threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
 
         BlockingRunnableImpl runnable = new BlockingRunnableImpl(null, 0L);
         Future f = mes.submit(runnable);
@@ -374,16 +371,14 @@ public class VirtualThreadsManagedExecutorServiceIT {
         }
 
         // should not get any hung thread because longRunningTasks is true
-        threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
 
         // tell task to stop waiting
         runnable.stopBlocking();
         Util.waitForTaskComplete(runnable, getLoggerName());
 
         // should not have any more hung threads
-        threads = mes.getHungThreads();
-        assertNull(threads);
+        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
     }
 
     protected VirtualThreadsManagedExecutorServiceExt createManagedExecutorWithMaxOneParallelTask(String name,
