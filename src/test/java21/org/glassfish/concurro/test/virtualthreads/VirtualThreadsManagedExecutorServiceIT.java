@@ -25,13 +25,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.concurro.AbstractManagedExecutorService;
-import org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy;
 import org.glassfish.concurro.ContextServiceImpl;
 import org.glassfish.concurro.ManagedExecutorServiceAdapterTest;
 import org.glassfish.concurro.spi.ContextSetupProvider;
@@ -46,9 +45,9 @@ import org.glassfish.concurro.test.Util;
 import org.glassfish.concurro.test.Util.BooleanValueProducer;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedExecutorService;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
+import org.hamcrest.collection.IsEmptyCollection;
 import org.junit.Test;
 
-import static java.lang.System.Logger.Level.INFO;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.SEVERE;
 import static org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy.ABORT;
@@ -57,8 +56,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -317,44 +314,13 @@ public class VirtualThreadsManagedExecutorServiceIT {
         assertTrue(threads.isEmpty());
 
         AwaitableManagedTaskListenerImpl taskListener = new AwaitableManagedTaskListenerImpl();
-        RunnableImpl runnable = new ManagedRunnableTask(taskListener);
+        ManagedRunnableTask runnable = new ManagedRunnableTask(taskListener);
 
         Future<?> future = managedExecutorService.submit(runnable);
-
-        // We can either be too fast here (work hasn't started yet) or too slow (work is already done)
-        boolean doneOrBusy = false;
-
-        long startTime = System.currentTimeMillis();
-        while (!future.isDone() || managedExecutorService.getThreads().size() != 1) {
-            Thread.sleep(100);
-            if (System.currentTimeMillis() - startTime > 5000) {
-                break;
-            }
-            doneOrBusy = true;
-        }
-
-        // Either we were already done, and then we check that the threads become zero again
-        // later down this test, or the managedExecutorService.getThreads() was 1, meaning the task
-        // started. Both is fine.
-        assertTrue(doneOrBusy);
-
-        try {
-            future.get();
-        } catch (Exception ex) {
-            Logger.getLogger(VirtualThreadsManagedExecutorServiceIT.class.getName()).log(SEVERE, null, ex);
-        }
-
-        taskListener.whenDone().get(5, SECONDS);
-
-        startTime = System.currentTimeMillis();
-        while (!managedExecutorService.getThreads().isEmpty()) {
-            Thread.sleep(100);
-            if (System.currentTimeMillis() - startTime > 5000) {
-                break;
-            }
-        }
-
-        assertTrue("All virtual threads should be discarded after tasks are done", managedExecutorService.getThreads().isEmpty());
+        future.get(5, TimeUnit.SECONDS);
+        assertEquals("I am ok!", taskListener.whenDone().get(5, SECONDS));
+        assertThat("All virtual threads should be discarded after tasks are done", managedExecutorService.getThreads(),
+            IsEmptyCollection.empty());
     }
 
     @Test
