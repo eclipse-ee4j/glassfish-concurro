@@ -16,10 +16,11 @@
 
 package org.glassfish.concurro.test;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 /**
- * A Callable for use in scheduleAtFixedRate, scheduleWithFixedDelay, and 
+ * A Callable for use in scheduleAtFixedRate, scheduleWithFixedDelay, and
  * schedule with Trigger tests.
  */
 public class TimeRecordingCallableImpl<T> extends ManagedCallableTask<T> {
@@ -27,24 +28,22 @@ public class TimeRecordingCallableImpl<T> extends ManagedCallableTask<T> {
     ArrayList<Long> invocations = new ArrayList<>();
 
     public boolean DEBUG;
-    
+
     public TimeRecordingCallableImpl(T result, ManagedTestTaskListener taskListener) {
         super(result, taskListener);
         invocations.add(System.currentTimeMillis());
     }
-    
+
     @Override
     public T call() throws Exception {
-        try {
-            synchronized(invocations) {
-                if (DEBUG) System.out.println("TimeRecordingCallableImpl.run()" + new java.util.Date(System.currentTimeMillis()));
-                invocations.add(System.currentTimeMillis());
+        synchronized (invocations) {
+            if (DEBUG) {
+                System.out.println("TimeRecordingCallableImpl.run()" + LocalDateTime.now());
             }
-            // sleep for 1 second
-            Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            
+            invocations.add(System.currentTimeMillis());
         }
+        // sleep for 1 second
+        Thread.sleep(1000);
         return super.call();
     }
 

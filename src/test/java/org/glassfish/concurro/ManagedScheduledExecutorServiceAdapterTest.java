@@ -34,8 +34,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy;
 import org.glassfish.concurro.spi.ContextSetupProvider;
@@ -53,6 +51,8 @@ import org.glassfish.concurro.test.TimeRecordingRunnableImpl;
 import org.glassfish.concurro.test.Util;
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -67,7 +67,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
      * verifies that task got run when scheduled using schedule(Callable, delay, unit)
      */
     @Test
-    public void testSchedule_Callable_delay() {
+    public void testSchedule_Callable_delay() throws Exception {
         final String classloaderName = "testSchedule_Callable_delay" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         final String result = "result" + new Date(System.currentTimeMillis());
@@ -76,15 +76,9 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
                 createManagedScheduledExecutor("testSchedule_Callable_delay", contextCallback);
         ScheduledFuture<String> future = instance.schedule(task, 1L, TimeUnit.SECONDS);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
-        assertTrue(delay < 1000);
-        try {
-            System.out.println("future.get() blocking to get result");
-            assertEquals(result, future.get());
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            fail();
-        }
+        assertThat(delay, lessThan(1000L));
+        System.out.println("future.get() blocking to get result");
+        assertEquals(result, future.get());
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
@@ -635,7 +629,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
     }
 
     @Test
-    public void testSchedule_trigger_cancel() throws InterruptedException {
+    public void testSchedule_trigger_cancel() throws Exception {
         final String classloaderName = "testSchedule_trigger_cancel" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();

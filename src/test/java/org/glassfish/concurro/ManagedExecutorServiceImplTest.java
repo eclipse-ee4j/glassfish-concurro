@@ -23,13 +23,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy;
 import org.glassfish.concurro.spi.ContextSetupProvider;
@@ -43,6 +40,7 @@ import org.hamcrest.collection.IsEmptyCollection;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -74,7 +72,7 @@ public class ManagedExecutorServiceImplTest {
      *
      **/
     @Test
-    public void testShutdownNow_tasks_behavior() {
+    public void testShutdownNow_tasks_behavior() throws Exception {
         ManagedExecutorService mes =
                 createManagedExecutor("testShutdown_tasks_behavior", 1, 2, 2); // core=1, queue=2
         ManagedTestTaskListener listener1 = new ManagedTestTaskListener();
@@ -129,7 +127,7 @@ public class ManagedExecutorServiceImplTest {
      * ExecutorService functionality
      */
     @Test
-    public void testShutdownNow_unfinishedTask() {
+    public void testShutdownNow_unfinishedTask() throws Exception {
         ManagedExecutorService mes =
                 createManagedExecutor("testShutdown_unfinishedTask", null);
         assertFalse(mes.isShutdown());
@@ -143,7 +141,7 @@ public class ManagedExecutorServiceImplTest {
         List<Runnable> tasks = mes.shutdownNow();
         assertFalse(mes.isTerminated());
 
-        assertTrue(tasks.size() > 0);
+        assertThat(tasks, hasSize(greaterThan(0)));
         task1.stopBlocking();
         assertTrue(mes.isShutdown());
     }
@@ -217,18 +215,14 @@ public class ManagedExecutorServiceImplTest {
     }
 
     @Test
-    public void testTaskCounters() {
+    public void testTaskCounters() throws Exception {
         final AbstractManagedExecutorService mes =
                 (AbstractManagedExecutorService) createManagedExecutor("testTaskCounters", null);
         assertEquals(0, mes.getTaskCount());
         assertEquals(0, mes.getCompletedTaskCount());
         FakeRunnableForTest task = new FakeRunnableForTest(null);
         Future future = mes.submit(task);
-        try {
-            future.get();
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        future.get();
         assertTrue(future.isDone());
         Util.waitForBoolean(() -> mes.getTaskCount() > 0 && mes.getCompletedTaskCount() > 0, true, getLoggerName());
 
@@ -274,7 +268,7 @@ public class ManagedExecutorServiceImplTest {
         Util.waitForTaskComplete(runnable, getLoggerName());
 
         // should not have any more hung threads
-        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+        Util.retry(() -> assertThat(mes.getHungThreads(), IsEmptyCollection.empty()));
     }
 
     @Test

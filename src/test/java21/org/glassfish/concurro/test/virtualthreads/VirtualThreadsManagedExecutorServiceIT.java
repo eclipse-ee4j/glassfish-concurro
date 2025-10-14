@@ -223,7 +223,7 @@ public class VirtualThreadsManagedExecutorServiceIT {
      * Test for shutdownNow with unfinished task to verify that we do not regress Java SE ExecutorService functionality
      */
     @Test
-    public void testShutdownNow_unfinishedTask() {
+    public void testShutdownNow_unfinishedTask() throws Exception {
         ManagedExecutorService managedExecutorService = createManagedExecutorWithMaxOneParallelTask("testShutdown_unfinishedTask", null);
         assertFalse(managedExecutorService.isShutdown());
 
@@ -399,17 +399,17 @@ public class VirtualThreadsManagedExecutorServiceIT {
             future = mes.submit(task);
         }
 
-        public void assertTaskCompleted() {
+        public void assertTaskCompleted() throws InterruptedException {
             // tasks should complete successfully
             assertTrue(Util.waitForTaskComplete(task, getLoggerName()));
         }
 
-        public void assertTaskStarted() {
+        public void assertTaskStarted() throws InterruptedException {
             // waits for task1 to start
             assertTrue(Util.waitForTaskStarted(future, listener, getLoggerName()));
         }
 
-        public void assertTaskAborted() {
+        public void assertTaskAborted() throws InterruptedException {
             assertTrue(Util.waitForTaskAborted(future, listener, getLoggerName()));
             assertTrue(future.isCancelled());
             assertTrue(listener.eventCalled(future, ManagedTestTaskListener.ABORTED));

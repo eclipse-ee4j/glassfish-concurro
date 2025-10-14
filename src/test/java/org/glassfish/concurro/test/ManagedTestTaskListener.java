@@ -121,7 +121,7 @@ public class ManagedTestTaskListener implements ManagedTaskListener {
                     return f;
                 }
             } catch (InterruptedException ex) {
-                // ignore
+                Thread.currentThread().interrupt();
             } catch (ExecutionException ex) {
                 // ignore
             } catch (CancellationException ex) {
