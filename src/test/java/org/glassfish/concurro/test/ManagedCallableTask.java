@@ -21,13 +21,13 @@ import jakarta.enterprise.concurrent.ManagedTask;
 import jakarta.enterprise.concurrent.ManagedTaskListener;
 
 
-public class ManagedCallableTask<V> extends CallableImpl<V> implements ManagedTask {
+public class ManagedCallableTask<V> extends FakeCallableForTest<V> implements ManagedTask {
 
     public ManagedCallableTask(V result) {
         super(result);
     }
 
-    public ManagedCallableTask(V result, ManagedTaskListenerImpl taskListener) {
+    public ManagedCallableTask(V result, ManagedTestTaskListener taskListener) {
         super(result, taskListener);
     }
 

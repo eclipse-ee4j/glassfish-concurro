@@ -46,7 +46,7 @@ public class Util {
       return value;
     }
 
-    public static boolean waitForTaskStarted(final Future<?> future, final ManagedTaskListenerImpl listener, String loggerName) {
+    public static boolean waitForTaskStarted(final Future<?> future, final ManagedTestTaskListener listener, String loggerName) {
       return waitForBoolean(
           new BooleanValueProducer() {
             public boolean getValue() {
@@ -56,7 +56,7 @@ public class Util {
           true, loggerName);
     }
 
-    public static boolean waitForTaskComplete(final RunnableImpl task, String loggerName) {
+    public static boolean waitForTaskComplete(final FakeRunnableForTest task, String loggerName) {
       return waitForBoolean(
           new BooleanValueProducer() {
             public boolean getValue() {
@@ -66,7 +66,7 @@ public class Util {
           true,loggerName);
     }
 
-    public static boolean waitForTaskAborted(final Future<?> future, final ManagedTaskListenerImpl listener, String loggerName) {
+    public static boolean waitForTaskAborted(final Future<?> future, final ManagedTestTaskListener listener, String loggerName) {
       return waitForBoolean(
           new BooleanValueProducer() {
             public boolean getValue() {
@@ -76,7 +76,7 @@ public class Util {
           true, loggerName);
     }
 
-  public static boolean waitForTaskDone(final Future<?> future, final ManagedTaskListenerImpl listener, String loggerName) {
+  public static boolean waitForTaskDone(final Future<?> future, final ManagedTestTaskListener listener, String loggerName) {
     return waitForBoolean(
         new BooleanValueProducer() {
           public boolean getValue() {

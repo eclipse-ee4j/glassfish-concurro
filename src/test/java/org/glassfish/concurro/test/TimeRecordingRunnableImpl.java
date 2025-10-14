@@ -22,18 +22,18 @@ import java.util.ArrayList;
  * A Runnable for use in scheduleAtFixedRate, scheduleWithFixedDelay, and 
  * schedule with Trigger tests.
  */
-public class TimeRecordingRunnableImpl extends ManagedRunnableTask {
+public class TimeRecordingRunnableImpl extends ManagedRunnableTestTask {
 
     ArrayList<Long> invocations = new ArrayList<>();
 
     public boolean DEBUG;
     
-    public TimeRecordingRunnableImpl(ManagedTaskListenerImpl taskListener) {
+    public TimeRecordingRunnableImpl(ManagedTestTaskListener taskListener) {
         super(taskListener);
         invocations.add(System.currentTimeMillis());
     }
 
-    public TimeRecordingRunnableImpl(ManagedTaskListenerImpl taskListener, RuntimeException runException) {
+    public TimeRecordingRunnableImpl(ManagedTestTaskListener taskListener, RuntimeException runException) {
         super(taskListener, runException);
         invocations.add(System.currentTimeMillis());
     }

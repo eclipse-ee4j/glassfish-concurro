@@ -21,9 +21,9 @@ import jakarta.enterprise.concurrent.ManagedTask;
 import jakarta.enterprise.concurrent.ManagedTaskListener;
 
 
-public class ManagedBlockingRunnableTask extends BlockingRunnableImpl implements ManagedTask {
+public class ManagedBlockingRunnableTask extends BlockingRunnableForTest implements ManagedTask {
 
-    public ManagedBlockingRunnableTask(ManagedTaskListenerImpl taskListener, long blockTime) {
+    public ManagedBlockingRunnableTask(ManagedTestTaskListener taskListener, long blockTime) {
         super(taskListener, blockTime);
     }
 

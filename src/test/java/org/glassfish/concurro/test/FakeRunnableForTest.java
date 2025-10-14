@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -16,19 +17,22 @@
 
 package org.glassfish.concurro.test;
 
-public class RunnableImpl extends TaskRunEnvironmentTracker implements Runnable {
-    public volatile boolean runCalled = false;
-    protected RuntimeException runException = null;
-    
-    public RunnableImpl(ManagedTaskListenerImpl taskListener) {
+/**
+ * Class for internal testing purposes
+ */
+public class FakeRunnableForTest extends TaskRunEnvironmentTracker implements Runnable {
+    public volatile boolean runCalled;
+    protected RuntimeException runException;
+
+    public FakeRunnableForTest(ManagedTestTaskListener taskListener) {
         super(taskListener);
     }
-    
-    public RunnableImpl(ManagedTaskListenerImpl taskListener, RuntimeException runException) {
+
+    public FakeRunnableForTest(ManagedTestTaskListener taskListener, RuntimeException runException) {
         super(taskListener);
         this.runException = runException;
     }
-    
+
     @Override
     public void run() {
         captureThreadContexts();

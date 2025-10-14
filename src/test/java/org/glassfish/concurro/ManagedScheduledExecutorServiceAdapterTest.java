@@ -1,6 +1,7 @@
 /*
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2022, 2024 Payara Foundation and/or its affiliates.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2022 - 2024 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -17,6 +18,14 @@
 
 package org.glassfish.concurro;
 
+import jakarta.enterprise.concurrent.LastExecution;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
+import jakarta.enterprise.concurrent.SkippedException;
+import jakarta.enterprise.concurrent.Trigger;
+
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -27,28 +36,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jakarta.enterprise.concurrent.LastExecution;
-import jakarta.enterprise.concurrent.ManagedExecutorService;
-import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
-import jakarta.enterprise.concurrent.SkippedException;
-import jakarta.enterprise.concurrent.Trigger;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import org.glassfish.concurro.ManagedScheduledExecutorServiceImpl;
+
 import org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy;
 import org.glassfish.concurro.spi.ContextSetupProvider;
-import org.glassfish.concurro.test.CallableImpl;
 import org.glassfish.concurro.test.ClassloaderContextSetupProvider;
+import org.glassfish.concurro.test.FakeCallableForTest;
+import org.glassfish.concurro.test.FakeRunnableForTest;
 import org.glassfish.concurro.test.ManagedBlockingRunnableTask;
 import org.glassfish.concurro.test.ManagedCallableTask;
-import org.glassfish.concurro.test.ManagedRunnableTask;
-import org.glassfish.concurro.test.ManagedTaskListenerImpl;
+import org.glassfish.concurro.test.ManagedRunnableTestTask;
+import org.glassfish.concurro.test.ManagedTestTaskListener;
 import org.glassfish.concurro.test.ManagedTimeRecordingRunnableTask;
-import org.glassfish.concurro.test.RunnableImpl;
 import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.TimeRecordingCallableImpl;
 import org.glassfish.concurro.test.TimeRecordingRunnableImpl;
 import org.glassfish.concurro.test.Util;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -56,11 +59,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import org.junit.Test;
 
 
 public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorServiceAdapterTest {
- 
+
     /**
      * verifies that task got run when scheduled using schedule(Callable, delay, unit)
      */
@@ -68,9 +70,9 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
     public void testSchedule_Callable_delay() {
         final String classloaderName = "testSchedule_Callable_delay" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        final String result = "result" + new Date(System.currentTimeMillis());        
-        CallableImpl<String> task = new CallableImpl<>(result, null);
-        ManagedScheduledExecutorService instance = 
+        final String result = "result" + new Date(System.currentTimeMillis());
+        FakeCallableForTest<String> task = new FakeCallableForTest<>(result, null);
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Callable_delay", contextCallback);
         ScheduledFuture<String> future = instance.schedule(task, 1L, TimeUnit.SECONDS);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
@@ -84,7 +86,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
             fail();
         }
         assertTrue(future.isDone());
-        assertFalse(future.isCancelled());        
+        assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
     }
 
@@ -92,30 +94,24 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
      * verifies that task got run when scheduled using schedule(Callable, delay, unit, taskListener)
      */
     @Test
-    public void testSchedule_Callable_delay_withListener() {
+    public void testSchedule_Callable_delay_withListener() throws Exception {
         final String classloaderName = "testSchedule_Callable_delay_withListener" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         final String result = "result" + new Date(System.currentTimeMillis());
-        ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
-        CallableImpl<String> task = new ManagedCallableTask<>(result, taskListener);
-        ManagedScheduledExecutorService instance = 
+        ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
+        FakeCallableForTest<String> task = new ManagedCallableTask<>(result, taskListener);
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Callable_delay_withListener", contextCallback);
         ScheduledFuture<String> future = instance.schedule(task, 1L, TimeUnit.SECONDS);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
         assertTrue(delay < 1000);
-        try {
-            System.out.println("future.get() blocking to get result");
-            assertEquals(result, future.get());
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            fail();
-        }
+        System.out.println("future.get() blocking to get result");
+        assertEquals(result, future.get());
         assertTrue(future.isDone());
-        assertFalse(future.isCancelled());        
+        assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
-        taskListener.verifyCallback(ManagedTaskListenerImpl.SUBMITTED, future, instance, task, null);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.STARTING, future, instance, task, null, classloaderName);
+        taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+        taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null, classloaderName);
     }
 
     /**
@@ -123,14 +119,14 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
      * with task throwing exception
      */
     @Test
-    public void testSchedule_Callable_delay_exception_withListener() {
+    public void testSchedule_Callable_delay_exception_withListener() throws Exception {
         final String classloaderName = "testSchedule_Callable_delay_withListener" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         final String result = "result" + new Date(System.currentTimeMillis());
-        ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
-        CallableImpl<String> task = new ManagedCallableTask<>(result, taskListener);
+        ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
+        FakeCallableForTest<String> task = new ManagedCallableTask<>(result, taskListener);
         task.setThrowsException(true);
-        ManagedScheduledExecutorService instance = 
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Callable_delay_withListener", contextCallback);
         ScheduledFuture<String> future = instance.schedule(task, 1L, TimeUnit.SECONDS);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
@@ -139,8 +135,6 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         try {
             future.get();
             fail();
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
         } catch (ExecutionException ex) {
             exception = ex;
         }
@@ -149,8 +143,8 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         assertNotNull(exception);
         assertEquals(result, exception.getCause().getMessage());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
-        taskListener.verifyCallback(ManagedTaskListenerImpl.SUBMITTED, future, instance, task, null);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.STARTING, future, instance, task, null, classloaderName);
+        taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+        taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null, classloaderName);
     }
 
 
@@ -158,12 +152,12 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
      * verifies that task run is delayed when scheduled using schedule(Callable, delay, unit)
      */
     @Test
-    public void testSchedule_Callable_long_delay() {
+    public void testSchedule_Callable_long_delay() throws Exception {
         final String classloaderName = "testSchedule_Callable_long_delay" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        final String result = "result" + new Date(System.currentTimeMillis());        
-        CallableImpl<String> task = new CallableImpl<>(result, null);
-        ManagedScheduledExecutorService instance = 
+        final String result = "result" + new Date(System.currentTimeMillis());
+        FakeCallableForTest<String> task = new FakeCallableForTest<>(result, null);
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Callable_long_delay", contextCallback);
         ScheduledFuture<String> future = instance.schedule(task, 1L, TimeUnit.HOURS);
         long delay = future.getDelay(TimeUnit.SECONDS);
@@ -171,15 +165,11 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         try {
             System.out.println("future.get() blocking for 1 second to get result");
             future.get(1L, TimeUnit.SECONDS);
-        } catch (InterruptedException ex) {
-            fail("Expected TimeoutException not caught");
-        } catch (ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
         } catch (TimeoutException ex) {
             // expected
         }
         assertFalse(future.isDone());
-        
+
         // cancel the scheduled task
         future.cancel(true);
     }
@@ -188,54 +178,42 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
      * verifies that task got run when scheduled using schedule(Runnable, delay, unit)
      */
     @Test
-    public void testSchedule_Runnable_delay() {
+    public void testSchedule_Runnable_delay() throws Exception {
         final String classloaderName = "testSchedule_Runnable_delay" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        RunnableImpl task = new RunnableImpl(null);
-        ManagedScheduledExecutorService instance = 
+        FakeRunnableForTest task = new FakeRunnableForTest(null);
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Runnable_delay", contextCallback);
         ScheduledFuture future = instance.schedule(task, 1L, TimeUnit.SECONDS);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
         assertTrue(delay < 1000);
-        try {
-            System.out.println("future.get() blocking to get result");
-            assertNull(future.get());
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            fail();
-        }
+        System.out.println("future.get() blocking to get result");
+        assertNull(future.get());
         assertTrue(future.isDone());
-        assertFalse(future.isCancelled());        
+        assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
     }
-   
+
     /**
      * verifies that task got run when scheduled using schedule(Runnable, delay, unit, taskListener)
      */
     @Test
-    public void testSchedule_Runnable_delay_withListener() {
+    public void testSchedule_Runnable_delay_withListener() throws Exception {
         final String classloaderName = "testSchedule_Runnable_delay_withListener" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
-        RunnableImpl task = new ManagedRunnableTask(taskListener);
-        ManagedScheduledExecutorService instance = 
+        ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
+        FakeRunnableForTest task = new ManagedRunnableTestTask(taskListener);
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Runnable_delay_withListener", contextCallback);
         ScheduledFuture future = instance.schedule(task, 1L, TimeUnit.SECONDS);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
         assertTrue(delay < 1000);
-        try {
-            assertNull(future.get());
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            fail();
-        }
+        assertNull(future.get());
         assertTrue(future.isDone());
-        assertFalse(future.isCancelled());        
+        assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
-        taskListener.verifyCallback(ManagedTaskListenerImpl.SUBMITTED, future, instance, task, null);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.STARTING, future, instance, task, null, classloaderName);
+        taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+        taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null, classloaderName);
     }
 
     /**
@@ -243,13 +221,13 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
      * with task throwing exception
      */
     @Test
-    public void testSchedule_Runnable_delay_exception_withListener() {
+    public void testSchedule_Runnable_delay_exception_withListener() throws Exception {
         final String classloaderName = "testSchedule_Runnable_delay_exception_withListener" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         final RuntimeException result = new RuntimeException("result" + new Date(System.currentTimeMillis()));
-        ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
-        RunnableImpl task = new ManagedRunnableTask(taskListener, result);
-        ManagedScheduledExecutorService instance = 
+        ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
+        FakeRunnableForTest task = new ManagedRunnableTestTask(taskListener, result);
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Runnable_delay_exception_withListener", contextCallback);
         ScheduledFuture future = instance.schedule(task, 1L, TimeUnit.SECONDS);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
@@ -258,8 +236,6 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         try {
             future.get();
             fail();
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
         } catch (ExecutionException ex) {
             exception = ex;
         }
@@ -268,45 +244,41 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         assertNotNull(exception);
         assertEquals(result, exception.getCause());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
-        taskListener.verifyCallback(ManagedTaskListenerImpl.SUBMITTED, future, instance, task, null);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.STARTING, future, instance, task, null, classloaderName);
+        taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+        taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null, classloaderName);
     }
 
     /**
      * verifies that task run is delayed when scheduled using schedule(Runnable, delay, unit)
      */
     @Test
-    public void testSchedule_Runnable_long_delay() {
+    public void testSchedule_Runnable_long_delay() throws Exception {
         final String classloaderName = "testSchedule_Runnable_long_delay" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        final String result = "result" + new Date(System.currentTimeMillis());        
-        RunnableImpl task = new RunnableImpl(null);
-        ManagedScheduledExecutorService instance = 
+        final String result = "result" + new Date(System.currentTimeMillis());
+        FakeRunnableForTest task = new FakeRunnableForTest(null);
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Runnable_long_delay", contextCallback);
         ScheduledFuture future = instance.schedule(task, 1L, TimeUnit.HOURS);
         long delay = future.getDelay(TimeUnit.SECONDS);
         assertTrue(delay > 0 && delay < 36000);
         try {
             future.get(1L, TimeUnit.SECONDS);
-        } catch (InterruptedException ex) {
-            fail("Expected TimeoutException not caught");
-        } catch (ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
         } catch (TimeoutException ex) {
             // expected
         }
         assertFalse(future.isDone());
-        
+
         // cancel the scheduled task
         future.cancel(true);
     }
 
     @Test
-    public void testScheduleAtFixedRate() {
+    public void testScheduleAtFixedRate() throws Exception {
         final String classloaderName = "testScheduleAtFixedRate" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         TimeRecordingRunnableImpl task = new TimeRecordingRunnableImpl(null);
-        ManagedScheduledExecutorService instance = 
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testScheduleAtFixedRate", contextCallback);
         ScheduledFuture future = instance.scheduleAtFixedRate(task, 2L, 1L, TimeUnit.SECONDS);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
@@ -315,10 +287,6 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
             System.out.println("sleeping for 4 seconds");
             // wait 4 seconds, task should have triggered at 2s, 3s, 4s etc
             assertNull(future.get(4, TimeUnit.SECONDS));
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            fail();
         } catch (TimeoutException ex) {
             // expected
         }
@@ -329,7 +297,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         // firstTrigger should be the initial delay, ie, 2 seconds after submission
         // (consider the test pass if it is between 1 - 3 seconds) - is this assumption ok?
         assertTrue( (firstTrigger - submitTime) > 1000 && (firstTrigger - submitTime < 3000));
-        
+
         long secondTrigger = timeouts.get(2);
         // secondTrigger should 1 second after firstTrigger
         // (consider the test pass if it is between 0 - 2 seconds) - is this assumption ok?
@@ -338,16 +306,16 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         for (Long timeout: timeouts) {
             System.out.println("timeout: " + new Date(timeout).toString());
         }
-        task.verifyAfterRun(classloaderName); // verify context is setup for task        
+        task.verifyAfterRun(classloaderName); // verify context is setup for task
     }
-    
+
     @Test
-    public void testScheduleAtFixedRate_withListener() {
+    public void testScheduleAtFixedRate_withListener() throws Exception {
         final String classloaderName = "testScheduleAtFixedRate_withListener" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
+        ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         TimeRecordingRunnableImpl task = new ManagedTimeRecordingRunnableTask(taskListener);
-        ManagedScheduledExecutorService instance = 
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testScheduleAtFixedRate_withListener", contextCallback);
         ScheduledFuture future = instance.scheduleAtFixedRate(task, 2L, 1L, TimeUnit.SECONDS);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
@@ -356,10 +324,6 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
             System.out.println("sleeping for 4 seconds");
             // wait 4 seconds, task should have triggered at 2s, 3s, 4s etc
             assertNull(future.get(4, TimeUnit.SECONDS));
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            fail();
         } catch (TimeoutException ex) {
             // expected
         }
@@ -370,7 +334,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         // firstTrigger should be the initial delay, ie, 2 seconds after submission
         // (consider the test pass if it is between 1 - 3 seconds) - is this assumption ok?
         assertTrue( (firstTrigger - submitTime) > 1000 && (firstTrigger - submitTime < 3000));
-        
+
         long secondTrigger = timeouts.get(2);
         // secondTrigger should 1 second after firstTrigger
         // (consider the test pass if it is between 0 - 2 seconds) - is this assumption ok?
@@ -382,22 +346,22 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         task.verifyAfterRun(classloaderName, false); // verify context is setup for task
 
         // task submitted event should be called only once
-        assertEquals(1, taskListener.getCount(future, ManagedTaskListenerImpl.SUBMITTED));
+        assertEquals(1, taskListener.getCount(future, ManagedTestTaskListener.SUBMITTED));
         // task should be called at least 2 times, verify that listener events
         // also got called at least 2 times
-        assertTrue(taskListener.getCount(future, ManagedTaskListenerImpl.STARTING) >= 2);
-        assertTrue(taskListener.getCount(future, ManagedTaskListenerImpl.DONE) >= 2);
-        
-        taskListener.verifyCallback(ManagedTaskListenerImpl.SUBMITTED, future, instance, task, null);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.STARTING, future, instance, task, null, classloaderName);
+        assertTrue(taskListener.getCount(future, ManagedTestTaskListener.STARTING) >= 2);
+        assertTrue(taskListener.getCount(future, ManagedTestTaskListener.DONE) >= 2);
+
+        taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+        taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null, classloaderName);
     }
-    
+
     @Test
-    public void testScheduleWithFixedDelay() {
+    public void testScheduleWithFixedDelay() throws Exception {
         final String classloaderName = "testScheduleWithFixedDelay" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         TimeRecordingRunnableImpl task = new TimeRecordingRunnableImpl(null);
-        ManagedScheduledExecutorService instance = 
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testScheduleWithFixedDelay", contextCallback);
         ScheduledFuture future = instance.scheduleWithFixedDelay(task, 1L, 1L, TimeUnit.SECONDS);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
@@ -407,10 +371,6 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
             // wait 4 seconds, task should have triggered at 1s, 3s, 5s etc since
             // each task took 1 second to run (due to the sleep() call)
             assertNull(future.get(4, TimeUnit.SECONDS));
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            fail();
         } catch (TimeoutException ex) {
             // expected
         }
@@ -421,7 +381,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         // firstTrigger should be the initial delay, ie, 1 second after submission
         // (consider the test pass if it is between 0 - 2 seconds) - is this assumption ok?
         assertTrue( (firstTrigger - submitTime) > 0 && (firstTrigger - submitTime < 2000));
-        
+
         long secondTrigger = timeouts.get(2);
         // secondTrigger should 2 seconds after firstTrigger
         // (consider the test pass if it is between 1 - 3 seconds) - is this assumption ok?
@@ -430,16 +390,16 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         for (Long timeout: timeouts) {
             System.out.println("timeout: " + new Date(timeout).toString());
         }
-        task.verifyAfterRun(classloaderName); // verify context is setup for task        
+        task.verifyAfterRun(classloaderName); // verify context is setup for task
     }
-    
+
     @Test
-    public void testScheduleWithFixedDelay_withListener() {
+    public void testScheduleWithFixedDelay_withListener() throws Exception {
         final String classloaderName = "testScheduleWithFixedDelay_withListener" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
+        ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         TimeRecordingRunnableImpl task = new ManagedTimeRecordingRunnableTask(taskListener);
-        ManagedScheduledExecutorService instance = 
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testScheduleWithFixedDelay_withListener", contextCallback);
         ScheduledFuture future = instance.scheduleWithFixedDelay(task, 1L, 1L, TimeUnit.SECONDS);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
@@ -449,10 +409,6 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
             // wait 4 seconds, task should have triggered at 1s, 3s, 5s etc since
             // each task took 1 second to run (due to the sleep() call)
             assertNull(future.get(4, TimeUnit.SECONDS));
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            fail();
         } catch (TimeoutException ex) {
             // expected
         }
@@ -463,7 +419,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         // firstTrigger should be the initial delay, ie, 1 second after submission
         // (consider the test pass if it is between 0 - 2 seconds) - is this assumption ok?
         assertTrue( (firstTrigger - submitTime) > 0 && (firstTrigger - submitTime < 2000));
-        
+
         long secondTrigger = timeouts.get(2);
         // secondTrigger should 2 seconds after firstTrigger
         // (consider the test pass if it is between 1 - 3 seconds) - is this assumption ok?
@@ -475,203 +431,194 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         task.verifyAfterRun(classloaderName, false); // verify context is setup for task
 
         // task submitted event should be called only once
-        assertEquals(1, taskListener.getCount(future, ManagedTaskListenerImpl.SUBMITTED));
+        assertEquals(1, taskListener.getCount(future, ManagedTestTaskListener.SUBMITTED));
         // task should be called at least 2 times, verify that listener events
         // also got called at least 2 times
-        assertTrue(taskListener.getCount(future, ManagedTaskListenerImpl.STARTING) >= 2);
-        assertTrue(taskListener.getCount(future, ManagedTaskListenerImpl.DONE) >= 2);
-        
-        taskListener.verifyCallback(ManagedTaskListenerImpl.SUBMITTED, future, instance, task, null);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.STARTING, future, instance, task, null, classloaderName);
+        assertTrue(taskListener.getCount(future, ManagedTestTaskListener.STARTING) >= 2);
+        assertTrue(taskListener.getCount(future, ManagedTestTaskListener.DONE) >= 2);
+
+        taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+        taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null, classloaderName);
     }
-   
+
     /**
-     * 
+     *
      */
     @Test
-    public void testSchedule_Runnable_trigger() {
+    public void testSchedule_Runnable_trigger() throws Exception {
         final String classloaderName = "testSchedule_Runnable_trigger" + new Date(System.currentTimeMillis());
-        boolean gotSkippedException = false;
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
-        TimeRecordingRunnableImpl task = new TimeRecordingRunnableImpl(taskListener); 
-        ManagedScheduledExecutorService instance = 
+        ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
+        TimeRecordingRunnableImpl task = new TimeRecordingRunnableImpl(taskListener);
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Runnable_trigger", contextCallback);
-        // This trigger will return values of now+1s, now+2s, now+3s for getNextRunTime()
-        // and will return values of false, true, false for skipRun()
+        // +1s, -1s means timeout as it goes backwards, +1 means 1-1+1 about the same time as first
         TestTriggerImpl trigger = new TestTriggerImpl(1, -1, 1);
         ScheduledFuture future = instance.schedule(task, trigger);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
         assertTrue(delay > 500 && delay < 1500);
         System.out.println("sleeping until done, approximately 3 seconds");
+        boolean gotSkippedException = false;
+        boolean gotTimeoutException = false;
         while(!future.isDone()) {
             try {
                 future.get(100, TimeUnit.MILLISECONDS);
             } catch (SkippedException se) {
                 gotSkippedException = true;
-            } catch (ExecutionException ee) {
-
-            } catch (TimeoutException  | InterruptedException e) {
-
+            } catch (TimeoutException e) {
+                gotTimeoutException = true;
             }
         }
         assertTrue(gotSkippedException);
+        assertTrue(gotTimeoutException);
         assertTrue(future.isDone());
-        assertFalse(future.isCancelled());        
+        assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName, false); // verify context is setup for task
-        try {
-            assertNull(future.get());
-        } catch (InterruptedException | ExecutionException ex) {
-        }
+        assertNull(future.get());
         ArrayList<Long> timeouts = task.getInvocations();
         for (Long timeout: timeouts) {
             System.out.println("timeout: " + new Date(timeout).toString());
         }
-        taskListener.verifyCallback(ManagedTaskListenerImpl.SUBMITTED, future, instance, task, null);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.STARTING, future, instance, task, null, classloaderName);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.DONE, future, instance, task, null, classloaderName);
-        assertFalse(taskListener.eventCalled(future, ManagedTaskListenerImpl.ABORTED));
+        taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+        taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null, classloaderName);
+        taskListener.verifyCallback(ManagedTestTaskListener.DONE, future, instance, task, null, classloaderName);
+        assertFalse(taskListener.eventCalled(future, ManagedTestTaskListener.ABORTED));
    }
 
     @Test
-    public void testSchedule_Runnable_trigger_exception() {
+    public void testSchedule_Runnable_trigger_exception() throws Exception {
         final String classloaderName = "testSchedule_Runnable_trigger_exception" + new Date(System.currentTimeMillis());
-        boolean gotSkippedException = false;
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        final RuntimeException result = new RuntimeException("result" + new Date(System.currentTimeMillis()));
-        ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
-        TimeRecordingRunnableImpl task = new TimeRecordingRunnableImpl(taskListener, result); 
-        ManagedScheduledExecutorService instance = 
+        final RuntimeException expectedException = new RuntimeException("MyExpectedException");
+        ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
+        TimeRecordingRunnableImpl task = new TimeRecordingRunnableImpl(taskListener, expectedException);
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Runnable_trigger_exception", contextCallback);
-        // This trigger will return values of now+1s, now+2s, now+3s for getNextRunTime()
-        // and will return values of false, true, false for skipRun()
+        // +1s, -1s means timeout as it goes backwards, +1 means 1-1+1 about the same time as first
         TestTriggerImpl trigger = new TestTriggerImpl(1, -1, 1);
         ScheduledFuture future = instance.schedule(task, trigger);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
         assertTrue(delay > 500 && delay < 1500);
         System.out.println("sleeping until done, approximately 3 seconds");
+        boolean gotSkippedException = false;
+        boolean gotTimeoutException = false;
         while(!future.isDone()) {
             try {
                 future.get(100, TimeUnit.MILLISECONDS);
                 fail("expected exception not thrown");
             } catch (SkippedException se) {
                 gotSkippedException = true;
-            } catch (ExecutionException ee) {
-
-            } catch (TimeoutException  | InterruptedException e) {
-
+            } catch (TimeoutException e) {
+                gotTimeoutException = true;
+            } catch (ExecutionException e) {
+                assertTrue(expectedException == e.getCause());
             }
         }
         assertTrue(gotSkippedException);
+        assertTrue(gotTimeoutException);
         assertTrue(future.isDone());
-        assertFalse(future.isCancelled());        
+        assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName, false); // verify context is setup for task
         Exception exception = null;
         try {
             future.get();
             fail("expected exception not thrown");
-        } catch (InterruptedException ex) {
         } catch (ExecutionException ex) {
             exception = ex;
         }
         assertNotNull(exception);
-        assertTrue(result == exception.getCause());
+        assertTrue(expectedException == exception.getCause());
         ArrayList<Long> timeouts = task.getInvocations();
         for (Long timeout: timeouts) {
             System.out.println("timeout: " + new Date(timeout).toString());
         }
-        taskListener.verifyCallback(ManagedTaskListenerImpl.SUBMITTED, future, instance, task, null);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.STARTING, future, instance, task, null, classloaderName);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.DONE, future, instance, task, null, classloaderName);
-        assertFalse(taskListener.eventCalled(future, ManagedTaskListenerImpl.ABORTED));
+        taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+        taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null, classloaderName);
+        taskListener.verifyCallback(ManagedTestTaskListener.DONE, future, instance, task, null, classloaderName);
+        assertFalse(taskListener.eventCalled(future, ManagedTestTaskListener.ABORTED));
     }
-   
+
     @Test
-    public void testSchedule_Callable_trigger() {
+    public void testSchedule_Callable_trigger() throws Exception {
         final String classloaderName = "testSchedule_Callable_trigger" + new Date(System.currentTimeMillis());
-        boolean gotSkippedException = false;
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        final String result = "result" + new Date(System.currentTimeMillis());        
-        ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
+        final String result = "result" + new Date(System.currentTimeMillis());
+        ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         TimeRecordingCallableImpl<String> task = new TimeRecordingCallableImpl<>(result, taskListener);
-        ManagedScheduledExecutorService instance = 
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Callable_trigger", contextCallback);
-        // This trigger will return values of now+1s, now+2s, now+3s for getNextRunTime()
-        // and will return values of false, true, false for skipRun()
+        // +1s, -1s means timeout as it goes backwards, +1 means 1-1+1 about the same time as first
         TestTriggerImpl trigger = new TestTriggerImpl(1, -1, 1);
         ScheduledFuture future = instance.schedule(task, trigger);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
         assertTrue(delay > 500 && delay < 1500);
         System.out.println("sleeping until done, approximately 3 seconds");
+        boolean gotSkippedException = false;
+        boolean gotTimeoutException = false;
         while(!future.isDone()) {
             try {
                 future.get(100, TimeUnit.MILLISECONDS);
             } catch (SkippedException se) {
                 gotSkippedException = true;
-            } catch (ExecutionException ee) {
-
-            } catch (TimeoutException  | InterruptedException e) {
-
+            } catch (TimeoutException e) {
+                gotTimeoutException = true;
             }
         }
         assertTrue(gotSkippedException);
+        assertTrue(gotTimeoutException);
         assertTrue(future.isDone());
-        assertFalse(future.isCancelled());        
+        assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName, false); // verify context is setup for task
-        try {
-            assertEquals(result, future.get());
-        } catch (InterruptedException | ExecutionException ex) {
-            
-        }
+        assertEquals(result, future.get());
         ArrayList<Long> timeouts = task.getInvocations();
         for (Long timeout: timeouts) {
             System.out.println("timeout: " + new Date(timeout).toString());
         }
-        taskListener.verifyCallback(ManagedTaskListenerImpl.SUBMITTED, future, instance, task, null);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.STARTING, future, instance, task, null, classloaderName);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.DONE, future, instance, task, null, classloaderName);
-        assertFalse(taskListener.eventCalled(future, ManagedTaskListenerImpl.ABORTED));
+        taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+        taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null, classloaderName);
+        taskListener.verifyCallback(ManagedTestTaskListener.DONE, future, instance, task, null, classloaderName);
+        assertFalse(taskListener.eventCalled(future, ManagedTestTaskListener.ABORTED));
     }
-   
+
     @Test
-    public void testSchedule_Callable_trigger_exception() {
+    public void testSchedule_Callable_trigger_exception() throws Exception {
         final String classloaderName = "testSchedule_Callable_trigger_exception" + new Date(System.currentTimeMillis());
-        boolean gotSkippedException = false;
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        final String result = "result" + new Date(System.currentTimeMillis());        
-        ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
+        final String result = "result" + new Date(System.currentTimeMillis());
+        ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         TimeRecordingCallableImpl<String> task = new TimeRecordingCallableImpl<>(result, taskListener);
         task.setThrowsException(true);
-        ManagedScheduledExecutorService instance = 
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_Callable_trigger_exception", contextCallback);
-        // This trigger will return values of now+1s, now+2s, now+3s for getNextRunTime()
-        // and will return values of false, true, false for skipRun()
+        // +1s, -1s means timeout as it goes backwards, +1 means 1-1+1 about the same time as first
         TestTriggerImpl trigger = new TestTriggerImpl(1, -1, 1);
         ScheduledFuture future = instance.schedule(task, trigger);
         long delay = future.getDelay(TimeUnit.MILLISECONDS);
         assertTrue(delay > 500 && delay < 1500);
         System.out.println("sleeping until done, approximately 3 seconds");
+        boolean gotSkippedException = false;
+        boolean gotTimeoutException = false;
         while(!future.isDone()) {
             try {
                 future.get(100, TimeUnit.MILLISECONDS);
                 fail("expected exception not thrown");
             } catch (SkippedException se) {
                 gotSkippedException = true;
-            } catch (ExecutionException ee) {
-
-            } catch (TimeoutException  | InterruptedException e) {
-
+            } catch (TimeoutException e) {
+                gotTimeoutException = true;
+            } catch (ExecutionException e) {
+                assertEquals(result, e.getCause().getMessage());
             }
         }
         assertTrue(gotSkippedException);
+        assertTrue(gotTimeoutException);
         assertTrue(future.isDone());
-        assertFalse(future.isCancelled());        
+        assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName, false); // verify context is setup for task
         Exception exception = null;
         try {
             future.get();
             fail("expected exception not thrown");
-        } catch (InterruptedException ex) {
         } catch (ExecutionException ex) {
             exception = ex;
         }
@@ -681,74 +628,81 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         for (Long timeout: timeouts) {
             System.out.println("timeout: " + new Date(timeout).toString());
         }
-        taskListener.verifyCallback(ManagedTaskListenerImpl.SUBMITTED, future, instance, task, null);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.STARTING, future, instance, task, null, classloaderName);
-        taskListener.verifyCallback(ManagedTaskListenerImpl.DONE, future, instance, task, null, classloaderName);
-        assertFalse(taskListener.eventCalled(future, ManagedTaskListenerImpl.ABORTED));
+        taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+        taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null, classloaderName);
+        taskListener.verifyCallback(ManagedTestTaskListener.DONE, future, instance, task, null, classloaderName);
+        assertFalse(taskListener.eventCalled(future, ManagedTestTaskListener.ABORTED));
     }
-   
+
     @Test
     public void testSchedule_trigger_cancel() throws InterruptedException {
         final String classloaderName = "testSchedule_trigger_cancel" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        ManagedTaskListenerImpl taskListener = new ManagedTaskListenerImpl();
+        ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         ManagedBlockingRunnableTask task = new ManagedBlockingRunnableTask(taskListener, 60 * 1000L);
-        ManagedScheduledExecutorService instance = 
+        ManagedScheduledExecutorService instance =
                 createManagedScheduledExecutor("testSchedule_trigger_exception", contextCallback);
+        // +1s, -1s means timeout as it goes backwards, +1 means 1-1+1 about the same time as first
         TestTriggerImpl trigger = new TestTriggerImpl(1, -1, 1);
         ScheduledFuture future = instance.schedule(task, trigger);
         assertFalse(future.isDone());
         assertFalse(future.isCancelled());
-        
+
         assertTrue( future.cancel(true) );
-        
+
         assertTrue(future.isDone());
-        assertTrue(future.isCancelled());        
+        assertTrue(future.isCancelled());
 
         assertTrue("timeout waiting for taskAborted call", Util.waitForTaskAborted(future, taskListener, getLoggerName()));
-        taskListener.verifyCallback(ManagedTaskListenerImpl.ABORTED, future, instance, 
+        taskListener.verifyCallback(ManagedTestTaskListener.ABORTED, future, instance,
                 task, new CancellationException());
-        
-        // test also that task only executed once as it should have been cancelled. 
+
+        // test also that task only executed once as it should have been cancelled.
         Thread.sleep(2000);
-        assertTrue("Task executions should be 1 as trigger task was cancelled ", taskListener.getCount(future, ManagedTaskListenerImpl.STARTING) == 1);
-        
-        
+        assertTrue("Task executions should be 1 as trigger task was cancelled ", taskListener.getCount(future, ManagedTestTaskListener.STARTING) == 1);
+
+
     }
 
 
     protected ManagedScheduledExecutorService createManagedScheduledExecutor(String name, ContextSetupProvider contextSetupProvider) {
-       return (ManagedScheduledExecutorService) createManagedExecutor(name, contextSetupProvider); 
+       return (ManagedScheduledExecutorService) createManagedExecutor(name, contextSetupProvider);
     }
-    
+
     @Override
     protected ManagedExecutorService createManagedExecutor(String name, ContextSetupProvider contextSetupProvider) {
-        ManagedScheduledExecutorServiceImpl mses = 
+        ManagedScheduledExecutorServiceImpl mses =
                 new ManagedScheduledExecutorServiceImpl(name, null, 0, false,
-                    1,  
+                    1,
                     0, TimeUnit.SECONDS,
                     0L,
                     new TestContextService(contextSetupProvider),
                     RejectPolicy.ABORT);
         return mses.getAdapter();
     }
-    
+
     public static class TestTriggerImpl implements Trigger {
 
         // contains scheduling info for this trigger:
         // +ve number: # of seconds interval after last scheduled run time
         // 0 = return null in getNextRunTime()
         // -ve = skipRun
-        int[] intervals; 
+        int[] intervals;
         int index = 0;
         int offsetTime = 0;
         List<LastExecution> nextRunTimeArgs = new ArrayList<>();
         List<LastExecution> skipRunArgs = new ArrayList<>();
-        
+
+        /**
+         * This trigger will return values of now+1s, now+2s, now+3s for getNextRunTime()
+         * and will return values of false, true, false for skipRun()
+         *
+         * @param intervals
+         */
         public TestTriggerImpl(int... intervals) {
             this.intervals = intervals;
         }
-        
+
         @Override
         public Date getNextRunTime(LastExecution lastExecutionInfo, Date taskScheduledTime) {
             nextRunTimeArgs.add(lastExecutionInfo == null? null: new LastExecutionCopy(lastExecutionInfo));
@@ -771,13 +725,13 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
             return skip;
         }
     }
-    
+
     public static class LastExecutionCopy implements LastExecution {
 
         String identityName;
         Object result;
         ZonedDateTime scheduledStart, runStart, runEnd;
-        
+
         public LastExecutionCopy(LastExecution source) {
             if (source != null) {
                 identityName = source.getIdentityName();
@@ -787,7 +741,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
                 runEnd = source.getRunEnd(ZoneId.systemDefault());
             }
         }
-        
+
         @Override
         public String getIdentityName() {
             return identityName;
@@ -812,7 +766,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         public ZonedDateTime getRunEnd(ZoneId zone) {
             return runEnd.withZoneSameLocal(zone);
         }
-        
+
         @Override
         public String toString() {
             return "[LastExecutionInfo] identityName: " + identityName + ", result: " + result + ", scheduledStart: " + scheduledStart

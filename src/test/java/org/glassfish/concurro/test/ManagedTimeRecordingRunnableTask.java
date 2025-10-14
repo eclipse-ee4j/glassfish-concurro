@@ -24,7 +24,7 @@ import jakarta.enterprise.concurrent.ManagedTaskListener;
 
 public class ManagedTimeRecordingRunnableTask extends TimeRecordingRunnableImpl implements ManagedTask {
 
-    public ManagedTimeRecordingRunnableTask(ManagedTaskListenerImpl taskListener) {
+    public ManagedTimeRecordingRunnableTask(ManagedTestTaskListener taskListener) {
         super(taskListener);
     }
 

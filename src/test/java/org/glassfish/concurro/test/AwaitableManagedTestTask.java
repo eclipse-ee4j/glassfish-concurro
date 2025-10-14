@@ -21,20 +21,22 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 /**
- *
  * @author Ondro Mihalyi
  */
-public class AwaitableManagedTaskListenerImpl extends ManagedTaskListenerImpl {
+public class AwaitableManagedTestTask extends ManagedTestTaskListener {
 
-    private CompletableFuture<Void> taskDone = new CompletableFuture<>();
+    private CompletableFuture<String> taskDone = new CompletableFuture<>();
 
     @Override
     public void taskDone(Future<?> future, ManagedExecutorService executor, Object task, Throwable exception) {
         super.taskDone(future, executor, task, exception);
-        taskDone.complete(null);
+        taskDone.complete("I am ok!");
     }
 
-    public CompletableFuture<Void> whenDone() {
+    /**
+     * @return {@link CompletableFuture} returning <code>"I am ok!"</code> when the task is completed.
+     */
+    public CompletableFuture<String> whenDone() {
         return taskDone;
     }
 
