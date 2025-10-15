@@ -18,23 +18,24 @@
 
 package org.glassfish.concurro;
 
+import jakarta.enterprise.concurrent.ManagedThreadFactory;
+
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.glassfish.concurro.internal.ManagedFutureTask;
 import org.glassfish.concurro.internal.ThreadExpiredException;
 import org.glassfish.concurro.spi.ContextHandle;
 import org.glassfish.concurro.spi.ContextSetupProvider;
-import jakarta.enterprise.concurrent.ManagedThreadFactory;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinWorkerThread;
 
 /**
  * Implementation of ManagedThreadFactory interface.

@@ -20,7 +20,6 @@ package org.glassfish.concurro.test;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.Future;
-import java.util.function.Supplier;
 
 import static org.glassfish.concurro.test.ManagedTestTaskListener.ABORTED;
 import static org.glassfish.concurro.test.ManagedTestTaskListener.DONE;

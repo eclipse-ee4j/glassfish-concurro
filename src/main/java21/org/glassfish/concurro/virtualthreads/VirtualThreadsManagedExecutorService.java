@@ -15,13 +15,11 @@
  */
 package org.glassfish.concurro.virtualthreads;
 
-import org.glassfish.concurro.internal.MultiManagedTaskListener;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.enterprise.concurrent.ManagedExecutors;
 import jakarta.enterprise.concurrent.ManagedTask;
-import org.glassfish.concurro.*;
-import java.util.concurrent.ExecutorService;
 import jakarta.enterprise.concurrent.ManagedTaskListener;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -29,12 +27,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.glassfish.concurro.AbstractManagedExecutorService;
+import org.glassfish.concurro.AbstractManagedExecutorServiceAdapter;
+import org.glassfish.concurro.ContextServiceImpl;
+import org.glassfish.concurro.ManagedExecutorServiceAdapter;
+import org.glassfish.concurro.ManagedThreadFactoryImpl;
 import org.glassfish.concurro.internal.ManagedFutureTask;
+import org.glassfish.concurro.internal.MultiManagedTaskListener;
 
 /**
  * Implementation of ManagedExecutorService interface using Virtual Threads. See {@code AbstractManagedExecutorService}.
@@ -150,6 +156,7 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
      * components.
      *
      */
+    @Override
     public AbstractManagedExecutorServiceAdapter getAdapter() {
         return adapter;
     }
@@ -246,6 +253,7 @@ public class VirtualThreadsManagedExecutorService extends AbstractManagedExecuto
     public void taskStarting(Future<?> future, ManagedExecutorService executor, Object task) {
     }
 
+    @Override
     protected boolean isTaskHung(Thread thread, long now) {
         return managedThreadFactory.isTaskHung(thread, now);
     }

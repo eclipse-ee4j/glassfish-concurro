@@ -17,9 +17,10 @@
 
 package org.glassfish.concurro;
 
-import java.util.concurrent.TimeUnit;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
-import org.glassfish.concurro.ManagedScheduledExecutorServiceImpl;
+
+import java.util.concurrent.TimeUnit;
+
 import org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy;
 import org.glassfish.concurro.spi.ContextSetupProvider;
 import org.glassfish.concurro.test.TestContextService;
@@ -32,7 +33,7 @@ public class ManagedScheduledExecutorServiceImplTest extends ManagedExecutorServ
     @Override
     protected ManagedExecutorService createManagedExecutor(String name, ContextSetupProvider contextCallback) {
         return new ManagedScheduledExecutorServiceImpl(name, null, 0, false,
-                    1,  
+                    1,
                     0, TimeUnit.SECONDS,
                     0L,
                     new TestContextService(contextCallback),

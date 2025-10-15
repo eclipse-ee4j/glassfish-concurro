@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -16,10 +17,10 @@
 
 package org.glassfish.concurro.test;
 
-import java.util.Locale;
-import java.util.Map;
 import jakarta.enterprise.concurrent.ManagedTask;
 import jakarta.enterprise.concurrent.ManagedTaskListener;
+
+import java.util.Map;
 
 
 public class ManagedTimeRecordingRunnableTask extends TimeRecordingRunnableImpl implements ManagedTask {
@@ -37,5 +38,5 @@ public class ManagedTimeRecordingRunnableTask extends TimeRecordingRunnableImpl 
     public Map<String, String> getExecutionProperties() {
         return null;
     }
-    
+
 }
