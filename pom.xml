@@ -126,6 +126,7 @@
         <jakarta.interceptor-api.version>2.2.0</jakarta.interceptor-api.version>
         <jakarta.transaction-api.version>2.0.1</jakarta.transaction-api.version>
         <jakarta.enterprise.cdi-api.version>4.1.0</jakarta.enterprise.cdi-api.version>
+        <junit5-surefire-tree-reporter.version>1.4.0</junit5-surefire-tree-reporter.version>
 
         <!-- speed up test execution - run all tests in parallel -->
         <skipUTs>${skipTests}</skipUTs>
@@ -198,7 +199,15 @@
                         <systemPropertyVariables>
                             <java.util.logging.config.file>src/test/resources/logging.properties</java.util.logging.config.file>
                         </systemPropertyVariables>
+                        <statelessTestsetInfoReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter"/>
                     </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>me.fabriciorby</groupId>
+                            <artifactId>maven-surefire-junit5-tree-reporter</artifactId>
+                            <version>${junit5-surefire-tree-reporter.version}</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>org.sonatype.plugins</groupId>
@@ -363,9 +372,14 @@ Use is subject to <a href="http://www.eclipse.org/legal/epl-2.0" target="_top">l
             </plugin>
 
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>3.5.4</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <java.util.logging.config.file>src/test/resources/logging.properties</java.util.logging.config.file>
+                    </systemPropertyVariables>
+                    <statelessTestsetInfoReporter implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter"/>
+                </configuration>
                 <executions>
                     <execution>
                         <id>integration-test</id>
@@ -375,6 +389,13 @@ Use is subject to <a href="http://www.eclipse.org/legal/epl-2.0" target="_top">l
                         </goals>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>me.fabriciorby</groupId>
+                        <artifactId>maven-surefire-junit5-tree-reporter</artifactId>
+                        <version>${junit5-surefire-tree-reporter.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
             <!-- Check licenses of dependencies -->
