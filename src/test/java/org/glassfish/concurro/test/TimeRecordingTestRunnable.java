@@ -49,7 +49,6 @@ public class TimeRecordingTestRunnable extends ManagedRunnableTestTask {
             LOG.log(INFO, "run() executed at " + Instant.now());
             invocations.add(System.currentTimeMillis());
         }
-        // sleep for 1 second
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {

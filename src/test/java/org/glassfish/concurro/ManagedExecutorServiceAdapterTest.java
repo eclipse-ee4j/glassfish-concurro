@@ -25,8 +25,8 @@ import jakarta.enterprise.concurrent.ManagedTaskListener;
 
 import java.lang.System.Logger;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -74,7 +74,7 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testExecute() throws Exception {
-        final String classloaderName = "testExcute" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testExcute" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         final FakeRunnableForTest task = new FakeRunnableForTest(null);
         ManagedExecutorService instance = createManagedExecutor("execute", contextCallback);
@@ -90,7 +90,7 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testSubmit_Runnable() throws Exception {
-        final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testSubmit" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         FakeRunnableForTest task = new FakeRunnableForTest(null);
         ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
@@ -132,7 +132,7 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testSubmit_Runnable_withListener() throws Exception {
-        final String classloaderName = "submit_Runnable_withListener" + new Date(System.currentTimeMillis());
+        final String classloaderName = "submit_Runnable_withListener" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         FakeRunnableForTest task = new ManagedRunnableTestTask(taskListener);
@@ -168,7 +168,7 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testSubmit_Runnable_withListener_invalidContext() throws Exception {
-        final String classloaderName = "submit_runnable_withListener_invalidContext" + new Date(System.currentTimeMillis());
+        final String classloaderName = "submit_runnable_withListener_invalidContext" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         final String MESSAGE = "Invalid Context";
         contextCallback.throwsOnSetup(MESSAGE);
@@ -200,11 +200,11 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testSubmit_Runnable_result() throws Exception {
-        final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testSubmit" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         FakeRunnableForTest task = new FakeRunnableForTest(null);
         ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
-        final String result = "result" + new Date(System.currentTimeMillis());
+        final String result = "result" + LocalDateTime.now();
         Future future = instance.submit(task, result);
         assertEquals(result, future.get());
         assertTrue(future.isDone());
@@ -232,12 +232,12 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testSubmit_Runnable_result_withListener() throws Exception {
-        final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testSubmit" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         FakeRunnableForTest task = new ManagedRunnableTestTask(taskListener);
         ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
-        final String result = "result" + new Date(System.currentTimeMillis());
+        final String result = "result" + LocalDateTime.now();
         Future future = instance.submit(task, result);
         assertEquals(result, future.get());
         assertTrue(future.isDone());
@@ -254,10 +254,10 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testSubmit_Runnable_exception_withListener() throws Exception {
-        final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testSubmit" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
-        final RuntimeException result = new RuntimeException("result" + new Date(System.currentTimeMillis()));
+        final RuntimeException result = new RuntimeException("result" + LocalDateTime.now());
         FakeRunnableForTest task = new ManagedRunnableTestTask(taskListener, result);
         ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
         Future future = instance.submit(task, result);
@@ -278,9 +278,9 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testSubmit_Callable() throws Exception {
-        final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testSubmit" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
-        final String result = "result" + new Date(System.currentTimeMillis());
+        final String result = "result" + LocalDateTime.now();
         FakeCallableForTest<String> task = new FakeCallableForTest<>(result, null);
         ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
         Future<String> future = instance.submit(task);
@@ -310,10 +310,10 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testSubmit_Callable_withListener() throws Exception {
-        final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testSubmit" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
-        final String result = "result" + new Date(System.currentTimeMillis());
+        final String result = "result" + LocalDateTime.now();
         FakeCallableForTest<String> task = new ManagedCallableTestTask<>(result, taskListener);
         ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
         Future<String> future = instance.submit(task);
@@ -330,10 +330,10 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testSubmit_Callable_withContextualListener() throws Exception {
-        final String taskClassloaderName = "testSubmit-task" + new Date(System.currentTimeMillis());
-        final String contextServiceClassloaderName = "testSubmit-contextService" + new Date(System.currentTimeMillis());
+        final String taskClassloaderName = "testSubmit-task" + LocalDateTime.now();
+        final String contextServiceClassloaderName = "testSubmit-contextService" + LocalDateTime.now();
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
-        final String result = "result" + new Date(System.currentTimeMillis());
+        final String result = "result" + LocalDateTime.now();
 
         ContextServiceImpl contextService = new ContextServiceImpl("myContextService",
             new ClassloaderContextSetupProvider(contextServiceClassloaderName));
@@ -359,10 +359,10 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testSubmit_Callable_exception_withListener() {
-        final String classloaderName = "testSubmit_Callable_exception_withListener" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testSubmit_Callable_exception_withListener" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
-        final String result = "result" + new Date(System.currentTimeMillis());
+        final String result = "result" + LocalDateTime.now();
         FakeCallableForTest<String> task = new ManagedCallableTestTask<>(result, taskListener);
         task.setThrowsException(true);
         ManagedExecutorService instance =
@@ -384,13 +384,13 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testSubmit_Callable_withListener_invalidContext() {
-        final String classloaderName = "submit_runnable_withListener_invalidContext" + new Date(System.currentTimeMillis());
+        final String classloaderName = "submit_runnable_withListener_invalidContext" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         final String MESSAGE = "Invalid Context";
         contextCallback.throwsOnSetup(MESSAGE);
 
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
-        final String result = "result" + new Date(System.currentTimeMillis());
+        final String result = "result" + LocalDateTime.now();
        FakeCallableForTest<String> task = new ManagedCallableTestTask<>(result, taskListener);
         ManagedExecutorService instance =
                 createManagedExecutor("submit", contextCallback);
@@ -411,14 +411,14 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testInvokeAny() throws Exception {
-        final String classloaderName = "testInvokeAny" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testInvokeAny" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ArrayList<FakeCallableForTest<String>> tasks = new ArrayList<>();
         FakeCallableForTest<String> goodTask = null;
         String expectedResult = null;
         for (int i=0; i<10; i++) {
             // set up 10 tasks. 9 of which throws leaving one returning good result.
-            String result = "result" + new Date(System.currentTimeMillis());
+            String result = "result" + LocalDateTime.now();
             FakeCallableForTest<String> task = new FakeCallableForTest<>(result, null);
             tasks.add(task);
             if (i == 5) {
@@ -440,12 +440,12 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testInvokeAny_exception() throws Exception {
-        final String classloaderName = "testInvokeAny_exception" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testInvokeAny_exception" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ArrayList<FakeCallableForTest<String>> tasks = new ArrayList<>();
         for (int i=0; i<10; i++) {
             // set up 10 tasks. 9 of which throws leaving one returning good result.
-            String result = "result" + new Date(System.currentTimeMillis());
+            String result = "result" + LocalDateTime.now();
             FakeCallableForTest<String> task = new FakeCallableForTest<>(result, null);
             tasks.add(task);
             task.setThrowsException(true);
@@ -460,7 +460,7 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testInvokeAny_timeout() throws Exception {
-        final String classloaderName = "testInvokeAny_exception" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testInvokeAny_exception" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ArrayList<Callable<String>> tasks = new ArrayList<>();
         for (int i=0; i<2; i++) {
@@ -477,7 +477,7 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testInvokeAny_withListener() throws Exception {
-        final String classloaderName = "testInvokeAny_withListener" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testInvokeAny_withListener" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         final List<FakeCallableForTest<String>> tasks = generateTasks();
         final FakeCallableForTest<String> goodTask = tasks.get(5);
@@ -517,13 +517,13 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testInvokeAny_exception_withListener() throws Exception {
-        final String classloaderName = "testInvokeAny_exception_withListener" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testInvokeAny_exception_withListener" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ArrayList<FakeCallableForTest<String>> tasks = new ArrayList<>();
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         for (int i=0; i<10; i++) {
             // set up 10 tasks. 9 of which throws leaving one returning good result.
-            String result = "result" + new Date(System.currentTimeMillis());
+            String result = "result" + LocalDateTime.now();
             FakeCallableForTest<String> task = new ManagedCallableTestTask<>(result, taskListener);
             tasks.add(task);
             task.setThrowsException(true);
@@ -539,12 +539,12 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testInvokeAll() throws Exception {
-        final String classloaderName = "testInvokeAll" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testInvokeAll" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ArrayList<FakeCallableForTest<String>> tasks = new ArrayList<>();
         ArrayList<String>results = new ArrayList<>();
         for (int i=0; i<10; i++) {
-            String result = "result" + new Date(System.currentTimeMillis());
+            String result = "result" + LocalDateTime.now();
             FakeCallableForTest<String> task = new FakeCallableForTest<>(result, null);
             tasks.add(task);
             results.add(result);
@@ -570,13 +570,13 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testInvokeAll_withListener() throws Exception {
-        final String classloaderName = "testInvokeAll_withListener" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testInvokeAll_withListener" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ArrayList<FakeCallableForTest<String>> tasks = new ArrayList<>();
         ArrayList<String>results = new ArrayList<>();
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         for (int i=0; i<10; i++) {
-            String result = "result" + new Date(System.currentTimeMillis());
+            String result = "result" + LocalDateTime.now();
             FakeCallableForTest<String> task = new ManagedCallableTestTask<>(result, taskListener);
             tasks.add(task);
             results.add(result);
@@ -609,13 +609,13 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testInvokeAll_exception() throws Exception {
-        final String classloaderName = "testInvokeAll_exception" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testInvokeAll_exception" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ArrayList<FakeCallableForTest<String>> tasks = new ArrayList<>();
         ArrayList<String>results = new ArrayList<>();
         for (int i=0; i<10; i++) {
             // Configure 10 tasks. Half of which throws
-            String result = "result" + new Date(System.currentTimeMillis());
+            String result = "result" + LocalDateTime.now();
             FakeCallableForTest<String> task = new FakeCallableForTest<>(result, null);
             if (i % 2 == 0) {
                 task.setThrowsException(true);
@@ -655,13 +655,13 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testInvokeAll_exception_withListener() throws Exception {
-        final String classloaderName = "testInvokeAll_exception_withListener" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testInvokeAll_exception_withListener" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ArrayList<FakeCallableForTest<String>> tasks = new ArrayList<>();
         ArrayList<String>results = new ArrayList<>();
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         for (int i=0; i<10; i++) {
-            String result = "result" + new Date(System.currentTimeMillis());
+            String result = "result" + LocalDateTime.now();
             FakeCallableForTest<String> task = new ManagedCallableTestTask<>(result, taskListener);
             if (i % 2 == 0) {
                 task.setThrowsException(true);
@@ -712,7 +712,7 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testCancel() {
-        final String classloaderName = "testCancel" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testCancel" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         FakeRunnableForTest task = new BlockingRunnableForTest(null, 60 * 1000L);
         ManagedExecutorService instance =
@@ -734,7 +734,7 @@ public class ManagedExecutorServiceAdapterTest  {
      */
     @Test
     public void testCancel_withListener() throws Exception {
-        final String classloaderName = "testCancel" + new Date(System.currentTimeMillis());
+        final String classloaderName = "testCancel" + LocalDateTime.now();
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         FakeRunnableForTest task = new ManagedBlockingRunnableTask(taskListener, 60 * 1000L);

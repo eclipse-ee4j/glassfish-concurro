@@ -39,7 +39,6 @@ import org.glassfish.concurro.test.ManagedTestTaskListener;
 import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedExecutorService;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
-import org.hamcrest.collection.IsEmptyCollection;
 import org.junit.jupiter.api.Test;
 
 import static org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy.ABORT;
@@ -297,21 +296,20 @@ public class VirtualThreadsManagedExecutorServiceIT {
         future.get(5, TimeUnit.SECONDS);
         assertEquals("I am ok!", taskListener.whenDone().get(5, TimeUnit.SECONDS));
         retry(() -> assertThat("All virtual threads should be discarded after tasks are done",
-            managedExecutorService.getThreads(), IsEmptyCollection.empty()));
+            managedExecutorService.getThreads(), empty()));
     }
 
     @Test
     public void testHungThreads() throws Exception {
-        final AbstractManagedExecutorService managedExecutorService = createManagedExecutor("testThreadLifeTime", 2, 0, 0L, 1L, false);
+        final AbstractManagedExecutorService managedExecutorService = createManagedExecutor("testHungThreads", 2, 0, 0L, 1L, false);
 
         assertThat(managedExecutorService.getHungThreads(), empty());
 
         BlockingRunnableForTest runnable = new BlockingRunnableForTest(null, 0L);
-        Future f = managedExecutorService.submit(runnable);
-        Thread.sleep(1000); // sleep for 1 second
+        managedExecutorService.submit(runnable);
 
         // Should get one hung thread
-        assertThat(managedExecutorService.getHungThreads(), hasSize(1));
+        retry(() -> assertThat(managedExecutorService.getHungThreads(), hasSize(1)));
 
         // Tell task to stop waiting
         runnable.stopBlocking();
@@ -323,26 +321,23 @@ public class VirtualThreadsManagedExecutorServiceIT {
 
     @Test
     public void testHungThreads_LongRunningTasks() throws Exception {
-        final AbstractManagedExecutorService managedExecutorService = createManagedExecutor("testThreadLifeTime", 2, 0, 0L, 1L, true);
+        final AbstractManagedExecutorService managedExecutorService = createManagedExecutor(
+            "testHungThreads_LongRunningTasks", 2, 0, 0L, 1L, true);
 
-        Collection<Thread> threads = managedExecutorService.getHungThreads();
-        assertTrue(threads.isEmpty());
+        assertTrue(managedExecutorService.getHungThreads().isEmpty());
 
         BlockingRunnableForTest runnable = new BlockingRunnableForTest(null, 0L);
-        Future<?> future = managedExecutorService.submit(runnable);
-        Thread.sleep(1000); // sleep for 1 second
+        managedExecutorService.submit(runnable);
 
         // Should not get any hung thread because longRunningTasks is true
-        threads = managedExecutorService.getHungThreads();
-        assertTrue(threads.isEmpty());
+        retry(() -> assertThat(managedExecutorService.getHungThreads(), empty()));
 
         // Tell task to stop waiting
         runnable.stopBlocking();
         retry(() -> assertTrue(runnable.runCalled));
 
         // Should not have any more hung threads
-        threads = managedExecutorService.getHungThreads();
-        assertTrue(threads.isEmpty());
+        retry(() -> assertThat(managedExecutorService.getHungThreads(), empty()));
     }
 
     protected VirtualThreadsManagedExecutorServiceExt createManagedExecutorWithMaxOneParallelTask(String name, ContextSetupProvider contextCallback) {
@@ -403,7 +398,6 @@ public class VirtualThreadsManagedExecutorServiceIT {
         public void assertTaskAborted() throws Exception {
             retry(() -> assertTrue(listener.eventCalled(future, ABORTED)));
             assertTrue(future.isCancelled());
-            assertTrue(listener.eventCalled(future, ABORTED));
         }
 
         public static ManagedBlockingRunnableTask busyWaitingTask(TestableExecution exec) {

@@ -17,6 +17,7 @@
 
 package org.glassfish.concurro.test.virtualthreads;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
@@ -55,8 +56,8 @@ public class VirtualThreadsManagedThreadFactoryIT {
 
     @Test
     public void testNewThread_context() throws Exception {
-        final String CLASSLOADER_NAME = "VirtualThreadsManagedThreadFactoryIT:" + new java.util.Date(System.currentTimeMillis());
-        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(CLASSLOADER_NAME);
+        final String classLoaderName = "VirtualThreadsManagedThreadFactoryIT:" + LocalDateTime.now();
+        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(classLoaderName);
         ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
         VirtualThreadsManagedThreadFactory factory = new VirtualThreadsManagedThreadFactory("test1", contextService);
 
@@ -64,7 +65,7 @@ public class VirtualThreadsManagedThreadFactoryIT {
         Thread newThread = factory.newThread(r);
         newThread.start();
         retry(() -> assertTrue(r.runCalled));
-        r.verifyAfterRun(CLASSLOADER_NAME);
+        r.verifyAfterRun(classLoaderName);
     }
 
     @Test
@@ -98,8 +99,8 @@ public class VirtualThreadsManagedThreadFactoryIT {
 
     @Test
     public void testNewThreadForkJoinPoolContext() throws Exception {
-        final String CLASSLOADER_NAME = "VirtualThreadsManagedThreadFactoryIT:" + new java.util.Date(System.currentTimeMillis());
-        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(CLASSLOADER_NAME);
+        final String classLoaderName = "VirtualThreadsManagedThreadFactoryIT:" + LocalDateTime.now();
+        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(classLoaderName);
         ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
         VirtualThreadsManagedThreadFactory factory = new VirtualThreadsManagedThreadFactory("test1", contextService);
         final long[] numbers = LongStream.rangeClosed(1, 10_000).toArray();
@@ -112,7 +113,7 @@ public class VirtualThreadsManagedThreadFactoryIT {
         }));
         totals.get();
         pool.shutdown();
-        assertTrue(atomicReference.get().contains(CLASSLOADER_NAME));
+        assertTrue(atomicReference.get().contains(classLoaderName));
     }
 
     @Test

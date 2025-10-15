@@ -45,7 +45,6 @@ public class TimeRecordingTestCallable<T> extends ManagedCallableTestTask<T> {
             LOG.log(INFO, "call() executed at " + Instant.now());
             invocations.add(System.currentTimeMillis());
         }
-        // sleep for 1 second
         Thread.sleep(1000);
         return super.call();
     }
