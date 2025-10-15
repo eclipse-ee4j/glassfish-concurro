@@ -268,6 +268,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         @Override
         protected void onTermination(Throwable exception) {
             super.onTermination(exception);
+            removeThread(this);
         }
 
         @Override
