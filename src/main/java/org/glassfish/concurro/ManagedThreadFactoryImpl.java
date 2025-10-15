@@ -186,24 +186,21 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
      * the #newThread() method are interrupted.
      */
     public void stop() {
-      lock.lock();
-      try {
-        stopped = true;
-        // interrupt all the threads created by this factory
-        Iterator<Thread> iter = threads.iterator();
-        while(iter.hasNext()) {
-            Thread t = iter.next();
-            try {
+        lock.lock();
+        try {
+            stopped = true;
+            // interrupt all the threads created by this factory
+            Iterator<Thread> iter = threads.iterator();
+            while (iter.hasNext()) {
+                Thread t = iter.next();
                 shutdown(t);
                 t.interrupt();
-            } catch (SecurityException ignore) {
             }
+        } finally {
+            lock.unlock();
         }
-      }
-      finally {
-          lock.unlock();
-      }
     }
+
 
     /**
      * Make contextSetupProvider available for extending classes if necessary to implement context saving in other
@@ -266,6 +263,8 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         public WorkerThread(ForkJoinPool pool, ContextHandle contextHandleForSetup) {
             super(pool);
             this.contextHandleForSetup = contextHandleForSetup;
+            setUncaughtExceptionHandler(
+                (t, e) -> LOG.log(WARNING, () -> "Thread with id " + t.getId() + " failed with exception: " + e, e));
         }
 
         @Override
@@ -282,8 +281,6 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 super.run();
             } catch (ThreadExpiredException ex) {
                 LOG.log(WARNING, () -> "Thread with id " + getId() + " expired.", ex);
-            } catch (Throwable t) {
-                LOG.log(WARNING, () -> "Thread with id " + getId() + " failed with exception: " + t, t);
             }
         }
 
@@ -317,6 +314,8 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             super(target);
             setName(name + "-Thread-" + threadIdSequence.incrementAndGet());
             this.contextHandleForSetup = contextHandleForSetup;
+            setUncaughtExceptionHandler(
+                (t, e) -> LOG.log(WARNING, () -> "Thread with id " + t.getId() + " failed with exception: " + e, e));
         }
 
         @Override
@@ -333,8 +332,6 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 super.run();
             } catch (ThreadExpiredException ex) {
                 LOG.log(WARNING, () -> "Thread with id " + getId() + " expired.", ex);
-            } catch (Throwable t) {
-                LOG.log(WARNING, () -> "Thread with id " + getId() + " failed with exception: " + t, t);
             } finally {
                 if (handle != null) {
                     contextSetupProvider.reset(handle);
