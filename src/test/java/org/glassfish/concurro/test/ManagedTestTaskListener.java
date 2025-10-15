@@ -27,10 +27,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ManagedTestTaskListener implements ManagedTaskListener {
 
@@ -119,7 +121,7 @@ public class ManagedTestTaskListener implements ManagedTaskListener {
                     return f;
                 }
             } catch (InterruptedException ex) {
-                // ignore
+                Thread.currentThread().interrupt();
             } catch (ExecutionException ex) {
                 // ignore
             } catch (CancellationException ex) {
@@ -144,7 +146,7 @@ public class ManagedTestTaskListener implements ManagedTaskListener {
             Throwable exception,
             String classloaderName) {
         CallbackParameters result = find(future, event);
-        assertNotNull("Callback: '" + event + "' not called", result);
+        assertNotNull(result, () -> "Callback: '" + event + "' not called");
         assertEquals(executor, result.getExecutor());
         if (task != null) {
             assertTrue(task == result.getTask());
@@ -153,13 +155,13 @@ public class ManagedTestTaskListener implements ManagedTaskListener {
             assertNull(result.getException());
         }
         else {
-            assertNotNull ("expecting exception " + exception + " but none is found", result.getException());
+            assertNotNull(result.getException(), () -> "expecting exception " + exception + " but none is found");
             assertEquals(exception.getMessage(), result.getException().getMessage());
             assertEquals(exception.getClass(), result.getException().getClass());
         }
         if (classloaderName != null) {
             ClassLoader classLoader = result.getClassLoader();
-            assertTrue("expecting NamedClassLoader but was: " + classLoader, classLoader instanceof NamedClassLoader);
+            assertThat(classLoader, instanceOf(NamedClassLoader.class));
             assertEquals(classloaderName, ((NamedClassLoader)classLoader).getName());
         }
     }

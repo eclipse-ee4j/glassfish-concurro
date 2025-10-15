@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2023, 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -20,8 +20,11 @@ package org.glassfish.concurro.test;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.function.Supplier;
+
+import static org.glassfish.concurro.test.ManagedTestTaskListener.ABORTED;
+import static org.glassfish.concurro.test.ManagedTestTaskListener.DONE;
+import static org.glassfish.concurro.test.ManagedTestTaskListener.STARTING;
 
 public class Util {
 
@@ -31,68 +34,74 @@ public class Util {
       public boolean getValue();
     }
 
-    public static boolean waitForBoolean(BooleanValueProducer valueProducer, boolean expectedValue, String loggerName) {
-      long endWaitTime = System.currentTimeMillis() + MAX_WAIT_TIME;
-      boolean value = valueProducer.getValue();
-      while ( (value != expectedValue) &&
-              endWaitTime > System.currentTimeMillis()) {
-          try {
-              Thread.sleep(100);
-          } catch (InterruptedException ex) {
-              Logger.getLogger(loggerName).log(Level.SEVERE, null, ex);
-          }
-        value = valueProducer.getValue();
-      }
-      return value;
+    public static boolean waitForBoolean(BooleanValueProducer valueProducer, boolean expectedValue, String loggerName) throws InterruptedException {
+        long endWaitTime = System.currentTimeMillis() + MAX_WAIT_TIME;
+        boolean value = valueProducer.getValue();
+        while ((value != expectedValue) && endWaitTime > System.currentTimeMillis()) {
+            Thread.sleep(100);
+            value = valueProducer.getValue();
+        }
+        return value;
     }
 
-    public static boolean waitForTaskStarted(final Future<?> future, final ManagedTestTaskListener listener, String loggerName) {
-      return waitForBoolean(
-          new BooleanValueProducer() {
-            public boolean getValue() {
-              return listener.eventCalled(future, listener.STARTING);
-            }
-          },
-          true, loggerName);
+
+    public static boolean waitForTaskStarted(final Future<?> future, final ManagedTestTaskListener listener,
+        String loggerName) throws InterruptedException {
+        return waitForBoolean(() -> listener.eventCalled(future, STARTING), true, loggerName);
     }
 
-    public static boolean waitForTaskComplete(final FakeRunnableForTest task, String loggerName) {
-      return waitForBoolean(
-          new BooleanValueProducer() {
-            public boolean getValue() {
-              return task.runCalled;
-            }
-          },
-          true,loggerName);
+
+    public static boolean waitForTaskComplete(final FakeRunnableForTest task, String loggerName)
+        throws InterruptedException {
+        return waitForBoolean(() -> task.runCalled, true, loggerName);
     }
 
-    public static boolean waitForTaskAborted(final Future<?> future, final ManagedTestTaskListener listener, String loggerName) {
-      return waitForBoolean(
-          new BooleanValueProducer() {
-            public boolean getValue() {
-              return listener.eventCalled(future, listener.ABORTED);
-            }
-          },
-          true, loggerName);
+
+    public static boolean waitForTaskAborted(final Future<?> future, final ManagedTestTaskListener listener,
+        String loggerName) throws InterruptedException {
+        return waitForBoolean(() -> listener.eventCalled(future, ABORTED), true, loggerName);
     }
 
-  public static boolean waitForTaskDone(final Future<?> future, final ManagedTestTaskListener listener, String loggerName) {
-    return waitForBoolean(
-        new BooleanValueProducer() {
-          public boolean getValue() {
-            return listener.eventCalled(future, listener.DONE);
-          }
-        },
-        true, loggerName);
-  }
+
+    public static boolean waitForTaskDone(final Future<?> future, final ManagedTestTaskListener listener,
+        String loggerName) throws InterruptedException {
+        return waitForBoolean(() -> listener.eventCalled(future, DONE), true, loggerName);
+    }
 
 
     public static String generateName() {
         return new java.util.Date(System.currentTimeMillis()).toString();
     }
 
+
+    /**
+     * Ignores {@link Exception}s and {@link AssertionError}s for {@value #MAX_WAIT_TIME} millis
+     * at most.
+     *
+     * @param action action to repeat
+     * @throws Exception
+     * @throws AssertionError
+     */
+    public static void retry(Action action) throws AssertionError, Exception {
+        long endWaitTime = System.currentTimeMillis() + MAX_WAIT_TIME;
+        while (endWaitTime > System.currentTimeMillis()) {
+            try {
+                action.action();
+                return;
+            } catch (AssertionError | Exception e) {
+                Thread.onSpinWait();
+                continue;
+            }
+        }
+        action.action();
+    }
+
     public static void log(String message) {
         System.out.println(DateTimeFormatter.ISO_TIME.format(LocalDateTime.now()) + ": " + message);
     }
 
+    @FunctionalInterface
+    public interface Action {
+        void action() throws AssertionError, Exception;
+    }
 }

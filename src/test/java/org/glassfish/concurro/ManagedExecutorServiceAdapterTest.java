@@ -18,44 +18,48 @@
 
 package org.glassfish.concurro;
 
+import jakarta.enterprise.concurrent.AbortedException;
+import jakarta.enterprise.concurrent.ManagedExecutorService;
+import jakarta.enterprise.concurrent.ManagedExecutors;
+import jakarta.enterprise.concurrent.ManagedTaskListener;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jakarta.enterprise.concurrent.AbortedException;
-import jakarta.enterprise.concurrent.ManagedExecutorService;
-import jakarta.enterprise.concurrent.ManagedExecutors;
-import jakarta.enterprise.concurrent.ManagedTaskListener;
-import org.glassfish.concurro.ContextServiceImpl;
-import org.glassfish.concurro.ManagedExecutorServiceImpl;
+
 import org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy;
 import org.glassfish.concurro.spi.ContextSetupProvider;
 import org.glassfish.concurro.test.BlockingRunnableForTest;
-import org.glassfish.concurro.test.FakeCallableForTest;
 import org.glassfish.concurro.test.ClassloaderContextSetupProvider;
+import org.glassfish.concurro.test.FakeCallableForTest;
+import org.glassfish.concurro.test.FakeRunnableForTest;
 import org.glassfish.concurro.test.ManagedBlockingRunnableTask;
 import org.glassfish.concurro.test.ManagedCallableTask;
 import org.glassfish.concurro.test.ManagedRunnableTestTask;
 import org.glassfish.concurro.test.ManagedTestTaskListener;
-import org.glassfish.concurro.test.FakeRunnableForTest;
 import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.Util;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 
 public class ManagedExecutorServiceAdapterTest  {
 
@@ -65,16 +69,15 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify context callback are called to setup context
      */
     @Test
-    public void testExecute() {
+    public void testExecute() throws Exception {
         debug("execute");
 
         final String classloaderName = "testExcute" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         final FakeRunnableForTest task = new FakeRunnableForTest(null);
-        ManagedExecutorService instance =
-                createManagedExecutor("execute", contextCallback);
+        ManagedExecutorService instance = createManagedExecutor("execute", contextCallback);
         instance.execute(task);
-        assertTrue("timeout waiting for task run being called", Util.waitForTaskComplete(task, getLoggerName()));
+        assertTrue(Util.waitForTaskComplete(task, getLoggerName()), "timeout waiting for task run being called");
         task.verifyAfterRun(classloaderName); // verify context is setup for task
 
         debug("execute done");
@@ -90,20 +93,15 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testSubmit_Runnable() {
+    public void testSubmit_Runnable() throws Exception {
         debug("submit_Runnable");
 
         final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         FakeRunnableForTest task = new FakeRunnableForTest(null);
-        ManagedExecutorService instance =
-                createManagedExecutor("submit", contextCallback);
+        ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
         Future future = instance.submit(task);
-        try {
-            assertNull(future.get());
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        assertNull(future.get());
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
@@ -119,28 +117,19 @@ public class ManagedExecutorServiceAdapterTest  {
 
         FakeRunnableForTest task2 = new FakeRunnableForTest(null);
         future = instance.submit(task2);
-        try {
-            future.get();
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        future.get();
         verify_testSubmit_Runnable(cl, contextCallback);
     }
 
     protected void verify_testSubmit_Runnable(ClassLoader originalClassLoader,
-            final ClassloaderContextSetupProvider contextCallback) {
+            final ClassloaderContextSetupProvider contextCallback) throws Exception {
         assertEquals(originalClassLoader, contextCallback.classloaderBeforeSetup);
         // reset() should be called at least once for the first task
         // reset() may or may not be called for the second task due to timing
         // issue when this check is performed.
-        assertTrue(Util.waitForBoolean(
-            new Util.BooleanValueProducer() {
-              @Override
-            public boolean getValue() {
-                return contextCallback.numResetCalled > 1;
-              }
-            }, true, getLoggerName()));
+        assertTrue(Util.waitForBoolean(() -> contextCallback.numResetCalled > 1, true, getLoggerName()));
     }
+
 
     /**
      * Test of submit method, of class ManagedExecutorServiceImpl.
@@ -148,21 +137,16 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testSubmit_Runnable_withListener() {
+    public void testSubmit_Runnable_withListener() throws Exception {
         debug("submit_Runnable_withListener");
 
         final String classloaderName = "submit_Runnable_withListener" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         FakeRunnableForTest task = new ManagedRunnableTestTask(taskListener);
-        ManagedExecutorService instance =
-                createManagedExecutor("submit_Runnable_withListener", contextCallback);
+        ManagedExecutorService instance = createManagedExecutor("submit_Runnable_withListener", contextCallback);
         Future future = instance.submit(task);
-        try {
-            assertNull(future.get());
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        assertNull(future.get());
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
@@ -191,7 +175,7 @@ public class ManagedExecutorServiceAdapterTest  {
      * the application component submitting the task is no longer running.
      */
     @Test
-    public void testSubmit_Runnable_withListener_invalidContext() {
+    public void testSubmit_Runnable_withListener_invalidContext() throws Exception {
         debug("submit_Runnable_withListener_invalidContext");
 
         final String classloaderName = "submit_runnable_withListener_invalidContext" + new Date(System.currentTimeMillis());
@@ -210,7 +194,6 @@ public class ManagedExecutorServiceAdapterTest  {
         } catch (ExecutionException ex) {
             assertTrue(ex.getCause() instanceof AbortedException);
             assertEquals(MESSAGE, ex.getCause().getMessage());
-        } catch (InterruptedException ex) {
         }
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
@@ -226,21 +209,16 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testSubmit_Runnable_result() {
+    public void testSubmit_Runnable_result() throws Exception {
         debug("submit_Runnable");
 
         final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         FakeRunnableForTest task = new FakeRunnableForTest(null);
-        ManagedExecutorService instance =
-                createManagedExecutor("submit", contextCallback);
+        ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
         final String result = "result" + new Date(System.currentTimeMillis());
         Future future = instance.submit(task, result);
-        try {
-            assertEquals(result, future.get());
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        assertEquals(result, future.get());
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
@@ -255,11 +233,7 @@ public class ManagedExecutorServiceAdapterTest  {
 
         FakeRunnableForTest task2 = new FakeRunnableForTest(null);
         future = instance.submit(task2);
-        try {
-            future.get();
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        future.get();
         verify_testSubmit_Runnable(cl, contextCallback);
     }
 
@@ -269,22 +243,17 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testSubmit_Runnable_result_withListener() {
+    public void testSubmit_Runnable_result_withListener() throws Exception {
         debug("submit_Runnable_result_withListener");
 
         final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         FakeRunnableForTest task = new ManagedRunnableTestTask(taskListener);
-        ManagedExecutorService instance =
-                createManagedExecutor("submit", contextCallback);
+        ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
         final String result = "result" + new Date(System.currentTimeMillis());
         Future future = instance.submit(task, result);
-        try {
-            assertEquals(result, future.get());
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        assertEquals(result, future.get());
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
@@ -298,7 +267,7 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testSubmit_Runnable_exception_withListener() {
+    public void testSubmit_Runnable_exception_withListener() throws Exception {
         debug("submit_Runnable_result_exception_withListener");
 
         final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
@@ -306,17 +275,9 @@ public class ManagedExecutorServiceAdapterTest  {
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         final RuntimeException result = new RuntimeException("result" + new Date(System.currentTimeMillis()));
         FakeRunnableForTest task = new ManagedRunnableTestTask(taskListener, result);
-        ManagedExecutorService instance =
-                createManagedExecutor("submit", contextCallback);
+        ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
         Future future = instance.submit(task, result);
-        ExecutionException executionException = null;
-        try {
-            future.get();
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            executionException = ex;
-        }
+        ExecutionException executionException = assertThrows(ExecutionException.class, future::get);
         assertNotNull(executionException);
         assertEquals(result, executionException.getCause());
         assertTrue(future.isDone());
@@ -332,21 +293,16 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testSubmit_Callable() {
+    public void testSubmit_Callable() throws Exception {
         debug("submit_Callable");
 
         final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
         ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider(classloaderName);
         final String result = "result" + new Date(System.currentTimeMillis());
         FakeCallableForTest<String> task = new FakeCallableForTest<>(result, null);
-        ManagedExecutorService instance =
-                createManagedExecutor("submit", contextCallback);
+        ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
         Future<String> future = instance.submit(task);
-        try {
-            assertEquals(result, future.get());
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        assertEquals(result, future.get());
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
@@ -361,11 +317,7 @@ public class ManagedExecutorServiceAdapterTest  {
 
         FakeCallableForTest<String> task2 = new FakeCallableForTest("result");
         future = instance.submit(task2);
-        try {
-            future.get();
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        future.get();
         verify_testSubmit_Runnable(cl, contextCallback);
     }
 
@@ -375,7 +327,7 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testSubmit_Callable_withListener() {
+    public void testSubmit_Callable_withListener() throws Exception {
         debug("submit_Callable_withListener");
 
         final String classloaderName = "testSubmit" + new Date(System.currentTimeMillis());
@@ -383,14 +335,9 @@ public class ManagedExecutorServiceAdapterTest  {
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         final String result = "result" + new Date(System.currentTimeMillis());
         FakeCallableForTest<String> task = new ManagedCallableTask<>(result, taskListener);
-        ManagedExecutorService instance =
-                createManagedExecutor("submit", contextCallback);
+        ManagedExecutorService instance = createManagedExecutor("submit", contextCallback);
         Future<String> future = instance.submit(task);
-        try {
-            assertEquals(result, future.get());
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        assertEquals(result, future.get());
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
         task.verifyAfterRun(classloaderName); // verify context is setup for task
@@ -403,7 +350,7 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify that ManagedTaskListener can be made contextual
      */
     @Test
-    public void testSubmit_Callable_withContextualListener() {
+    public void testSubmit_Callable_withContextualListener() throws Exception {
         debug("submit_Callable_withContextualListener");
 
         final String taskClassloaderName = "testSubmit-task" + new Date(System.currentTimeMillis());
@@ -411,9 +358,8 @@ public class ManagedExecutorServiceAdapterTest  {
         ManagedTestTaskListener taskListener = new ManagedTestTaskListener();
         final String result = "result" + new Date(System.currentTimeMillis());
 
-        ContextServiceImpl contextService =
-                new ContextServiceImpl("myContextService",
-                                       new ClassloaderContextSetupProvider(contextServiceClassloaderName));
+        ContextServiceImpl contextService = new ContextServiceImpl("myContextService",
+            new ClassloaderContextSetupProvider(contextServiceClassloaderName));
         ManagedTaskListener proxy = contextService.createContextualProxy(taskListener, ManagedTaskListener.class);
 
         FakeCallableForTest<String> task = new FakeCallableForTest<>(result, taskListener);
@@ -421,11 +367,7 @@ public class ManagedExecutorServiceAdapterTest  {
         ManagedExecutorService instance =
                 createManagedExecutor("submit", new ClassloaderContextSetupProvider(taskClassloaderName));
         Future<String> future = instance.submit(taskWithListener);
-        try {
-            assertEquals(result, future.get());
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        assertEquals(result, future.get());
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
         task.verifyAfterRun(taskClassloaderName); // verify context is setup for task
@@ -452,14 +394,7 @@ public class ManagedExecutorServiceAdapterTest  {
         ManagedExecutorService instance =
                 createManagedExecutor("submit", contextCallback);
         Future<String> future = instance.submit(task);
-        ExecutionException executionException = null;
-        try {
-            future.get();
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ExecutionException ex) {
-            executionException = ex;
-        }
+        ExecutionException executionException = assertThrows(ExecutionException.class, future::get);
         assertNotNull(executionException);
         assertEquals(result, executionException.getCause().getMessage());
         assertTrue(future.isDone());
@@ -490,14 +425,9 @@ public class ManagedExecutorServiceAdapterTest  {
         ManagedExecutorService instance =
                 createManagedExecutor("submit", contextCallback);
         Future future = instance.submit(task);
-        try {
-            assertNull(future.get());
-            fail("Expected Exception not thrown");
-        } catch (ExecutionException ex) {
-            assertTrue(ex.getCause() instanceof AbortedException);
-            assertEquals(MESSAGE, ex.getCause().getMessage());
-        } catch (InterruptedException ex) {
-        }
+        ExecutionException executionException = assertThrows(ExecutionException.class, future::get);
+        assertThat(executionException.getCause(), instanceOf(AbortedException.class));
+        assertEquals(MESSAGE, executionException.getCause().getMessage());
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
         taskListener.eventCalled(future, ManagedTestTaskListener.STARTING);
@@ -510,7 +440,7 @@ public class ManagedExecutorServiceAdapterTest  {
      * Test of invokeAny method.
      */
     @Test
-    public void testInvokeAny() {
+    public void testInvokeAny() throws Exception {
         debug("invokeAny");
 
         final String classloaderName = "testInvokeAny" + new Date(System.currentTimeMillis());
@@ -530,22 +460,17 @@ public class ManagedExecutorServiceAdapterTest  {
                 task.setThrowsException(true);
             }
         }
-        ManagedExecutorService instance =
-                createManagedExecutor("testInvokeAny", contextCallback);
-        try {
-            String result = instance.invokeAny(tasks);
-            assertEquals(expectedResult, result);
-            goodTask.verifyAfterRun(classloaderName); // verify context is setup for task
-        } catch (InterruptedException | ExecutionException ex) {
-            fail(ex.toString());
-        }
+        ManagedExecutorService instance = createManagedExecutor("testInvokeAny", contextCallback);
+        String result = instance.invokeAny(tasks);
+        assertEquals(expectedResult, result);
+        goodTask.verifyAfterRun(classloaderName); // verify context is setup for task
     }
 
     /**
      * Test of invokeAny method where all tasks throw exception
      *
      */
-    @Test(expected = ExecutionException.class)
+    @Test
     public void testInvokeAny_exception() throws Exception {
         debug("invokeAny_exception");
 
@@ -559,16 +484,15 @@ public class ManagedExecutorServiceAdapterTest  {
             tasks.add(task);
             task.setThrowsException(true);
         }
-        ManagedExecutorService instance =
-                createManagedExecutor("testInvokeAny_exception", contextCallback);
-        String result = instance.invokeAny(tasks); // expecting ExecutionException
+        ManagedExecutorService instance = createManagedExecutor("testInvokeAny_exception", contextCallback);
+        assertThrows(ExecutionException.class, () -> instance.invokeAny(tasks));
     }
 
     /**
      * Test of invokeAny method where no tasks completes before timeout
      *
      */
-    @Test(expected = TimeoutException.class)
+    @Test
     public void testInvokeAny_timeout() throws Exception {
         debug("invokeAny_timeout");
 
@@ -577,21 +501,18 @@ public class ManagedExecutorServiceAdapterTest  {
         ArrayList<Callable<String>> tasks = new ArrayList<>();
         for (int i=0; i<2; i++) {
             // set up 10 tasks. 9 of which throws leaving one returning good result.
-            String result = "result" + new Date(System.currentTimeMillis());
             Callable<String> task = Executors.callable(new BlockingRunnableForTest(null, 20000), "done" + i);
             tasks.add(task);
         }
-        ManagedExecutorService instance =
-                createManagedExecutor("testInvokeAny_timeout", contextCallback);
-        String result = instance.invokeAny(tasks, 2, TimeUnit.SECONDS); // expecting TimeoutException
+        ManagedExecutorService instance = createManagedExecutor("testInvokeAny_timeout", contextCallback);
+        assertThrows(TimeoutException.class, () -> instance.invokeAny(tasks, 2, TimeUnit.SECONDS));
     }
 
     /**
      * Test of invokeAny method with TaskListener
      */
-    //@Ignore
     @Test
-    public void testInvokeAny_withListener() {
+    public void testInvokeAny_withListener() throws Exception {
         debug("invokeAny_withListener");
 
         final String classloaderName = "testInvokeAny_withListener" + new Date(System.currentTimeMillis());
@@ -615,29 +536,24 @@ public class ManagedExecutorServiceAdapterTest  {
                 task.setThrowsException(true);
             }
         }
-        ManagedExecutorService instance =
-                createManagedExecutor("testInovokeAny_withListener", contextCallback);
-        try {
-            String result = instance.invokeAny(tasks);
-            assertEquals(expectedResult, result);
+        ManagedExecutorService instance = createManagedExecutor("testInovokeAny_withListener", contextCallback);
+        String result = instance.invokeAny(tasks);
+        assertEquals(expectedResult, result);
 
-            Future<?> future = listenerForGoodTask.findFutureWithResult(result);
-            listenerForGoodTask.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, goodTask, null);
-            listenerForGoodTask.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, goodTask, null);
-            Util.waitForTaskDone(future, listenerForGoodTask, getLoggerName());
-            listenerForGoodTask.verifyCallback(ManagedTestTaskListener.DONE, future, instance, goodTask, null);
-            assertFalse(listenerForGoodTask.eventCalled(future, ManagedTestTaskListener.ABORTED));
-            goodTask.verifyAfterRun(classloaderName, false); // verify context is setup for task
-        } catch (InterruptedException | ExecutionException ex) {
-            fail(ex.toString());
-        }
+        Future<?> future = listenerForGoodTask.findFutureWithResult(result);
+        listenerForGoodTask.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, goodTask, null);
+        listenerForGoodTask.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, goodTask, null);
+        Util.waitForTaskDone(future, listenerForGoodTask, getLoggerName());
+        listenerForGoodTask.verifyCallback(ManagedTestTaskListener.DONE, future, instance, goodTask, null);
+        assertFalse(listenerForGoodTask.eventCalled(future, ManagedTestTaskListener.ABORTED));
+        goodTask.verifyAfterRun(classloaderName, false); // verify context is setup for task
     }
 
     /**
      * Test of invokeAny method with TaskListener where all tasks throw exception
      *
      */
-    @Test(expected = ExecutionException.class)
+    @Test
     public void testInvokeAny_exception_withListener() throws Exception {
         debug("invokeAny_exception_withListener");
 
@@ -652,9 +568,8 @@ public class ManagedExecutorServiceAdapterTest  {
             tasks.add(task);
             task.setThrowsException(true);
         }
-        ManagedExecutorService instance =
-                createManagedExecutor("testInvokeAny_exception_withListener", contextCallback);
-        String result = instance.invokeAny(tasks); // expecting ExecutionException
+        ManagedExecutorService instance = createManagedExecutor("testInvokeAny_exception_withListener", contextCallback);
+        assertThrows(ExecutionException.class, () -> instance.invokeAny(tasks));
     }
 
     /**
@@ -663,7 +578,7 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testInvokeAll() {
+    public void testInvokeAll() throws Exception {
         debug("invokeAll");
 
         final String classloaderName = "testInvokeAll" + new Date(System.currentTimeMillis());
@@ -676,22 +591,17 @@ public class ManagedExecutorServiceAdapterTest  {
             tasks.add(task);
             results.add(result);
         }
-        ManagedExecutorService instance =
-                createManagedExecutor("testInvokeAll", contextCallback);
-        try {
-            int resultsIndex = 0;
-            List<Future<String>> futures = instance.invokeAll(tasks);
-            for (Future<String> future : futures) {
-                assertTrue(future.isDone());
-                assertFalse(future.isCancelled());
-                String result = future.get();
-                assertEquals(results.get(resultsIndex++), result);
-            }
-            for (FakeCallableForTest<String> task : tasks) {
-                task.verifyAfterRun(classloaderName); // verify context is setup for task
-            }
-        } catch (InterruptedException | ExecutionException ex) {
-            fail(ex.toString());
+        ManagedExecutorService instance = createManagedExecutor("testInvokeAll", contextCallback);
+        int resultsIndex = 0;
+        List<Future<String>> futures = instance.invokeAll(tasks);
+        for (Future<String> future : futures) {
+            assertTrue(future.isDone());
+            assertFalse(future.isCancelled());
+            String result = future.get();
+            assertEquals(results.get(resultsIndex++), result);
+        }
+        for (FakeCallableForTest<String> task : tasks) {
+            task.verifyAfterRun(classloaderName); // verify context is setup for task
         }
     }
 
@@ -701,7 +611,7 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testInvokeAll_withListener() {
+    public void testInvokeAll_withListener() throws Exception {
         debug("invokeAll_withListener");
 
         final String classloaderName = "testInvokeAll_withListener" + new Date(System.currentTimeMillis());
@@ -715,29 +625,24 @@ public class ManagedExecutorServiceAdapterTest  {
             tasks.add(task);
             results.add(result);
         }
-        ManagedExecutorService instance =
-                createManagedExecutor("testInovokeAll_withListener", contextCallback);
-        try {
-            int resultsIndex = 0;
-            List<Future<String>> futures = instance.invokeAll(tasks);
-            for (int i=0; i<10; i++) {
-                Future<String> future = futures.get(i);
-                Object task = tasks.get(i);
-                assertTrue(future.isDone());
-                assertFalse(future.isCancelled());
-                String result = future.get();
-                assertEquals(results.get(resultsIndex++), result);
-                taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null);
-                taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
-                Util.waitForTaskDone(future, taskListener, getLoggerName());
-                taskListener.verifyCallback(ManagedTestTaskListener.DONE, future, instance, task, null);
-                assertFalse(taskListener.eventCalled(future, ManagedTestTaskListener.ABORTED));
-            }
-            for (FakeCallableForTest<String> task : tasks) {
-                task.verifyAfterRun(classloaderName, false); // verify context is setup for task
-            }
-        } catch (InterruptedException | ExecutionException ex) {
-            fail(ex.toString());
+        ManagedExecutorService instance = createManagedExecutor("testInovokeAll_withListener", contextCallback);
+        int resultsIndex = 0;
+        List<Future<String>> futures = instance.invokeAll(tasks);
+        for (int i = 0; i < 10; i++) {
+            Future<String> future = futures.get(i);
+            Object task = tasks.get(i);
+            assertTrue(future.isDone());
+            assertFalse(future.isCancelled());
+            String result = future.get();
+            assertEquals(results.get(resultsIndex++), result);
+            taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null);
+            taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+            Util.waitForTaskDone(future, taskListener, getLoggerName());
+            taskListener.verifyCallback(ManagedTestTaskListener.DONE, future, instance, task, null);
+            assertFalse(taskListener.eventCalled(future, ManagedTestTaskListener.ABORTED));
+        }
+        for (FakeCallableForTest<String> task : tasks) {
+            task.verifyAfterRun(classloaderName, false); // verify context is setup for task
         }
     }
 
@@ -747,7 +652,7 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testInvokeAll_exception() {
+    public void testInvokeAll_exception() throws Exception {
         debug("invokeAll_exception");
 
         final String classloaderName = "testInvokeAll_exception" + new Date(System.currentTimeMillis());
@@ -764,34 +669,28 @@ public class ManagedExecutorServiceAdapterTest  {
             tasks.add(task);
             results.add(result);
         }
-        ManagedExecutorService instance =
-                createManagedExecutor("testInovokeAll_exception", contextCallback);
-        try {
-            int resultsIndex = 0;
-            List<Future<String>> futures = instance.invokeAll(tasks);
-            for (Future<String> future : futures) {
-                assertTrue(future.isDone());
-                assertFalse(future.isCancelled());
-                try {
-                    String result = future.get();
-                    if (resultsIndex % 2 == 0) {
-                        fail("Expected exception not thrown for results[" + resultsIndex + "] but got " + result);
-                    }
-                    assertEquals(results.get(resultsIndex), result);
+        ManagedExecutorService instance = createManagedExecutor("testInovokeAll_exception", contextCallback);
+        int resultsIndex = 0;
+        List<Future<String>> futures = instance.invokeAll(tasks);
+        for (Future<String> future : futures) {
+            assertTrue(future.isDone());
+            assertFalse(future.isCancelled());
+            try {
+                String result = future.get();
+                if (resultsIndex % 2 == 0) {
+                    fail("Expected exception not thrown for results[" + resultsIndex + "] but got " + result);
                 }
-                catch (ExecutionException ex) {
-                    if (resultsIndex % 2 != 0) {
-                        fail("exception not expected at results[" + resultsIndex + "]");
-                    }
-                    assertEquals(results.get(resultsIndex), ex.getCause().getMessage());
+                assertEquals(results.get(resultsIndex), result);
+            } catch (ExecutionException ex) {
+                if (resultsIndex % 2 != 0) {
+                    fail("exception not expected at results[" + resultsIndex + "]");
                 }
-                resultsIndex++;
+                assertEquals(results.get(resultsIndex), ex.getCause().getMessage());
             }
-            for (FakeCallableForTest<String> task : tasks) {
-                task.verifyAfterRun(classloaderName); // verify context is setup for task
-            }
-        } catch (InterruptedException ex) {
-            fail(ex.toString());
+            resultsIndex++;
+        }
+        for (FakeCallableForTest<String> task : tasks) {
+            task.verifyAfterRun(classloaderName); // verify context is setup for task
         }
     }
 
@@ -801,7 +700,7 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testInvokeAll_exception_withListener() {
+    public void testInvokeAll_exception_withListener() throws Exception {
         debug("invokeAll_exception_withListener");
 
         final String classloaderName = "testInvokeAll_exception_withListener" + new Date(System.currentTimeMillis());
@@ -818,46 +717,39 @@ public class ManagedExecutorServiceAdapterTest  {
             tasks.add(task);
             results.add(result);
         }
-        ManagedExecutorService instance =
-                createManagedExecutor("testInovokeAll_withListener", contextCallback);
-        try {
-            int resultsIndex = 0;
-            List<Future<String>> futures = instance.invokeAll(tasks);
-            for (Future<String> future : futures) {
-                debug("resultsIndex is " + resultsIndex);
-                Object task = tasks.get(resultsIndex);
-                assertTrue(future.isDone());
-                assertFalse(future.isCancelled());
-                try {
-                    String result = future.get();
-                    if (resultsIndex % 2 == 0) {
-                        fail("Expected exception not thrown for results[" + resultsIndex + "] but got " + result);
-                    }
-                    assertEquals(results.get(resultsIndex), result);
-                    taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null);
-                    taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
-                    Util.waitForTaskDone(future, taskListener, getLoggerName());
-                    taskListener.verifyCallback(ManagedTestTaskListener.DONE, future, instance, task, null);
+        ManagedExecutorService instance = createManagedExecutor("testInovokeAll_withListener", contextCallback);
+        int resultsIndex = 0;
+        List<Future<String>> futures = instance.invokeAll(tasks);
+        for (Future<String> future : futures) {
+            debug("resultsIndex is " + resultsIndex);
+            Object task = tasks.get(resultsIndex);
+            assertTrue(future.isDone());
+            assertFalse(future.isCancelled());
+            try {
+                String result = future.get();
+                if (resultsIndex % 2 == 0) {
+                    fail("Expected exception not thrown for results[" + resultsIndex + "] but got " + result);
                 }
-                catch (ExecutionException ex) {
-                    if (resultsIndex % 2 != 0) {
-                        fail("exception not expected at results[" + resultsIndex + "]");
-                    }
-                    taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null);
-                    taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
-                    Util.waitForTaskDone(future, taskListener, getLoggerName());
-                    taskListener.verifyCallback(ManagedTestTaskListener.DONE,
-                            future, instance, task,
-                            new Exception(results.get(resultsIndex)));
+                assertEquals(results.get(resultsIndex), result);
+                taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null);
+                taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+                Util.waitForTaskDone(future, taskListener, getLoggerName());
+                taskListener.verifyCallback(ManagedTestTaskListener.DONE, future, instance, task, null);
+            } catch (ExecutionException ex) {
+                if (resultsIndex % 2 != 0) {
+                    fail("exception not expected at results[" + resultsIndex + "]");
                 }
-                assertFalse(taskListener.eventCalled(future, ManagedTestTaskListener.ABORTED));
-                resultsIndex++;
+                taskListener.verifyCallback(ManagedTestTaskListener.STARTING, future, instance, task, null);
+                taskListener.verifyCallback(ManagedTestTaskListener.SUBMITTED, future, instance, task, null);
+                Util.waitForTaskDone(future, taskListener, getLoggerName());
+                taskListener.verifyCallback(ManagedTestTaskListener.DONE, future, instance, task,
+                    new Exception(results.get(resultsIndex)));
             }
-            for (FakeCallableForTest<String> eachTask : tasks) {
-                eachTask.verifyAfterRun(classloaderName, false); // verify context is setup for task
-            }
-        } catch (InterruptedException ex) {
-            fail(ex.toString());
+            assertFalse(taskListener.eventCalled(future, ManagedTestTaskListener.ABORTED));
+            resultsIndex++;
+        }
+        for (FakeCallableForTest<String> eachTask : tasks) {
+            eachTask.verifyAfterRun(classloaderName, false); // verify context is setup for task
         }
     }
 
@@ -891,7 +783,7 @@ public class ManagedExecutorServiceAdapterTest  {
      * Verify listener callback methods are called
      */
     @Test
-    public void testCancel_withListener() {
+    public void testCancel_withListener() throws Exception {
         debug("cancel_withListener");
 
         final String classloaderName = "testCancel" + new Date(System.currentTimeMillis());
@@ -909,45 +801,44 @@ public class ManagedExecutorServiceAdapterTest  {
         assertTrue(future.isDone());
         assertTrue(future.isCancelled());
 
-        assertTrue("timeout waiting for taskAborted call", Util.waitForTaskAborted(future, taskListener, getLoggerName()));
-        taskListener.verifyCallback(ManagedTestTaskListener.ABORTED, future,
-                instance, task,
-                new CancellationException());
+        assertTrue(Util.waitForTaskAborted(future, taskListener, getLoggerName()),
+            "timeout waiting for taskAborted call");
+        taskListener.verifyCallback(ManagedTestTaskListener.ABORTED, future, instance, task,
+            new CancellationException());
     }
 
-    @Test(expected = IllegalStateException.class)
+
+    @Test
     public void testShutdown() {
-        ManagedExecutorService mes =
-                createManagedExecutor("testShutdown", null);
-        mes.shutdown();
+        ManagedExecutorService mes = createManagedExecutor("testShutdown", null);
+        assertThrows(IllegalStateException.class, mes::shutdown);
     }
 
-    @Test(expected = IllegalStateException.class)
+
+    @Test
     public void testIsShutdown() {
-        ManagedExecutorService mes =
-                createManagedExecutor("testShutdown", null);
-        mes.isShutdown();
+        ManagedExecutorService mes = createManagedExecutor("testShutdown", null);
+        assertThrows(IllegalStateException.class, mes::isShutdown);
     }
 
-    @Test(expected = IllegalStateException.class)
+
+    @Test
     public void testIsShutdownNow() {
-        ManagedExecutorService mes =
-                createManagedExecutor("testShutdownNow", null);
-        mes.shutdownNow();
+        ManagedExecutorService mes = createManagedExecutor("testShutdownNow", null);
+        assertThrows(IllegalStateException.class, mes::shutdownNow);
     }
 
-    @Test(expected = IllegalStateException.class)
+
+    @Test
     public void testIsTerminated() {
-        ManagedExecutorService mes =
-                createManagedExecutor("isTerminated", null);
-        mes.isTerminated();
+        ManagedExecutorService mes = createManagedExecutor("isTerminated", null);
+        assertThrows(IllegalStateException.class, mes::isTerminated);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testAwaitTermination() throws InterruptedException {
-        ManagedExecutorService mes =
-                createManagedExecutor("awaitTermination", null);
-        mes.awaitTermination(10, TimeUnit.MILLISECONDS);
+    @Test
+    public void testAwaitTermination() {
+        ManagedExecutorService mes = createManagedExecutor("awaitTermination", null);
+        assertThrows(IllegalStateException.class, () -> mes.awaitTermination(10, TimeUnit.MILLISECONDS));
     }
 
     protected ManagedExecutorService createManagedExecutor(String name,

@@ -43,16 +43,16 @@ import org.glassfish.concurro.test.Util;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedExecutorService;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
 import org.hamcrest.collection.IsEmptyCollection;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy.ABORT;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for Life cycle APIs in VirtualThreadsManagedExecutorService
@@ -223,7 +223,7 @@ public class VirtualThreadsManagedExecutorServiceIT {
      * Test for shutdownNow with unfinished task to verify that we do not regress Java SE ExecutorService functionality
      */
     @Test
-    public void testShutdownNow_unfinishedTask() {
+    public void testShutdownNow_unfinishedTask() throws Exception {
         ManagedExecutorService managedExecutorService = createManagedExecutorWithMaxOneParallelTask("testShutdown_unfinishedTask", null);
         assertFalse(managedExecutorService.isShutdown());
 
@@ -399,17 +399,17 @@ public class VirtualThreadsManagedExecutorServiceIT {
             future = mes.submit(task);
         }
 
-        public void assertTaskCompleted() {
+        public void assertTaskCompleted() throws InterruptedException {
             // tasks should complete successfully
             assertTrue(Util.waitForTaskComplete(task, getLoggerName()));
         }
 
-        public void assertTaskStarted() {
+        public void assertTaskStarted() throws InterruptedException {
             // waits for task1 to start
             assertTrue(Util.waitForTaskStarted(future, listener, getLoggerName()));
         }
 
-        public void assertTaskAborted() {
+        public void assertTaskAborted() throws InterruptedException {
             assertTrue(Util.waitForTaskAborted(future, listener, getLoggerName()));
             assertTrue(future.isCancelled());
             assertTrue(listener.eventCalled(future, ManagedTestTaskListener.ABORTED));

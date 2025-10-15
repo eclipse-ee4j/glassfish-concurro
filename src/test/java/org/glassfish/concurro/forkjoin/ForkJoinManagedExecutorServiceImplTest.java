@@ -21,16 +21,12 @@ import jakarta.enterprise.concurrent.ManagedExecutorService;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.glassfish.concurro.AbstractManagedExecutorService;
 import org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy;
 import org.glassfish.concurro.ForkJoinManagedExecutorService;
-import org.glassfish.concurro.ManagedExecutorServiceAdapterTest;
 import org.glassfish.concurro.ManagedThreadFactoryImpl;
 import org.glassfish.concurro.spi.ContextSetupProvider;
 import org.glassfish.concurro.test.BlockingRunnableForTest;
@@ -40,13 +36,13 @@ import org.glassfish.concurro.test.ManagedTestTaskListener;
 import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.Util;
 import org.hamcrest.collection.IsEmptyCollection;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for Life cycle APIs in ManagedExecutorServiceImpl
@@ -74,7 +70,7 @@ public class ForkJoinManagedExecutorServiceImplTest {
      *
      **/
     @Test
-    public void testShutdownNow_tasks_behavior() {
+    public void testShutdownNow_tasks_behavior() throws Exception {
         ManagedExecutorService mes
                 = createManagedExecutor("testShutdown_tasks_behavior", 2, 2); // max=2, queue=2
         ManagedTestTaskListener listener1 = new ManagedTestTaskListener();
@@ -129,7 +125,7 @@ public class ForkJoinManagedExecutorServiceImplTest {
      * ExecutorService functionality
      */
     @Test
-    public void testShutdownNow_unfinishedTask() {
+    public void testShutdownNow_unfinishedTask() throws Exception {
         ManagedExecutorService mes =
                 createManagedExecutor("testShutdown_unfinishedTask", null);
         assertFalse(mes.isShutdown());
@@ -164,33 +160,20 @@ public class ForkJoinManagedExecutorServiceImplTest {
         // waits for task to start
         Util.waitForTaskStarted(f, listener, getLoggerName());
         mes.shutdown();
-        try {
-            assertFalse(mes.awaitTermination(1, TimeUnit.SECONDS));
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ForkJoinManagedExecutorServiceImplTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        assertFalse(mes.awaitTermination(1, TimeUnit.SECONDS));
         task.stopBlocking();
-        try {
-            assertTrue(mes.awaitTermination(10, TimeUnit.SECONDS));
-        } catch (InterruptedException ex) {
-            Logger.getLogger(ForkJoinManagedExecutorServiceImplTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        assertTrue(mes.awaitTermination(10, TimeUnit.SECONDS));
         assertTrue(mes.isTerminated());
     }
 
     @Test
-    public void testTaskCounters() {
-        final AbstractManagedExecutorService mes
-                = createManagedExecutor("testTaskCounters", null);
+    public void testTaskCounters() throws Exception {
+        final AbstractManagedExecutorService mes = createManagedExecutor("testTaskCounters", null);
         assertEquals(0, mes.getTaskCount());
         assertEquals(0, mes.getCompletedTaskCount());
         FakeRunnableForTest task = new FakeRunnableForTest(null);
         Future future = mes.submit(task);
-        try {
-            future.get();
-        } catch (InterruptedException | ExecutionException ex) {
-            Logger.getLogger(ManagedExecutorServiceAdapterTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        future.get();
         assertTrue(future.isDone());
         Util.waitForBoolean(() -> (mes.getTaskCount() > 0) && (mes.getCompletedTaskCount() > 0), true, getLoggerName());
 
@@ -199,21 +182,15 @@ public class ForkJoinManagedExecutorServiceImplTest {
     }
 
     @Test
-    public void testThreadLifeTime() {
-        final AbstractManagedExecutorService mes =
-                createManagedExecutor("testThreadLifeTime",
-                        2, 0, 3L, 0L, false);
+    public void testThreadLifeTime() throws Exception {
+        final AbstractManagedExecutorService mes = createManagedExecutor("testThreadLifeTime", 2, 0, 3L, 0L, false);
 
         Collection<Thread> threads = mes.getThreads();
         assertThat("threads.isEmpty", threads, IsEmptyCollection.empty());
 
         FakeRunnableForTest runnable = new FakeRunnableForTest(null);
         Future f = mes.submit(runnable);
-        try {
-            f.get();
-        } catch (Exception ex) {
-            Logger.getLogger(ForkJoinManagedExecutorServiceImplTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        f.get();
 
         assertThat("threads.size", mes.getThreads(), hasSize(1));
         System.out.println("Waiting for threads to expire due to threadLifeTime");
