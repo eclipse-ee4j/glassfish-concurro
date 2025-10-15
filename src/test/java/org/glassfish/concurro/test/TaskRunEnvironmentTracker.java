@@ -39,6 +39,11 @@ public class TaskRunEnvironmentTracker {
         this.taskListener = taskListener;
     }
 
+
+    public ManagedTestTaskListener getTestTaskListener() {
+        return taskListener;
+    }
+
     public void verifyAfterRun(String classloaderName, int priority, boolean daemon) {
         assertEquals(priority, threadPriority);
         assertEquals(daemon, daemonThread);

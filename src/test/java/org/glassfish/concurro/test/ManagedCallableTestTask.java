@@ -42,5 +42,4 @@ public class ManagedCallableTestTask<V> extends FakeCallableForTest<V> implement
     public Map<String, String> getExecutionProperties() {
         return null;
     }
-
 }

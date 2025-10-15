@@ -21,8 +21,8 @@ import java.util.concurrent.Callable;
 
 public class FakeCallableForTest<T> extends TaskRunEnvironmentTracker implements Callable<T> {
 
-    final T result;
-    boolean throwsException;
+    private final T result;
+    private boolean throwsException;
 
     public FakeCallableForTest(T result) {
         super(null);
@@ -47,4 +47,7 @@ public class FakeCallableForTest<T> extends TaskRunEnvironmentTracker implements
         return result;
     }
 
+    public T getExpectedResult() {
+        return result;
+    }
 }

@@ -29,10 +29,10 @@ import org.glassfish.concurro.spi.ContextSetupProvider;
 import org.glassfish.concurro.test.ClassloaderContextSetupProvider;
 import org.glassfish.concurro.test.FakeRunnableForTest;
 import org.glassfish.concurro.test.TestContextService;
-import org.glassfish.concurro.test.Util;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
 import org.junit.jupiter.api.Test;
 
+import static org.glassfish.concurro.test.Util.retry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -63,7 +63,7 @@ public class VirtualThreadsManagedThreadFactoryIT {
         FakeRunnableForTest r = new FakeRunnableForTest(null);
         Thread newThread = factory.newThread(r);
         newThread.start();
-        Util.waitForTaskComplete(r);
+        retry(() -> assertTrue(r.runCalled));
         r.verifyAfterRun(CLASSLOADER_NAME);
     }
 

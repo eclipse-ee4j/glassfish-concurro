@@ -48,12 +48,13 @@ import org.glassfish.concurro.test.ManagedRunnableTestTask;
 import org.glassfish.concurro.test.ManagedTestTaskListener;
 import org.glassfish.concurro.test.ManagedTimeRecordingRunnableTask;
 import org.glassfish.concurro.test.TestContextService;
-import org.glassfish.concurro.test.TimeRecordingTestRunnable;
 import org.glassfish.concurro.test.TimeRecordingTestCallable;
-import org.glassfish.concurro.test.Util;
+import org.glassfish.concurro.test.TimeRecordingTestRunnable;
 import org.junit.jupiter.api.Test;
 
 import static java.lang.System.Logger.Level.INFO;
+import static org.glassfish.concurro.test.ManagedTestTaskListener.ABORTED;
+import static org.glassfish.concurro.test.Util.retry;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -641,7 +642,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         assertTrue(future.isDone());
         assertTrue(future.isCancelled());
 
-        assertTrue(Util.waitForTaskAborted(future, taskListener), "timeout waiting for taskAborted call");
+        retry(() -> assertTrue(taskListener.eventCalled(future, ABORTED)));
         taskListener.verifyCallback(ManagedTestTaskListener.ABORTED, future, instance,
                 task, new CancellationException());
 

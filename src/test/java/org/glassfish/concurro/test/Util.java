@@ -18,11 +18,6 @@
 package org.glassfish.concurro.test;
 
 import java.time.Instant;
-import java.util.concurrent.Future;
-
-import static org.glassfish.concurro.test.ManagedTestTaskListener.ABORTED;
-import static org.glassfish.concurro.test.ManagedTestTaskListener.DONE;
-import static org.glassfish.concurro.test.ManagedTestTaskListener.STARTING;
 
 public class Util {
 
@@ -30,36 +25,6 @@ public class Util {
 
     public static interface BooleanValueProducer {
       public boolean getValue();
-    }
-
-    public static boolean waitForBoolean(BooleanValueProducer valueProducer, boolean expectedValue) throws InterruptedException {
-        long endWaitTime = System.currentTimeMillis() + MAX_WAIT_TIME;
-        boolean value = valueProducer.getValue();
-        while (value != expectedValue && endWaitTime > System.currentTimeMillis()) {
-            Thread.sleep(100);
-            value = valueProducer.getValue();
-        }
-        return value;
-    }
-
-
-    public static boolean waitForTaskStarted(final Future<?> future, final ManagedTestTaskListener listener)
-        throws InterruptedException {
-        return waitForBoolean(() -> listener.eventCalled(future, STARTING), true);
-    }
-
-    public static boolean waitForTaskComplete(final FakeRunnableForTest task) throws InterruptedException {
-        return waitForBoolean(() -> task.runCalled, true);
-    }
-
-    public static boolean waitForTaskAborted(final Future<?> future, final ManagedTestTaskListener listener)
-        throws InterruptedException {
-        return waitForBoolean(() -> listener.eventCalled(future, ABORTED), true);
-    }
-
-    public static boolean waitForTaskDone(final Future<?> future, final ManagedTestTaskListener listener)
-        throws InterruptedException {
-        return waitForBoolean(() -> listener.eventCalled(future, DONE), true);
     }
 
     public static String generateName() {

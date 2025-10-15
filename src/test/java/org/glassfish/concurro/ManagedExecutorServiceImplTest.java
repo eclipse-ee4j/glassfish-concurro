@@ -38,10 +38,14 @@ import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.Util;
 import org.junit.jupiter.api.Test;
 
+import static org.glassfish.concurro.test.ManagedTestTaskListener.ABORTED;
+import static org.glassfish.concurro.test.ManagedTestTaskListener.STARTING;
+import static org.glassfish.concurro.test.Util.retry;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -86,22 +90,21 @@ public class ManagedExecutorServiceImplTest {
         BlockingRunnableForTest task3 = new ManagedBlockingRunnableTask(listener3, 0L);
         Future f3 = mes.submit(task3); // this task should be queued
         // waits for task1 to start
-        Util.waitForTaskStarted(f1, listener1);
+        retry(() -> assertTrue(listener1.eventCalled(f1, STARTING)));
 
         mes.shutdownNow();
 
         // task2 and task3 should be cancelled
-        Util.waitForTaskAborted(f2, listener2);
+        retry(() -> assertTrue(listener2.eventCalled(f2, ABORTED)));
         assertTrue(f2.isCancelled());
         assertTrue(listener2.eventCalled(f2, ManagedTestTaskListener.ABORTED));
 
-        Util.waitForTaskAborted(f3, listener3);
+        retry(() -> assertTrue(listener3.eventCalled(f3, ABORTED)));
         assertTrue(f3.isCancelled());
         assertTrue(listener3.eventCalled(f3, ManagedTestTaskListener.ABORTED));
 
         // task1 should be interrupted
-        Util.waitForBoolean(task1::isInterrupted, true);
-        assertTrue(task1.isInterrupted());
+        retry(() -> assertTrue(task1::isInterrupted));
     }
 
 
@@ -132,7 +135,7 @@ public class ManagedExecutorServiceImplTest {
         BlockingRunnableForTest task1 = new ManagedBlockingRunnableTask(listener, 0L);
         Future f = mes.submit(task1);
         // waits for task to start
-        Util.waitForTaskStarted(f, listener);
+        retry(() -> assertTrue(listener.eventCalled(f, STARTING)));
         FakeRunnableForTest task2 = new FakeRunnableForTest(null);
         mes.submit(task2); // this task cannot start until task1 has finished
         List<Runnable> tasks = mes.shutdownNow();
@@ -156,7 +159,7 @@ public class ManagedExecutorServiceImplTest {
         BlockingRunnableForTest task = new ManagedBlockingRunnableTask(listener, 0L);
         Future f = mes.submit(task);
         // waits for task to start
-        Util.waitForTaskStarted(f, listener);
+        retry(() -> assertTrue(listener.eventCalled(f, STARTING)));
         mes.shutdown();
         assertFalse(mes.awaitTermination(1, TimeUnit.SECONDS));
         task.stopBlocking();
@@ -220,10 +223,10 @@ public class ManagedExecutorServiceImplTest {
         Future future = mes.submit(task);
         future.get();
         assertTrue(future.isDone());
-        Util.waitForBoolean(() -> mes.getTaskCount() > 0 && mes.getCompletedTaskCount() > 0, true);
-
-        assertEquals(1, mes.getTaskCount());
-        assertEquals(1, mes.getCompletedTaskCount());
+        retry(() -> assertAll(
+            () -> assertEquals(1, mes.getTaskCount()),
+            () -> assertEquals(1, mes.getCompletedTaskCount())
+        ));
     }
 
     @Test
@@ -261,7 +264,7 @@ public class ManagedExecutorServiceImplTest {
 
         // tell task to stop waiting
         runnable.stopBlocking();
-        Util.waitForTaskComplete(runnable);
+        retry(() -> assertTrue(runnable.runCalled));
 
         // should not have any more hung threads
         Util.retry(() -> assertThat(mes.getHungThreads(), empty()));
@@ -284,7 +287,7 @@ public class ManagedExecutorServiceImplTest {
 
         // tell task to stop waiting
         runnable.stopBlocking();
-        Util.waitForTaskComplete(runnable);
+        retry(() -> assertTrue(runnable.runCalled));
 
         // should not have any more hung threads
         assertThat(mes.getHungThreads(), empty());
