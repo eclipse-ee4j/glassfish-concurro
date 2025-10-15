@@ -17,8 +17,7 @@
 
 package org.glassfish.concurro.test;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.Instant;
 import java.util.concurrent.Future;
 
 import static org.glassfish.concurro.test.ManagedTestTaskListener.ABORTED;
@@ -36,7 +35,7 @@ public class Util {
     public static boolean waitForBoolean(BooleanValueProducer valueProducer, boolean expectedValue) throws InterruptedException {
         long endWaitTime = System.currentTimeMillis() + MAX_WAIT_TIME;
         boolean value = valueProducer.getValue();
-        while ((value != expectedValue) && endWaitTime > System.currentTimeMillis()) {
+        while (value != expectedValue && endWaitTime > System.currentTimeMillis()) {
             Thread.sleep(100);
             value = valueProducer.getValue();
         }
@@ -64,7 +63,7 @@ public class Util {
     }
 
     public static String generateName() {
-        return new java.util.Date(System.currentTimeMillis()).toString();
+        return Instant.now().toString();
     }
 
     /**
@@ -87,10 +86,6 @@ public class Util {
             }
         }
         action.action();
-    }
-
-    public static void log(String message) {
-        System.out.println(DateTimeFormatter.ISO_TIME.format(LocalDateTime.now()) + ": " + message);
     }
 
     @FunctionalInterface

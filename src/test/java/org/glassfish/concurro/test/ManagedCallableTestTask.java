@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -16,18 +17,19 @@
 
 package org.glassfish.concurro.test;
 
-import java.util.Map;
 import jakarta.enterprise.concurrent.ManagedTask;
 import jakarta.enterprise.concurrent.ManagedTaskListener;
 
+import java.util.Map;
 
-public class ManagedCallableTask<V> extends FakeCallableForTest<V> implements ManagedTask {
 
-    public ManagedCallableTask(V result) {
+public class ManagedCallableTestTask<V> extends FakeCallableForTest<V> implements ManagedTask {
+
+    public ManagedCallableTestTask(V result) {
         super(result);
     }
 
-    public ManagedCallableTask(V result, ManagedTestTaskListener taskListener) {
+    public ManagedCallableTestTask(V result, ManagedTestTaskListener taskListener) {
         super(result, taskListener);
     }
 
@@ -40,5 +42,5 @@ public class ManagedCallableTask<V> extends FakeCallableForTest<V> implements Ma
     public Map<String, String> getExecutionProperties() {
         return null;
     }
-    
+
 }

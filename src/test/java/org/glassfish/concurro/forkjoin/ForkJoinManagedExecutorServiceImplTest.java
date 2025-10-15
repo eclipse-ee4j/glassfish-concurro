@@ -19,7 +19,6 @@ package org.glassfish.concurro.forkjoin;
 
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +38,7 @@ import org.hamcrest.collection.IsEmptyCollection;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -55,8 +55,7 @@ public class ForkJoinManagedExecutorServiceImplTest {
      */
     @Test
     public void testShutdown() {
-        ManagedExecutorService mes =
-                createManagedExecutor("testShutdown", null);
+        ManagedExecutorService mes = createManagedExecutor("testShutdown", null);
         assertFalse(mes.isShutdown());
         mes.shutdown();
         assertTrue(mes.isShutdown());
@@ -185,17 +184,15 @@ public class ForkJoinManagedExecutorServiceImplTest {
     public void testThreadLifeTime() throws Exception {
         final AbstractManagedExecutorService mes = createManagedExecutor("testThreadLifeTime", 2, 0, 3L, 0L, false);
 
-        Collection<Thread> threads = mes.getThreads();
-        assertThat("threads.isEmpty", threads, IsEmptyCollection.empty());
+        assertThat("threads.isEmpty", mes.getThreads(), IsEmptyCollection.empty());
 
         FakeRunnableForTest runnable = new FakeRunnableForTest(null);
         Future f = mes.submit(runnable);
         f.get();
+        assertTrue(runnable.runCalled);
 
         assertThat("threads.size", mes.getThreads(), hasSize(1));
-        System.out.println("Waiting for threads to expire due to threadLifeTime");
-        // wait for all threads get expired
-        Util.waitForBoolean(() -> mes.getThreads().isEmpty(), true);
+        Util.retry(() -> assertThat("All threads must expire due to threadLifeTime", mes.getThreads(), empty()));
     }
 
     @Test

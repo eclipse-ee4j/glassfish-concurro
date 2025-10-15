@@ -36,12 +36,12 @@ import org.glassfish.concurro.test.ManagedBlockingRunnableTask;
 import org.glassfish.concurro.test.ManagedTestTaskListener;
 import org.glassfish.concurro.test.TestContextService;
 import org.glassfish.concurro.test.Util;
-import org.hamcrest.collection.IsEmptyCollection;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -233,16 +233,16 @@ public class ManagedExecutorServiceImplTest {
                 1, 2, 0, 3L, 0L, false);
 
         Collection<Thread> threads = mes.getThreads();
-        assertThat(threads, IsEmptyCollection.empty());
+        assertThat(threads, empty());
 
         FakeRunnableForTest runnable = new FakeRunnableForTest(null);
         Future f = mes.submit(runnable);
         f.get();
 
         assertThat("threads.size", mes.getThreads(), hasSize(1));
-        System.out.println("Waiting for threads to expire due to threadLifeTime");
-        Util.waitForBoolean(() -> mes.getThreads().isEmpty(), true);
+        Util.retry(() -> assertThat("All threads must expire due to threadLifeTime", mes.getThreads(), empty()));
     }
+
 
     @Test
     public void testHungThreads() throws Exception {
@@ -250,7 +250,7 @@ public class ManagedExecutorServiceImplTest {
                 createManagedExecutor("testThreadLifeTime",
                 1, 2, 0, 0L, 1L, false);
 
-        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+        assertThat(mes.getHungThreads(), empty());
 
         BlockingRunnableForTest runnable = new BlockingRunnableForTest(null, 0L);
         Future f = mes.submit(runnable);
@@ -264,7 +264,7 @@ public class ManagedExecutorServiceImplTest {
         Util.waitForTaskComplete(runnable);
 
         // should not have any more hung threads
-        Util.retry(() -> assertThat(mes.getHungThreads(), IsEmptyCollection.empty()));
+        Util.retry(() -> assertThat(mes.getHungThreads(), empty()));
     }
 
     @Test
@@ -273,21 +273,21 @@ public class ManagedExecutorServiceImplTest {
                 createManagedExecutor("testThreadLifeTime",
                 1, 2, 0, 0L, 1L, true);
 
-        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+        assertThat(mes.getHungThreads(), empty());
 
         BlockingRunnableForTest runnable = new BlockingRunnableForTest(null, 0L);
         Future f = mes.submit(runnable);
         Thread.sleep(1000); // sleep for 1 second
 
         // should not get any hung thread because longRunningTasks is true
-        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+        assertThat(mes.getHungThreads(), empty());
 
         // tell task to stop waiting
         runnable.stopBlocking();
         Util.waitForTaskComplete(runnable);
 
         // should not have any more hung threads
-        assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
+        assertThat(mes.getHungThreads(), empty());
     }
 
     protected ManagedExecutorService createManagedExecutor(String name,

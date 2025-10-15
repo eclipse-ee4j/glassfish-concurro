@@ -23,7 +23,7 @@ import jakarta.enterprise.concurrent.ManagedTaskListener;
 import java.util.Map;
 
 
-public class ManagedTimeRecordingRunnableTask extends TimeRecordingRunnableImpl implements ManagedTask {
+public class ManagedTimeRecordingRunnableTask extends TimeRecordingTestRunnable implements ManagedTask {
 
     public ManagedTimeRecordingRunnableTask(ManagedTestTaskListener taskListener) {
         super(taskListener);

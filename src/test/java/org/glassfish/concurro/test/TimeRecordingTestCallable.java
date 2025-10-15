@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -16,20 +17,24 @@
 
 package org.glassfish.concurro.test;
 
-import java.time.LocalDateTime;
+import java.lang.System.Logger;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+
+import static java.lang.System.Logger.Level.INFO;
 
 /**
- * A Callable for use in scheduleAtFixedRate, scheduleWithFixedDelay, and
+ * A {@link Callable} for use in scheduleAtFixedRate, scheduleWithFixedDelay, and
  * schedule with Trigger tests.
  */
-public class TimeRecordingCallableImpl<T> extends ManagedCallableTask<T> {
+public class TimeRecordingTestCallable<T> extends ManagedCallableTestTask<T> {
+    private static final Logger LOG = System.getLogger(TimeRecordingTestCallable.class.getName());
 
     ArrayList<Long> invocations = new ArrayList<>();
 
-    public boolean DEBUG;
-
-    public TimeRecordingCallableImpl(T result, ManagedTestTaskListener taskListener) {
+    public TimeRecordingTestCallable(T result, ManagedTestTaskListener taskListener) {
         super(result, taskListener);
         invocations.add(System.currentTimeMillis());
     }
@@ -37,9 +42,7 @@ public class TimeRecordingCallableImpl<T> extends ManagedCallableTask<T> {
     @Override
     public T call() throws Exception {
         synchronized (invocations) {
-            if (DEBUG) {
-                System.out.println("TimeRecordingCallableImpl.run()" + LocalDateTime.now());
-            }
+            LOG.log(INFO, "call() executed at " + Instant.now());
             invocations.add(System.currentTimeMillis());
         }
         // sleep for 1 second
@@ -47,14 +50,10 @@ public class TimeRecordingCallableImpl<T> extends ManagedCallableTask<T> {
         return super.call();
     }
 
-    public ArrayList<Long> getInvocations() {
-        ArrayList<Long> result = new ArrayList<Long>();
+    public List<Long> getInvocations() {
         synchronized(invocations) {
-            for(long time: invocations) {
-                result.add(time);
-            }
+            return List.copyOf(invocations);
         }
-        return result;
     }
 }
 
