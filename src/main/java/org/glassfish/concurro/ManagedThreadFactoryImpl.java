@@ -43,12 +43,14 @@ import static java.lang.System.Logger.Level.WARNING;
  */
 public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
 
+    public static final String MANAGED_THREAD_FACTORY_STOPPED = "ManagedThreadFactory is stopped";
+
     private List<Thread> threads;
     private boolean stopped = false;
     private Lock lock; // protects threads and stopped
 
     private String name;
-    final private ContextSetupProvider contextSetupProvider;
+    private final ContextSetupProvider contextSetupProvider;
     // A non-null ContextService should be provided if thread context should
     // be setup before running the Runnable passed in through the newThread
     // method.
@@ -56,15 +58,14 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     // used for creating threads for ManagedExecutorService, where it is
     // not necessary to set up thread context at thread creation time. In that
     // case, thread context is set up before running each task.
-    final private ContextServiceImpl contextService;
+    private final ContextServiceImpl contextService;
     // If there is a need to save context earlier than during newThread() (e.g. jndi lookup ManagedThreadFactory),
     // it is kept in savedContextHandleForSetup.
+    @Deprecated(forRemoval = true, since = "3.1.0")
     protected ContextHandle savedContextHandleForSetup;
     private int priority;
     private long hungTaskThreshold = 0L; // in milliseconds
     private AtomicInteger threadIdSequence = new AtomicInteger();
-
-    public static final String MANAGED_THREAD_FACTORY_STOPPED = "ManagedThreadFactory is stopped";
 
     public ManagedThreadFactoryImpl(String name) {
         this(name, null, Thread.NORM_PRIORITY);
@@ -164,7 +165,8 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
             lock.unlock();
         }
     }
-    public void taskStarting(Thread t, ManagedFutureTask task) {
+
+    public void taskStarting(Thread t, ManagedFutureTask<?> task) {
         if (t instanceof ThreadWithTiming mt) {
             // called in thread t, so no need to worry about synchronization
             mt.notifyTaskStarting(task);
@@ -247,7 +249,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
 
         public void notifyTaskDone();
 
-        public void notifyTaskStarting(ManagedFutureTask task);
+        public void notifyTaskStarting(ManagedFutureTask<?> task);
 
         boolean isTaskHung(long now);
     }
@@ -295,7 +297,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         }
 
         @Override
-        public void notifyTaskStarting(ManagedFutureTask task) {
+        public void notifyTaskStarting(ManagedFutureTask<?> task) {
             taskStartTime = System.currentTimeMillis();
         }
     }
@@ -306,8 +308,10 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     public class ManagedThread extends AbstractManagedThread implements ThreadWithTiming {
         private static final Logger LOG = System.getLogger(ManagedThreadFactoryImpl.ManagedThread.class.getName());
 
-        final ContextHandle contextHandleForSetup;
-        volatile ManagedFutureTask task = null;
+        private final long threadStartTime = System.currentTimeMillis();
+
+        private final ContextHandle contextHandleForSetup;
+        private volatile ManagedFutureTask<?> task;
         volatile long taskStartTime = 0L;
 
         public ManagedThread(Runnable target, ContextHandle contextHandleForSetup) {
@@ -325,7 +329,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 if (contextHandleForSetup != null) {
                     handle = contextSetupProvider.setup(contextHandleForSetup);
                 }
-                if (shutdown) {
+                if (isShutdown()) {
                     // start thread in interrupted state if already marked for shutdown
                     this.interrupt();
                 }
@@ -387,7 +391,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         }
 
         @Override
-        public void notifyTaskStarting(ManagedFutureTask task) {
+        public void notifyTaskStarting(ManagedFutureTask<?> task) {
             taskStartTime = System.currentTimeMillis();
             this.task = task;
         }

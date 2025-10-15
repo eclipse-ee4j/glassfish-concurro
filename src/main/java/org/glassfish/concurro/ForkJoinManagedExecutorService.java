@@ -1,6 +1,7 @@
 /*
- * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2022, 2024 Payara Foundation and/or its affiliates.
+ * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -43,7 +44,7 @@ import org.glassfish.concurro.internal.MultiManagedTaskListener;
  */
 public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecutorService implements ManagedTaskListener {
 
-    // The adapter to be returned to the caller needs to have all the lifecycle 
+    // The adapter to be returned to the caller needs to have all the lifecycle
     // methods disabled
     protected final ManagedExecutorServiceAdapter adapter;
 
@@ -167,7 +168,6 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
         ArrayList<ManagedFutureTask<?>> copyOfRunningFutures = new ArrayList<>(runningFutures.keySet());
         copyOfRunningFutures.stream().forEach(future -> {
             future.cancel(false);
-            //System.out.println("Future " + future + " in state: " + future.state());
         });
         return Collections.unmodifiableList(runnables);
     }
@@ -205,13 +205,13 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
 
     @Override
     public void taskAborted(Future<?> future, ManagedExecutorService executor, Object task, Throwable exception) {
-        runningFutures.remove((ManagedFutureTask) future);
+        runningFutures.remove(future);
         taskCount.decrementAndGet();
     }
 
     @Override
     public void taskDone(Future<?> future, ManagedExecutorService executor, Object task, Throwable exception) {
-        runningFutures.remove((ManagedFutureTask) future);
+        runningFutures.remove(future);
         tasksCompleted.incrementAndGet();
     }
 
