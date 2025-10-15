@@ -133,7 +133,7 @@ public class AsynchronousInterceptor {
 
         ManagedScheduledExecutorService mses = lookupMES(ManagedScheduledExecutorService.class, "java:comp/DefaultManagedScheduledExecutorService", method.getName());
         CompletableFuture<Object> future = mses.newIncompleteFuture();
-        CompoundTrigger compoundTrigger = new CompoundTrigger(mses, context);
+        CompoundTrigger compoundTrigger = new CompoundTrigger(mses);
 
         for (Schedule schedule : asynchAnnotation.runAt()) {
             long skipIfLateBySeconds = schedule.skipIfLateBy();
