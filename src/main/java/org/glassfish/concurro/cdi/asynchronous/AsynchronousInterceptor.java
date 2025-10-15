@@ -16,17 +16,6 @@
  */
 package org.glassfish.concurro.cdi.asynchronous;
 
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import org.glassfish.concurro.internal.ManagedCompletableFuture;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.concurrent.Asynchronous;
 import jakarta.enterprise.concurrent.CronTrigger;
@@ -36,11 +25,26 @@ import jakarta.enterprise.concurrent.Schedule;
 import jakarta.interceptor.AroundInvoke;
 import jakarta.interceptor.Interceptor;
 import jakarta.interceptor.InvocationContext;
+
+import java.lang.System.Logger;
 import java.lang.reflect.Method;
 import java.time.ZoneId;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
+import java.util.function.Consumer;
+
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+
 import org.glassfish.concurro.internal.AsynchronousScheduledAction;
 import org.glassfish.concurro.internal.CompoundTrigger;
+import org.glassfish.concurro.internal.ManagedCompletableFuture;
+
+import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.ERROR;
 
 /**
  * Interceptor for @Asynchronous.
@@ -51,7 +55,7 @@ import org.glassfish.concurro.internal.CompoundTrigger;
 @Asynchronous
 @Priority(Interceptor.Priority.PLATFORM_BEFORE + 5)
 public class AsynchronousInterceptor {
-    static final Logger log = Logger.getLogger(AsynchronousInterceptor.class.getName());
+    private static final Logger LOG = System.getLogger(AsynchronousInterceptor.class.getName());
 
     @AroundInvoke
     public Object intercept(InvocationContext context) throws Exception {
@@ -60,15 +64,14 @@ public class AsynchronousInterceptor {
 
         if (asynchAnnotation.runAt().length > 0) {
             return schedule(context, method, asynchAnnotation);
-        } else {
-            return executeDirectly(context, method, asynchAnnotation);
         }
+        return executeDirectly(context, method, asynchAnnotation);
     }
 
     private CompletableFuture<Object> executeDirectly(InvocationContext context, Method method, Asynchronous asynchAnnotation) {
         String executor = asynchAnnotation.executor();
         executor = executor != null ? executor : "java:comp/DefaultManagedExecutorService"; // provide default value if there is none
-        log.log(Level.FINE, "AsynchronousInterceptor.intercept around asynchronous method {0}, executor=''{1}''", new Object[]{method, executor});
+        LOG.log(DEBUG, "AsynchronousInterceptor.intercept around asynchronous method {0}, executor=''{1}''", method, executor);
         ManagedExecutorService mes = lookupMES(ManagedExecutorService.class, executor, method.getName());
         CompletableFuture<Object> resultFuture = new ManagedCompletableFuture<>(mes);
         mes.submit(() -> {
@@ -82,7 +85,9 @@ public class AsynchronousInterceptor {
             } finally {
                 // Check if Asynchronous.Result is not completed?
                 if (!returnedFuture.isDone()) {
-                    log.log(Level.SEVERE, "Method annotated with @Asynchronous did not call Asynchronous.Result.complete() at its end: {0}", method.toString());
+                    LOG.log(ERROR,
+                        "Method annotated with @Asynchronous did not call Asynchronous.Result.complete() at its end: {0}",
+                        method);
                     Asynchronous.Result.getFuture().cancel(true);
                 }
                 if (returnedFuture != Asynchronous.Result.getFuture()) {
@@ -152,9 +157,8 @@ public class AsynchronousInterceptor {
             setIfNotEmpty(trigger::daysOfMonth, schedule.daysOfMonth());
             setIfNotEmpty(trigger::months, schedule.months());
             return trigger;
-        } else {
-            return new CronTrigger(schedule.cron(), zone);
         }
+        return new CronTrigger(schedule.cron(), zone);
     }
 
     static final void setIfNotEmpty(Consumer<int[]> consumer, int[] data) {

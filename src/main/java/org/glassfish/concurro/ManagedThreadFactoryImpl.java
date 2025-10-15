@@ -20,6 +20,7 @@ package org.glassfish.concurro;
 
 import jakarta.enterprise.concurrent.ManagedThreadFactory;
 
+import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -29,13 +30,13 @@ import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.glassfish.concurro.internal.ManagedFutureTask;
 import org.glassfish.concurro.internal.ThreadExpiredException;
 import org.glassfish.concurro.spi.ContextHandle;
 import org.glassfish.concurro.spi.ContextSetupProvider;
+
+import static java.lang.System.Logger.Level.WARNING;
 
 /**
  * Implementation of ManagedThreadFactory interface.
@@ -255,6 +256,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     }
 
     class WorkerThread extends ForkJoinWorkerThread implements ThreadWithTiming {
+        private static final Logger LOG = System.getLogger(WorkerThread.class.getName());
 
         public static final long NOT_STARTED = -1;
 
@@ -279,9 +281,9 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 }
                 super.run();
             } catch (ThreadExpiredException ex) {
-                Logger.getLogger("org.glassfish.concurro").log(Level.INFO, ex.toString());
+                LOG.log(WARNING, () -> "Thread with id " + getId() + " expired.", ex);
             } catch (Throwable t) {
-                Logger.getLogger("org.glassfish.concurro").log(Level.SEVERE, name, t);
+                LOG.log(WARNING, () -> "Thread with id " + getId() + " failed with exception: " + t, t);
             }
         }
 
@@ -305,6 +307,8 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
      * ManageableThread to be returned by {@code ManagedThreadFactory.newThread()}
      */
     public class ManagedThread extends AbstractManagedThread implements ThreadWithTiming {
+        private static final Logger LOG = System.getLogger(ManagedThreadFactoryImpl.ManagedThread.class.getName());
+
         final ContextHandle contextHandleForSetup;
         volatile ManagedFutureTask task = null;
         volatile long taskStartTime = 0L;
@@ -328,9 +332,9 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 }
                 super.run();
             } catch (ThreadExpiredException ex) {
-                Logger.getLogger("org.glassfish.concurro").log(Level.INFO, ex.toString());
+                LOG.log(WARNING, () -> "Thread with id " + getId() + " expired.", ex);
             } catch (Throwable t) {
-                Logger.getLogger("org.glassfish.concurro").log(Level.SEVERE, name, t);
+                LOG.log(WARNING, () -> "Thread with id " + getId() + " failed with exception: " + t, t);
             } finally {
                 if (handle != null) {
                     contextSetupProvider.reset(handle);
