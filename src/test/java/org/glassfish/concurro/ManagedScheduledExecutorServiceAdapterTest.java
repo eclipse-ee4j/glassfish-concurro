@@ -647,7 +647,7 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         assertTrue(future.isDone());
         assertTrue(future.isCancelled());
 
-        assertTrue(Util.waitForTaskAborted(future, taskListener, getLoggerName()), "timeout waiting for taskAborted call");
+        assertTrue(Util.waitForTaskAborted(future, taskListener), "timeout waiting for taskAborted call");
         taskListener.verifyCallback(ManagedTestTaskListener.ABORTED, future, instance,
                 task, new CancellationException());
 

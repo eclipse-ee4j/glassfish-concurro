@@ -63,7 +63,7 @@ public class VirtualThreadsManagedThreadFactoryIT {
         FakeRunnableForTest r = new FakeRunnableForTest(null);
         Thread newThread = factory.newThread(r);
         newThread.start();
-        Util.waitForTaskComplete(r, getLoggerName());
+        Util.waitForTaskComplete(r);
         r.verifyAfterRun(CLASSLOADER_NAME);
     }
 
@@ -126,10 +126,6 @@ public class VirtualThreadsManagedThreadFactoryIT {
     private void verifyThreadProperties(Thread thread, boolean isDaemon, int priority) {
         assertEquals(isDaemon, thread.isDaemon());
         assertEquals(priority, thread.getPriority());
-    }
-
-    private String getLoggerName() {
-        return VirtualThreadsManagedThreadFactoryIT.class.getName();
     }
 
     static class TestRunnable implements Runnable {

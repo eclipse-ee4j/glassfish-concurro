@@ -33,7 +33,7 @@ public class Util {
       public boolean getValue();
     }
 
-    public static boolean waitForBoolean(BooleanValueProducer valueProducer, boolean expectedValue, String loggerName) throws InterruptedException {
+    public static boolean waitForBoolean(BooleanValueProducer valueProducer, boolean expectedValue) throws InterruptedException {
         long endWaitTime = System.currentTimeMillis() + MAX_WAIT_TIME;
         boolean value = valueProducer.getValue();
         while ((value != expectedValue) && endWaitTime > System.currentTimeMillis()) {
@@ -44,34 +44,28 @@ public class Util {
     }
 
 
-    public static boolean waitForTaskStarted(final Future<?> future, final ManagedTestTaskListener listener,
-        String loggerName) throws InterruptedException {
-        return waitForBoolean(() -> listener.eventCalled(future, STARTING), true, loggerName);
-    }
-
-
-    public static boolean waitForTaskComplete(final FakeRunnableForTest task, String loggerName)
+    public static boolean waitForTaskStarted(final Future<?> future, final ManagedTestTaskListener listener)
         throws InterruptedException {
-        return waitForBoolean(() -> task.runCalled, true, loggerName);
+        return waitForBoolean(() -> listener.eventCalled(future, STARTING), true);
     }
 
-
-    public static boolean waitForTaskAborted(final Future<?> future, final ManagedTestTaskListener listener,
-        String loggerName) throws InterruptedException {
-        return waitForBoolean(() -> listener.eventCalled(future, ABORTED), true, loggerName);
+    public static boolean waitForTaskComplete(final FakeRunnableForTest task) throws InterruptedException {
+        return waitForBoolean(() -> task.runCalled, true);
     }
 
-
-    public static boolean waitForTaskDone(final Future<?> future, final ManagedTestTaskListener listener,
-        String loggerName) throws InterruptedException {
-        return waitForBoolean(() -> listener.eventCalled(future, DONE), true, loggerName);
+    public static boolean waitForTaskAborted(final Future<?> future, final ManagedTestTaskListener listener)
+        throws InterruptedException {
+        return waitForBoolean(() -> listener.eventCalled(future, ABORTED), true);
     }
 
+    public static boolean waitForTaskDone(final Future<?> future, final ManagedTestTaskListener listener)
+        throws InterruptedException {
+        return waitForBoolean(() -> listener.eventCalled(future, DONE), true);
+    }
 
     public static String generateName() {
         return new java.util.Date(System.currentTimeMillis()).toString();
     }
-
 
     /**
      * Ignores {@link Exception}s and {@link AssertionError}s for {@value #MAX_WAIT_TIME} millis

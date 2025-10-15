@@ -57,8 +57,7 @@ public class ManagedExecutorServiceImplTest {
      */
     @Test
     public void testShutdown() {
-        ManagedExecutorService mes =
-                createManagedExecutor("testShutdown", null);
+        ManagedExecutorService mes = createManagedExecutor("testShutdown", null);
         assertFalse(mes.isShutdown());
         mes.shutdown();
         assertTrue(mes.isShutdown());
@@ -87,21 +86,21 @@ public class ManagedExecutorServiceImplTest {
         BlockingRunnableForTest task3 = new ManagedBlockingRunnableTask(listener3, 0L);
         Future f3 = mes.submit(task3); // this task should be queued
         // waits for task1 to start
-        Util.waitForTaskStarted(f1, listener1, getLoggerName());
+        Util.waitForTaskStarted(f1, listener1);
 
         mes.shutdownNow();
 
         // task2 and task3 should be cancelled
-        Util.waitForTaskAborted(f2, listener2, getLoggerName());
+        Util.waitForTaskAborted(f2, listener2);
         assertTrue(f2.isCancelled());
         assertTrue(listener2.eventCalled(f2, ManagedTestTaskListener.ABORTED));
 
-        Util.waitForTaskAborted(f3, listener3, getLoggerName());
+        Util.waitForTaskAborted(f3, listener3);
         assertTrue(f3.isCancelled());
         assertTrue(listener3.eventCalled(f3, ManagedTestTaskListener.ABORTED));
 
         // task1 should be interrupted
-        Util.waitForBoolean(task1::isInterrupted, true, getLoggerName());
+        Util.waitForBoolean(task1::isInterrupted, true);
         assertTrue(task1.isInterrupted());
     }
 
@@ -112,8 +111,7 @@ public class ManagedExecutorServiceImplTest {
      */
     @Test
     public void testShutdownNow() {
-        ManagedExecutorService mes =
-                createManagedExecutor("testShutdownNow", null);
+        ManagedExecutorService mes = createManagedExecutor("testShutdownNow", null);
         assertFalse(mes.isShutdown());
         List<Runnable> tasks = mes.shutdownNow();
         assertTrue(tasks.isEmpty());
@@ -128,14 +126,13 @@ public class ManagedExecutorServiceImplTest {
      */
     @Test
     public void testShutdownNow_unfinishedTask() throws Exception {
-        ManagedExecutorService mes =
-                createManagedExecutor("testShutdown_unfinishedTask", null);
+        ManagedExecutorService mes = createManagedExecutor("testShutdown_unfinishedTask", null);
         assertFalse(mes.isShutdown());
         ManagedTestTaskListener listener = new ManagedTestTaskListener();
         BlockingRunnableForTest task1 = new ManagedBlockingRunnableTask(listener, 0L);
         Future f = mes.submit(task1);
         // waits for task to start
-        Util.waitForTaskStarted(f, listener, getLoggerName());
+        Util.waitForTaskStarted(f, listener);
         FakeRunnableForTest task2 = new FakeRunnableForTest(null);
         mes.submit(task2); // this task cannot start until task1 has finished
         List<Runnable> tasks = mes.shutdownNow();
@@ -153,14 +150,13 @@ public class ManagedExecutorServiceImplTest {
      */
     @Test
     public void testAwaitsTermination() throws Exception {
-        ManagedExecutorService mes =
-                createManagedExecutor("testAwaitsTermination", null);
+        ManagedExecutorService mes = createManagedExecutor("testAwaitsTermination", null);
         assertFalse(mes.isShutdown());
         ManagedTestTaskListener listener = new ManagedTestTaskListener();
         BlockingRunnableForTest task = new ManagedBlockingRunnableTask(listener, 0L);
         Future f = mes.submit(task);
         // waits for task to start
-        Util.waitForTaskStarted(f, listener, getLoggerName());
+        Util.waitForTaskStarted(f, listener);
         mes.shutdown();
         assertFalse(mes.awaitTermination(1, TimeUnit.SECONDS));
         task.stopBlocking();
@@ -224,7 +220,7 @@ public class ManagedExecutorServiceImplTest {
         Future future = mes.submit(task);
         future.get();
         assertTrue(future.isDone());
-        Util.waitForBoolean(() -> mes.getTaskCount() > 0 && mes.getCompletedTaskCount() > 0, true, getLoggerName());
+        Util.waitForBoolean(() -> mes.getTaskCount() > 0 && mes.getCompletedTaskCount() > 0, true);
 
         assertEquals(1, mes.getTaskCount());
         assertEquals(1, mes.getCompletedTaskCount());
@@ -245,7 +241,7 @@ public class ManagedExecutorServiceImplTest {
 
         assertThat("threads.size", mes.getThreads(), hasSize(1));
         System.out.println("Waiting for threads to expire due to threadLifeTime");
-        Util.waitForBoolean(() -> mes.getThreads().isEmpty(), true, getLoggerName());
+        Util.waitForBoolean(() -> mes.getThreads().isEmpty(), true);
     }
 
     @Test
@@ -265,7 +261,7 @@ public class ManagedExecutorServiceImplTest {
 
         // tell task to stop waiting
         runnable.stopBlocking();
-        Util.waitForTaskComplete(runnable, getLoggerName());
+        Util.waitForTaskComplete(runnable);
 
         // should not have any more hung threads
         Util.retry(() -> assertThat(mes.getHungThreads(), IsEmptyCollection.empty()));
@@ -288,7 +284,7 @@ public class ManagedExecutorServiceImplTest {
 
         // tell task to stop waiting
         runnable.stopBlocking();
-        Util.waitForTaskComplete(runnable, getLoggerName());
+        Util.waitForTaskComplete(runnable);
 
         // should not have any more hung threads
         assertThat(mes.getHungThreads(), IsEmptyCollection.empty());
@@ -328,9 +324,4 @@ public class ManagedExecutorServiceImplTest {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) mes.getThreadPoolExecutor();
         return executor.getQueue();
     }
-
-    public String getLoggerName() {
-        return ManagedExecutorServiceImplTest.class.getName();
-    }
-
 }

@@ -47,6 +47,7 @@ import static org.glassfish.concurro.AbstractManagedExecutorService.RejectPolicy
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -101,7 +102,7 @@ public class VirtualThreadsManagedExecutorServiceIT {
         execution3.assertTaskAborted();
 
         // task1 should be interrupted
-        Util.waitForBoolean(execution1.task::isInterrupted, true, getLoggerName());
+        Util.waitForBoolean(execution1.task::isInterrupted, true);
         assertTrue(execution1.task.isInterrupted());
     }
 
@@ -274,11 +275,13 @@ public class VirtualThreadsManagedExecutorServiceIT {
         future.get();
         assertTrue(future.isDone());
         Util.waitForBoolean(
-            () -> managedExecutorService.getTaskCount() > 0 && managedExecutorService.getCompletedTaskCount() > 0, true,
-            getLoggerName());
+            () -> managedExecutorService.getTaskCount() > 0 && managedExecutorService.getCompletedTaskCount() > 0,
+            true);
 
-        assertEquals(1, managedExecutorService.getTaskCount());
-        assertEquals(1, managedExecutorService.getCompletedTaskCount());
+        assertAll(
+            () -> assertEquals(1, managedExecutorService.getTaskCount()),
+            () -> assertEquals(1, managedExecutorService.getCompletedTaskCount())
+        );
     }
 
     @Test
@@ -315,7 +318,7 @@ public class VirtualThreadsManagedExecutorServiceIT {
 
         // Tell task to stop waiting
         runnable.stopBlocking();
-        Util.waitForTaskComplete(runnable, getLoggerName());
+        Util.waitForTaskComplete(runnable);
 
         // Should not have any more hung threads
         threads = managedExecutorService.getHungThreads();
@@ -339,7 +342,7 @@ public class VirtualThreadsManagedExecutorServiceIT {
 
         // Tell task to stop waiting
         runnable.stopBlocking();
-        Util.waitForTaskComplete(runnable, getLoggerName());
+        Util.waitForTaskComplete(runnable);
 
         // Should not have any more hung threads
         threads = managedExecutorService.getHungThreads();
@@ -358,10 +361,6 @@ public class VirtualThreadsManagedExecutorServiceIT {
     protected VirtualThreadsManagedExecutorServiceExt createManagedExecutor(String name, int maxParallelTasks, int queueSize, long threadLifeTime, long hungTask, boolean longRunningTasks) {
         return new VirtualThreadsManagedExecutorServiceExt(name, new VirtualThreadsManagedThreadFactory(name), hungTask, longRunningTasks,
                 maxParallelTasks, queueSize, new TestContextService(null), ABORT);
-    }
-
-    public String getLoggerName() {
-        return VirtualThreadsManagedExecutorServiceIT.class.getName();
     }
 
     public static class VirtualThreadsManagedExecutorServiceExt extends VirtualThreadsManagedExecutorService {
@@ -399,16 +398,16 @@ public class VirtualThreadsManagedExecutorServiceIT {
 
         public void assertTaskCompleted() throws InterruptedException {
             // tasks should complete successfully
-            assertTrue(Util.waitForTaskComplete(task, getLoggerName()));
+            assertTrue(Util.waitForTaskComplete(task));
         }
 
         public void assertTaskStarted() throws InterruptedException {
             // waits for task1 to start
-            assertTrue(Util.waitForTaskStarted(future, listener, getLoggerName()));
+            assertTrue(Util.waitForTaskStarted(future, listener));
         }
 
         public void assertTaskAborted() throws InterruptedException {
-            assertTrue(Util.waitForTaskAborted(future, listener, getLoggerName()));
+            assertTrue(Util.waitForTaskAborted(future, listener));
             assertTrue(future.isCancelled());
             assertTrue(listener.eventCalled(future, ManagedTestTaskListener.ABORTED));
         }
