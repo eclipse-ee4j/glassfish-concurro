@@ -21,12 +21,10 @@ import jakarta.enterprise.concurrent.ManagedExecutorService;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 import org.glassfish.concurro.AbstractManagedExecutorService;
@@ -284,7 +282,7 @@ public class VirtualThreadsManagedExecutorServiceIT {
     }
 
     @Test
-    public void testThreadLifeTime() throws InterruptedException, ExecutionException, TimeoutException {
+    public void testThreadLifeTime() throws Exception {
         final AbstractManagedExecutorService managedExecutorService =
             createManagedExecutor("testThreadLifeTime", 2, 0, 3L, 0L, false);
 
@@ -296,8 +294,8 @@ public class VirtualThreadsManagedExecutorServiceIT {
         Future<?> future = managedExecutorService.submit(runnable);
         future.get(5, TimeUnit.SECONDS);
         assertEquals("I am ok!", taskListener.whenDone().get(5, TimeUnit.SECONDS));
-        assertThat("All virtual threads should be discarded after tasks are done", managedExecutorService.getThreads(),
-            IsEmptyCollection.empty());
+        Util.retry(() -> assertThat("All virtual threads should be discarded after tasks are done",
+            managedExecutorService.getThreads(), IsEmptyCollection.empty()));
     }
 
     @Test
