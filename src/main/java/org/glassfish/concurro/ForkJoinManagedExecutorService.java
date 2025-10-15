@@ -48,42 +48,43 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
     // methods disabled
     protected final ManagedExecutorServiceAdapter adapter;
 
-    protected final ForkJoinPool executor;
+    protected final ForkJoinPool pool;
 
-    final private Map<ManagedFutureTask<?>, Runnable> runningFutures = new ConcurrentHashMap<>();
+    private final Map<ManagedFutureTask<?>, Runnable> runningFutures = new ConcurrentHashMap<>();
     private final AtomicLong taskCount = new AtomicLong();
     private final AtomicLong tasksCompleted = new AtomicLong();
 
     public ForkJoinManagedExecutorService(String name,
-            ManagedThreadFactoryImpl managedThreadFactory,
-            long hungTaskThreshold,
-            boolean longRunningTasks,
-            int maxPoolSize, long keepAliveTime,
-            TimeUnit keepAliveTimeUnit,
-            long threadLifeTime,
-            ContextServiceImpl contextService,
-            RejectPolicy rejectPolicy) {
-        super(name, managedThreadFactory, hungTaskThreshold, longRunningTasks,
-                contextService,
-                contextService != null ? contextService.getContextSetupProvider() : null,
-                rejectPolicy);
-        executor = new ForkJoinPool(maxPoolSize, this.managedThreadFactory, null, false);
-        adapter = new ManagedExecutorServiceAdapter(this);
+        ManagedThreadFactoryImpl managedThreadFactory,
+        long hungTaskThreshold,
+        boolean longRunningTasks,
+        int maxPoolSize,
+        long keepAliveTime,
+        TimeUnit keepAliveTimeUnit,
+        int queueCapacity,
+        ContextServiceImpl contextService,
+        RejectPolicy rejectPolicy) {
+        this(name, managedThreadFactory, hungTaskThreshold, longRunningTasks,
+            maxPoolSize, keepAliveTime, keepAliveTimeUnit, contextService,
+            rejectPolicy);
     }
 
     public ForkJoinManagedExecutorService(String name,
             ManagedThreadFactoryImpl managedThreadFactory,
             long hungTaskThreshold,
             boolean longRunningTasks,
-            int maxPoolSize, long keepAliveTime,
+            int maxPoolSize,
+            long keepAliveTime,
             TimeUnit keepAliveTimeUnit,
-            long threadLifeTime,
-            int queueCapacity,
             ContextServiceImpl contextService,
             RejectPolicy rejectPolicy) {
-        this(name, managedThreadFactory, hungTaskThreshold, longRunningTasks,
-                maxPoolSize, keepAliveTime, keepAliveTimeUnit, threadLifeTime, contextService,
+        super(name, managedThreadFactory, hungTaskThreshold, longRunningTasks,
+                contextService,
+                contextService != null ? contextService.getContextSetupProvider() : null,
                 rejectPolicy);
+        this.pool = new ForkJoinPool(maxPoolSize, this.managedThreadFactory, null, false, 0, maxPoolSize,
+            1, null, keepAliveTime, TimeUnit.SECONDS);
+        this.adapter = new ManagedExecutorServiceAdapter(this);
     }
 
     @Override
@@ -91,7 +92,7 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
         ManagedFutureTask<Void> task = getNewTaskFor(command, null);
         task.submitted();
         runningFutures.put(task, command);
-        executor.execute(task);
+        pool.execute(task);
     }
 
     /**
@@ -120,9 +121,7 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
                 new MultiManagedTaskListener(this,
                         (r instanceof ManagedTask) ? ((ManagedTask) r).getManagedTaskListener() : null));
         ManagedFutureTask<V> managedFutureTask = new ManagedFutureTask<>(this, notifiedRunnable, result);
-//        managedFutureTask.setTaskDoneCallback((ManagedFutureTask future) -> {
-//            this.taskDone(future, adapter, this, null);
-//        });
+//        managedFutureTask.setTaskDoneCallback(future -> taskDone(future, adapter, this, null));
         statefulRunnable.setTask(managedFutureTask);
         runningFutures.put(managedFutureTask, notifiedRunnable);
         return managedFutureTask;
@@ -131,7 +130,7 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
     public class StatefulRunnable implements Runnable {
 
         private final Runnable runnable;
-        private ManagedFutureTask task;
+        private ManagedFutureTask<?> task;
 
         public StatefulRunnable(Runnable runnable) {
             this.runnable = runnable;
@@ -151,14 +150,14 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
             }
         }
 
-        public void setTask(ManagedFutureTask task) {
+        public void setTask(ManagedFutureTask<?> task) {
             this.task = task;
         }
     }
 
     @Override
-    protected ManagedFutureTask getNewTaskFor(Callable callable) {
-        return new ManagedFutureTask(this, callable); // FIXME like for Runnable
+    protected <T> ManagedFutureTask<T> getNewTaskFor(Callable<T> callable) {
+        return new ManagedFutureTask<>(this, callable);
     }
 
     @Override
@@ -166,9 +165,7 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
         super.shutdownNow();
         ArrayList<Runnable> runnables = new ArrayList<>(runningFutures.values());
         ArrayList<ManagedFutureTask<?>> copyOfRunningFutures = new ArrayList<>(runningFutures.keySet());
-        copyOfRunningFutures.stream().forEach(future -> {
-            future.cancel(false);
-        });
+        copyOfRunningFutures.stream().forEach(future -> future.cancel(false));
         return Collections.unmodifiableList(runnables);
     }
 
@@ -184,7 +181,7 @@ public class ForkJoinManagedExecutorService extends AbstractPlatformThreadExecut
 
     @Override
     protected ExecutorService getThreadPoolExecutor() {
-        return executor;
+        return pool;
     }
 
     @Override

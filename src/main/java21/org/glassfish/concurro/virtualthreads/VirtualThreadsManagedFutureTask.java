@@ -29,11 +29,11 @@ import org.glassfish.concurro.internal.ManagedFutureTask;
  */
 public class VirtualThreadsManagedFutureTask<V> extends ManagedFutureTask<V> {
 
-    private Semaphore parallelTasksSemaphore = null;
+    private Semaphore parallelTasksSemaphore;
 
-    private Runnable taskCompletionHandler = null;
+    private Runnable taskCompletionHandler;
 
-    private Consumer<VirtualThreadsManagedFutureTask<V>> taskStartedHandler = null;
+    private Consumer<VirtualThreadsManagedFutureTask<V>> taskStartedHandler;
 
     public VirtualThreadsManagedFutureTask(AbstractManagedExecutorService executor, Runnable runnable, V result, Semaphore parallelTasksSemaphore) {
         super(executor, runnable, result);

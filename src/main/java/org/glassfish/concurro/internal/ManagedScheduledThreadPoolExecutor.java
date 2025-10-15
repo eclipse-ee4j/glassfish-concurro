@@ -1,6 +1,7 @@
 /*
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2022, 2024 Payara Foundation and/or its affiliates.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2022 - 2024 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -17,6 +18,13 @@
 
 package org.glassfish.concurro.internal;
 
+import jakarta.enterprise.concurrent.LastExecution;
+import jakarta.enterprise.concurrent.SkippedException;
+import jakarta.enterprise.concurrent.Trigger;
+
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Delayed;
@@ -31,14 +39,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+
 import org.glassfish.concurro.AbstractManagedExecutorService;
 import org.glassfish.concurro.AbstractManagedThread;
-import jakarta.enterprise.concurrent.LastExecution;
-import jakarta.enterprise.concurrent.SkippedException;
-import jakarta.enterprise.concurrent.Trigger;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 
 /**
  * ThreadPoolExecutor for running tasks submitted to
@@ -64,10 +67,13 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         super(corePoolSize, threadFactory, handler);
     }
 
+    /**
+     * @param threadLifeTime keep alive time in seconds
+     */
     public void setThreadLifeTime(long threadLifeTime) {
         this.threadLifeTime = threadLifeTime;
         if (threadLifeTime > 0) {
-            // do not set allowCoreThreadTimeOut(true); as warned by 
+            // do not set allowCoreThreadTimeOut(true); as warned by
             // ScheduledThreadPoolExecutor javadoc
             long keepAliveTime = getKeepAliveTime(TimeUnit.SECONDS);
             if (keepAliveTime == 0 || threadLifeTime < keepAliveTime) {
@@ -100,8 +106,9 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         Delayed head = (Delayed) super.getQueue().peek();
         if (head != null) {
             long headDelay = head.getDelay(TimeUnit.NANOSECONDS);
-            if (headDelay < 0 && (delay - headDelay < 0))
+            if (headDelay < 0 && (delay - headDelay < 0)) {
                 delay = Long.MAX_VALUE + headDelay;
+            }
         }
         return delay;
     }
@@ -112,7 +119,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
     private long triggerTime(long delay, TimeUnit unit) {
         return triggerTime(unit.toNanos((delay < 0) ? 0 : delay));
     }
- 
+
     /**
      * Returns the trigger time of a delayed action.
      */
@@ -155,13 +162,14 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
     void reExecutePeriodic(RunnableScheduledFuture<?> task) {
         if (canRunInCurrentRunState(true)) {
             super.getQueue().add(task);
-            if (!canRunInCurrentRunState(true) && remove(task))
+            if (!canRunInCurrentRunState(true) && remove(task)) {
                 task.cancel(false);
-            else
+            } else {
                 ensurePrestart();
+            }
         }
     }
-    
+
     /**
      * Invokes the rejected execution handler for the given command.
      * Package-protected for use by ScheduledThreadPoolExecutor.
@@ -186,16 +194,17 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
      */
     private void delayedExecute(ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<?> task) {
         task.submitted();
-        if (isShutdown())
+        if (isShutdown()) {
             reject(task);
-        else {
+        } else {
             super.getQueue().add(task);
             if (isShutdown() &&
                 !canRunInCurrentRunState(task.isPeriodic()) &&
-                remove(task))
+                remove(task)) {
                 task.cancel(false);
-            else
+            } else {
                 ensurePrestart();
+            }
         }
     }
 
@@ -212,10 +221,10 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         if (command == null || unit == null) {
             throw new NullPointerException();
         }
-        ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<V> t = 
+        ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<V> t =
             new ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<>(
                 executor,
-                command, 
+                command,
                 result,
                 triggerTime(delay, unit));
         delayedExecute(t);
@@ -226,9 +235,10 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
                                            Callable<V> callable,
                                            long delay,
                                            TimeUnit unit) {
-        if (callable == null || unit == null)
+        if (callable == null || unit == null) {
             throw new NullPointerException();
-        ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<V> t = 
+        }
+        ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<V> t =
             new ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<>(
                 executor,
                 callable,
@@ -240,9 +250,10 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
     public ScheduledFuture<?> schedule(AbstractManagedExecutorService executor,
                                        Runnable command,
                                        Trigger trigger) {
-        if (command == null)
+        if (command == null) {
             throw new NullPointerException();
-        return 
+        }
+        return
             new ManagedScheduledThreadPoolExecutor.TriggerControllerFuture<>(
                 executor,
                 command,
@@ -253,28 +264,31 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
     public <V> ScheduledFuture<V> schedule(AbstractManagedExecutorService executor,
                                            Callable<V> callable,
                                            Trigger trigger) {
-        if (callable == null )
+        if (callable == null ) {
             throw new NullPointerException();
-        return 
+        }
+        return
             new ManagedScheduledThreadPoolExecutor.TriggerControllerFuture<>(
                 executor,
                 callable,
                 trigger);
     }
-    
+
 
     public ScheduledFuture<?> scheduleAtFixedRate(AbstractManagedExecutorService executor,
                                                   Runnable command,
                                                   long initialDelay,
                                                   long period,
                                                   TimeUnit unit) {
-        if (command == null || unit == null)
+        if (command == null || unit == null) {
             throw new NullPointerException();
-        if (period <= 0)
+        }
+        if (period <= 0) {
             throw new IllegalArgumentException();
+        }
         ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<Void> t =
             new ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<>(
-                executor,            
+                executor,
                 command,
                 null,
                 triggerTime(initialDelay, unit),
@@ -288,10 +302,12 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
                                                      long initialDelay,
                                                      long delay,
                                                      TimeUnit unit) {
-        if (command == null || unit == null)
+        if (command == null || unit == null) {
             throw new NullPointerException();
-        if (delay <= 0)
+        }
+        if (delay <= 0) {
             throw new IllegalArgumentException();
+        }
         ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<Void> t =
             new ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<>(
                 executor,
@@ -329,7 +345,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
         super.beforeExecute(t, r);
-        
+
         ManagedFutureTask task = (ManagedFutureTask) r;
         task.setupContext();
         task.starting(t);
@@ -337,11 +353,11 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
 
     public <V> ManagedFutureTask<V> newTaskFor(
             AbstractManagedExecutorService executor,
-            Runnable r, 
+            Runnable r,
             V result) {
         return new ManagedScheduledFutureTask<>(executor, r, result, 0L);
     }
-    
+
     public ManagedFutureTask newTaskFor(
             AbstractManagedExecutorService executor,
             Callable callable) {
@@ -356,9 +372,9 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             schedule(task.executor, task, null, 0L, TimeUnit.NANOSECONDS);
         }
     }
-    
+
     /**
-     * Adopted from private class 
+     * Adopted from private class
      * java.util.concurrent.ScheduledThreadPoolExeuctor$ScheduledFutureTask<V>
      * to provide extended functionalities.
      */
@@ -378,7 +394,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
          * non-repeating task.
          */
         private final long period;
-        
+
         /** The actual task to be re-enqueued by reExecutePeriodic */
         RunnableScheduledFuture<V> outerTask = this;
 
@@ -390,9 +406,9 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         /**
          * Creates a one-shot action with given nanoTime-based execution time.
          */
-        ManagedScheduledFutureTask(AbstractManagedExecutorService executor, 
-                Runnable r, 
-                V result, 
+        ManagedScheduledFutureTask(AbstractManagedExecutorService executor,
+                Runnable r,
+                V result,
                 long ns) {
             this(executor, r, result, ns, 0L);
         }
@@ -400,8 +416,8 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         /**
          * Creates a one-shot action with given nanoTime-based execution time.
          */
-        ManagedScheduledFutureTask(AbstractManagedExecutorService executor, 
-                Callable<V> callable, 
+        ManagedScheduledFutureTask(AbstractManagedExecutorService executor,
+                Callable<V> callable,
                 long ns) {
             this(executor, callable, ns, 0L);
         }
@@ -410,9 +426,9 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
          * Creates a periodic action with given nano time and period.
          */
         ManagedScheduledFutureTask(AbstractManagedExecutorService executor,
-                Runnable r, 
-                V result, 
-                long ns, 
+                Runnable r,
+                V result,
+                long ns,
                 long period) {
             super(executor, r, result);
             this.nextRunTime = ns;
@@ -440,20 +456,21 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             if (other instanceof ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask) {
                 ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<?> x = (ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask<?>)other;
                 long diff = nextRunTime - x.nextRunTime;
-                if (diff < 0)
+                if (diff < 0) {
                     return -1;
-                else if (diff > 0)
+                } else if (diff > 0) {
                     return 1;
-                else if (sequenceNumber < x.sequenceNumber)
+                } else if (sequenceNumber < x.sequenceNumber) {
                     return -1;
-                else
+                } else {
                     return 1;
+                }
             }
             long d = (getDelay(TimeUnit.NANOSECONDS) -
                       other.getDelay(TimeUnit.NANOSECONDS));
             return (d == 0) ? 0 : ((d < 0) ? -1 : 1);
         }
-        
+
         @Override
         public boolean equals(Object other) {
             if (other instanceof ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask)
@@ -468,7 +485,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             // using same logic as Long.hashCode()
             return (int)(sequenceNumber^(sequenceNumber>>>32));
         }
-        
+
         /**
          * Returns true if this is a periodic (not a one-shot) action.
          *
@@ -486,10 +503,11 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
          */
         private void setNextRunTime() {
             long p = period;
-            if (p > 0)
+            if (p > 0) {
                 nextRunTime += p;
-            else
+            } else {
                 nextRunTime = triggerTime(-p);
+            }
         }
 
         @Override
@@ -519,7 +537,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             }
         }
     }
-    
+
     /**
      * Represents one task scheduled by TriggerControllerFuture
      */
@@ -528,8 +546,8 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
 
         private TriggerControllerFuture controller;
         private final ZonedDateTime scheduledRunTime;
-        
-        ManagedTriggerSingleFutureTask(AbstractManagedExecutorService executor, 
+
+        ManagedTriggerSingleFutureTask(AbstractManagedExecutorService executor,
                                  Callable<V> callable,
                                  long ns,
                                  long scheduledRunTime,
@@ -539,7 +557,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             this.scheduledRunTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(scheduledRunTime), ZoneId.systemDefault());
         }
 
-        ManagedTriggerSingleFutureTask(AbstractManagedExecutorService executor, 
+        ManagedTriggerSingleFutureTask(AbstractManagedExecutorService executor,
                                  Runnable r,
                                  long ns,
                                  long scheduledRunTime,
@@ -548,11 +566,11 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             this.controller = controller;
             this.scheduledRunTime = ZonedDateTime.ofInstant(Instant.ofEpochMilli(scheduledRunTime), ZoneId.systemDefault());
         }
-        
+
         private long getDelayFromDate(Date nextRunTime) {
             return triggerTime(nextRunTime.getTime() - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
         }
-        
+
         @Override
         public boolean isPeriodic() {
             return false;
@@ -568,10 +586,10 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             try {
                 super.run();
                 lastResult = get();
-            } catch (Throwable t) {             
+            } catch (Throwable t) {
             }
             ZonedDateTime lastRunEndTime = ZonedDateTime.now();
-            controller.doneExecution(lastResult, 
+            controller.doneExecution(lastResult,
                     scheduledRunTime, lastRunStartTime, lastRunEndTime);
         }
 
@@ -581,13 +599,13 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         }
 
     }
-    
+
     /**
      * Future that is returned by schedule with Trigger methods.
-     * It is responsible for periodically submitting tasks until 
+     * It is responsible for periodically submitting tasks until
      * Trigger.getNextRunTime() returns null
-     * 
-     * @param <V> 
+     *
+     * @param <V>
      */
     private class TriggerControllerFuture<V> extends ManagedFutureTask<V> implements ScheduledFuture<V> {
 
@@ -633,7 +651,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             long ns = triggerTime(nextRunTime.getTime() - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
             try {
                 lock.lock();
-                ManagedTriggerSingleFutureTask<V> future = 
+                ManagedTriggerSingleFutureTask<V> future =
                         new ManagedTriggerSingleFutureTask(executor, callable, ns, nextRunTime.getTime(), this);
                 delayedExecute(future);
                 currentFuture = future;
@@ -706,7 +724,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
             }
             return false;
         }
-        
+
         private ManagedTriggerSingleFutureTask<V> getCurrentFuture() {
             try {
                 lock.lock();
@@ -715,7 +733,7 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
                 lock.unlock();
             }
         }
-        
+
         private class LastExecutionImpl<V> implements LastExecution {
 
             private V result;

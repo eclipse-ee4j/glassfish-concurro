@@ -45,11 +45,12 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
 
     public static final String MANAGED_THREAD_FACTORY_STOPPED = "ManagedThreadFactory is stopped";
 
-    private List<Thread> threads;
-    private boolean stopped = false;
-    private Lock lock; // protects threads and stopped
+    private final String name;
+    private final int priority;
+    private final List<Thread> threads;
+    /** protects threads and stopped */
+    private final Lock lock;
 
-    private String name;
     private final ContextSetupProvider contextSetupProvider;
     // A non-null ContextService should be provided if thread context should
     // be setup before running the Runnable passed in through the newThread
@@ -63,9 +64,11 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     // it is kept in savedContextHandleForSetup.
     @Deprecated(forRemoval = true, since = "3.1.0")
     protected ContextHandle savedContextHandleForSetup;
-    private int priority;
-    private long hungTaskThreshold = 0L; // in milliseconds
-    private AtomicInteger threadIdSequence = new AtomicInteger();
+
+    private boolean stopped;
+    private final AtomicInteger threadIdSequence = new AtomicInteger();
+    /** In milliseconds */
+    private long hungTaskThreshold = 0L;
 
     public ManagedThreadFactoryImpl(String name) {
         this(name, null, Thread.NORM_PRIORITY);
@@ -82,8 +85,8 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         this.contextService = contextService;
         this.contextSetupProvider = contextService != null? contextService.getContextSetupProvider(): null;
         this.priority = priority;
-        threads = new ArrayList<>();
-        lock = new ReentrantLock();
+        this.threads = new ArrayList<>();
+        this.lock = new ReentrantLock();
     }
 
     public String getName() {
@@ -125,20 +128,12 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
     }
 
     protected Thread createThread(final Runnable runnable, final ContextHandle contextHandleForSetup) {
-        return createThreadInternal(runnable, contextHandleForSetup);
-    }
-
-    private Thread createThreadInternal(final Runnable r, final ContextHandle contextHandleForSetup) {
-        ManagedThread newThread = new ManagedThread(r, contextHandleForSetup);
+        ManagedThread newThread = new ManagedThread(runnable, contextHandleForSetup);
         newThread.setPriority(priority);
         return newThread;
     }
 
     protected ForkJoinWorkerThread createWorkerThread(final ForkJoinPool forkJoinPool, final ContextHandle contextHandleForSetup) {
-        return createWorkerThreadInternal(forkJoinPool, contextHandleForSetup);
-    }
-
-    private WorkerThread createWorkerThreadInternal(final ForkJoinPool forkJoinPool, final ContextHandle contextHandleForSetup) {
         WorkerThread newThread = new WorkerThread(forkJoinPool, contextHandleForSetup);
         newThread.setPriority(priority);
         return newThread;
@@ -148,8 +143,7 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
         lock.lock();
         try {
             threads.remove(t);
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -222,11 +216,13 @@ public class ManagedThreadFactoryImpl implements ManagedThreadFactory {
                 // Do not create new ForkJoinWorkerThread and throw IllegalStateException if stopped
                 throw new IllegalStateException(MANAGED_THREAD_FACTORY_STOPPED);
             }
-            ContextHandle contextHandleForSetup = null;
+            final ContextHandle contextHandleForSetup;
             if (savedContextHandleForSetup != null) {
                 contextHandleForSetup = savedContextHandleForSetup;
             } else if (contextSetupProvider != null) {
                 contextHandleForSetup = contextSetupProvider.saveContext(contextService);
+            } else {
+                contextHandleForSetup = null;
             }
             ForkJoinWorkerThread newThread = createWorkerThread(pool, contextHandleForSetup);
             threads.add(newThread);
