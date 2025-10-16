@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2024, 2025 Contributors to the Eclipse Foundation.
- * Copyright (c) 2022-2024 Payara Foundation and/or its affiliates.
+ * Copyright (c) 2022, 2024 Payara Foundation and/or its affiliates.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -41,6 +41,8 @@ import jakarta.enterprise.inject.spi.ProcessAnnotatedType;
 import jakarta.enterprise.inject.spi.ProcessBean;
 import jakarta.enterprise.inject.spi.WithAnnotations;
 import jakarta.transaction.Transactional;
+
+import java.lang.System.Logger;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -51,15 +53,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
 import org.glassfish.concurro.cdi.asynchronous.AsynchronousInterceptor;
 import org.glassfish.concurro.cdi.lock.LockInterceptor;
+
+import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.ERROR;
+import static java.lang.System.Logger.Level.TRACE;
 
 /**
  * CDI Extension for Jakarta Concurrent implementation backported from Payara.
@@ -68,7 +73,7 @@ import org.glassfish.concurro.cdi.lock.LockInterceptor;
  */
 public class ConcurrentCDIExtension implements Extension {
 
-    private static final Logger log = Logger.getLogger(ConcurrentCDIExtension.class.getName());
+    private static final Logger LOG = System.getLogger(ConcurrentCDIExtension.class.getName());
     private boolean isCSProduced = false;
     private boolean isMTFProduced = false;
     private boolean isMESProduced = false;
@@ -77,7 +82,7 @@ public class ConcurrentCDIExtension implements Extension {
     private ConcurrencyManagedCDIBeans configs = new ConcurrencyManagedCDIBeans();
 
     public void beforeBeanDiscovery(@Observes BeforeBeanDiscovery beforeBeanDiscovery, BeanManager beanManager) {
-        log.finest("ConcurrentCDIExtension.beforeBeanDiscovery");
+        LOG.log(TRACE, "ConcurrentCDIExtension.beforeBeanDiscovery");
 
         // Add each of the Concurrent interceptors
         addAnnotatedTypes(beforeBeanDiscovery, beanManager,
@@ -95,7 +100,7 @@ public class ConcurrentCDIExtension implements Extension {
      */
     public <T> void processAnnotatedType(@Observes @WithAnnotations({Asynchronous.class}) ProcessAnnotatedType<T> processAnnotatedType,
             BeanManager beanManager) throws Exception {
-        log.finest("ConcurrentCDIExtension.processAnnotatedType");
+        LOG.log(TRACE, "ConcurrentCDIExtension.processAnnotatedType");
         AnnotatedType<T> annotatedType = processAnnotatedType.getAnnotatedType();
 
         // Validate the Asynchronous annotations for each annotated method
@@ -113,23 +118,25 @@ public class ConcurrentCDIExtension implements Extension {
             }
             Class<?> returnType = method.getReturnType();
             boolean validReturnType = returnType.equals(Void.TYPE)
-                    || returnType.equals(CompletableFuture.class)
-                    || returnType.equals(CompletionStage.class);
+                || returnType.equals(CompletableFuture.class)
+                || returnType.equals(CompletionStage.class);
             if (!validReturnType) {
-                throw new UnsupportedOperationException("Method \"" + method.getName() + "\""
-                        + " annotated with " + Asynchronous.class.getCanonicalName() + " does not return a CompletableFuture, CompletableFuture or void.");
+                throw new UnsupportedOperationException(
+                    "Method \"" + method.getName() + "\"" + " annotated with " + Asynchronous.class.getCanonicalName()
+                        + " does not return a CompletableFuture, CompletableFuture or void.");
             }
             Transactional transactionalAnnotation = annotatedMethod.getAnnotation(Transactional.class);
             if (transactionalAnnotation != null
-                    && transactionalAnnotation.value() != Transactional.TxType.REQUIRES_NEW
-                    && transactionalAnnotation.value() != Transactional.TxType.NOT_SUPPORTED) {
-                throw new UnsupportedOperationException("Method \"" + method.getName() + "\""
-                        + " annotated with " + Asynchronous.class.getCanonicalName() + " is annotated with @Transactional, but not one of the allowed types: REQUIRES_NEW or NOT_SUPPORTED.");
+                && transactionalAnnotation.value() != Transactional.TxType.REQUIRES_NEW
+                && transactionalAnnotation.value() != Transactional.TxType.NOT_SUPPORTED) {
+                throw new UnsupportedOperationException("Method \"" + method.getName() + "\"" + " annotated with "
+                    + Asynchronous.class.getCanonicalName()
+                    + " is annotated with @Transactional, but not one of the allowed types: REQUIRES_NEW or NOT_SUPPORTED.");
             }
         }
     }
 
-    private void addDefinition(ConcurrencyManagedCDIBeans configs, ConcurrencyManagedCDIBeans.Type type, Class<?>[] qualifiers, String jndiName) {
+    private void addDefinition(ConcurrencyManagedCDIBeans.Type type, Class<?>[] qualifiers, String jndiName) {
         if (qualifiers.length > 0) {
             configs.addDefinition(type,
                     Stream.of(qualifiers).map(c -> c.getName()).collect(Collectors.toSet()),
@@ -150,19 +157,19 @@ public class ConcurrentCDIExtension implements Extension {
             BeanManager beanManager) throws Exception {
         Set<ContextServiceDefinition> contextServiceDefinitions = processAnnotatedType.getAnnotatedType().getAnnotations(ContextServiceDefinition.class);
         for (ContextServiceDefinition definition : contextServiceDefinitions) {
-            addDefinition(configs, ConcurrencyManagedCDIBeans.Type.CONTEXT_SERVICE, definition.qualifiers(), definition.name());
+            addDefinition(ConcurrencyManagedCDIBeans.Type.CONTEXT_SERVICE, definition.qualifiers(), definition.name());
         }
         Set<ManagedThreadFactoryDefinition> managedThreadFactoryDefinitions = processAnnotatedType.getAnnotatedType().getAnnotations(ManagedThreadFactoryDefinition.class);
         for (ManagedThreadFactoryDefinition definition : managedThreadFactoryDefinitions) {
-            addDefinition(configs, ConcurrencyManagedCDIBeans.Type.MANAGED_THREAD_FACTORY, definition.qualifiers(), definition.name());
+            addDefinition(ConcurrencyManagedCDIBeans.Type.MANAGED_THREAD_FACTORY, definition.qualifiers(), definition.name());
         }
         Set<ManagedExecutorDefinition> managedExecutorDefinitions = processAnnotatedType.getAnnotatedType().getAnnotations(ManagedExecutorDefinition.class);
         for (ManagedExecutorDefinition definition : managedExecutorDefinitions) {
-            addDefinition(configs, ConcurrencyManagedCDIBeans.Type.MANAGED_EXECUTOR_SERVICE, definition.qualifiers(), definition.name());
+            addDefinition(ConcurrencyManagedCDIBeans.Type.MANAGED_EXECUTOR_SERVICE, definition.qualifiers(), definition.name());
         }
         Set<ManagedScheduledExecutorDefinition> managedScheduledExecutorDefinitions = processAnnotatedType.getAnnotatedType().getAnnotations(ManagedScheduledExecutorDefinition.class);
         for (ManagedScheduledExecutorDefinition definition : managedScheduledExecutorDefinitions) {
-            addDefinition(configs, ConcurrencyManagedCDIBeans.Type.MANAGED_SCHEDULED_EXECUTOR_SERVICE, definition.qualifiers(), definition.name());
+            addDefinition(ConcurrencyManagedCDIBeans.Type.MANAGED_SCHEDULED_EXECUTOR_SERVICE, definition.qualifiers(), definition.name());
         }
     }
 
@@ -192,7 +199,7 @@ public class ConcurrentCDIExtension implements Extension {
      * @param event
      */
     void afterBeanDiscovery(@Observes final AfterBeanDiscovery event, BeanManager beanManager) {
-        log.finest("ConcurrentCDIExtension.afterBeanDiscovery");
+        LOG.log(TRACE, "ConcurrentCDIExtension.afterBeanDiscovery");
         try {
             // define default beans, if there is no user-defined factory
             if (!isCSProduced) {
@@ -239,7 +246,8 @@ public class ConcurrentCDIExtension implements Extension {
 
                 }
             } catch (NamingException ex) {
-                log.log(Level.FINEST, "Unable to load '" + ConcurrencyManagedCDIBeans.JNDI_NAME + "' from JNDI, probably no concurrency definitions annotations found during scanning " + ex.getMessage(), ex);
+                LOG.log(DEBUG, "Unable to load '" + ConcurrencyManagedCDIBeans.JNDI_NAME
+                    + "' from JNDI, probably no concurrency definitions annotations found during scanning.", ex);
             }
 
             for (Map.Entry<String, ConcurrencyManagedCDIBeans.ConfiguredCDIBean> beanDefinitionEntry : configs.getBeans().entrySet()) {
@@ -277,7 +285,7 @@ public class ConcurrentCDIExtension implements Extension {
                 }
             }
         } catch (ClassNotFoundException ex) {
-            log.log(Level.SEVERE, "Unable to load class from application's classloader: " + ex.getMessage(), ex);
+            LOG.log(ERROR, "Unable to load class from application's classloader: " + ex.getMessage(), ex);
         }
     }
 
@@ -291,7 +299,6 @@ public class ConcurrentCDIExtension implements Extension {
             Object concurrencyObject = ctx.lookup(jndi);
             return concurrencyObject;
         } catch (NamingException ex) {
-            Logger.getLogger(ConcurrentCDIExtension.class.getName()).log(Level.SEVERE, null, ex);
             throw new RuntimeException("Unable to fine JNDI '" + jndi + "': " + ex.getMessage(), ex);
         }
     }

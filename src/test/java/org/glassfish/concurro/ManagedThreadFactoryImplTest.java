@@ -19,6 +19,7 @@ package org.glassfish.concurro;
 
 import jakarta.enterprise.concurrent.ManageableThread;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
@@ -30,9 +31,9 @@ import org.glassfish.concurro.spi.ContextSetupProvider;
 import org.glassfish.concurro.test.ClassloaderContextSetupProvider;
 import org.glassfish.concurro.test.FakeRunnableForTest;
 import org.glassfish.concurro.test.TestContextService;
-import org.glassfish.concurro.test.Util;
 import org.junit.jupiter.api.Test;
 
+import static org.glassfish.concurro.test.Util.retry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -55,13 +56,13 @@ public class ManagedThreadFactoryImplTest {
 
     @Test
     public void testNewThread_priority_daemon() throws Exception {
-        final int PRIORITY = 7;
+        final int priority = 7;
         ContextSetupProvider callback = new ClassloaderContextSetupProvider("ManagedThreadFactoryImplTest");
         ContextServiceImpl contextService = new TestContextService(callback);
-        ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("test1", contextService, PRIORITY);
+        ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("test1", contextService, priority);
         Runnable r = new FakeRunnableForTest(null);
         Thread newThread = factory.newThread(r);
-        verifyThreadProperties(newThread, true, PRIORITY);
+        verifyThreadProperties(newThread, true, priority);
 
         ManagedThreadFactoryImpl factory2 = new ManagedThreadFactoryImpl("test1", contextService, Thread.MIN_PRIORITY);
         newThread = factory2.newThread(r);
@@ -70,16 +71,16 @@ public class ManagedThreadFactoryImplTest {
 
     @Test
     public void testNewThread_context() throws Exception {
-        final String CLASSLOADER_NAME = "ManagedThreadFactoryImplTest:" + new java.util.Date(System.currentTimeMillis());
-        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(CLASSLOADER_NAME);
+        final String classLoaderName = "ManagedThreadFactoryImplTest:" + LocalDateTime.now();
+        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(classLoaderName);
         ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
         ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("test1", contextService);
 
         FakeRunnableForTest r = new FakeRunnableForTest(null);
         Thread newThread = factory.newThread(r);
         newThread.start();
-        Util.waitForTaskComplete(r, getLoggerName());
-        r.verifyAfterRun(CLASSLOADER_NAME);
+        retry(() -> assertTrue(r.runCalled));
+        r.verifyAfterRun(classLoaderName);
     }
 
     @Test
@@ -113,8 +114,8 @@ public class ManagedThreadFactoryImplTest {
 
     @Test
     public void testNewThreadForkJoinPoolContext() throws Exception {
-        final String CLASSLOADER_NAME = "ManagedThreadFactoryImplTest:" + new java.util.Date(System.currentTimeMillis());
-        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(CLASSLOADER_NAME);
+        final String classLoaderName = "ManagedThreadFactoryImplTest:" + LocalDateTime.now();
+        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(classLoaderName);
         ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
         ManagedThreadFactoryImpl factory = new ManagedThreadFactoryImpl("test1", contextService);
         final long[] numbers = LongStream.rangeClosed(1, 10_000).toArray();
@@ -127,7 +128,7 @@ public class ManagedThreadFactoryImplTest {
         }));
         totals.get();
         pool.shutdown();
-        assertTrue(atomicReference.get().contains(CLASSLOADER_NAME));
+        assertTrue(atomicReference.get().contains(classLoaderName));
     }
 
     @Test
@@ -141,10 +142,6 @@ public class ManagedThreadFactoryImplTest {
     private void verifyThreadProperties(Thread thread, boolean isDaemon, int priority) {
         assertEquals(isDaemon, thread.isDaemon());
         assertEquals(priority, thread.getPriority());
-    }
-
-    private String getLoggerName() {
-        return ManagedThreadFactoryImplTest.class.getName();
     }
 
     static class TestRunnable implements Runnable {

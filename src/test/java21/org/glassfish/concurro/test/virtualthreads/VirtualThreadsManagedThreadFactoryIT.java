@@ -17,6 +17,7 @@
 
 package org.glassfish.concurro.test.virtualthreads;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
@@ -29,10 +30,10 @@ import org.glassfish.concurro.spi.ContextSetupProvider;
 import org.glassfish.concurro.test.ClassloaderContextSetupProvider;
 import org.glassfish.concurro.test.FakeRunnableForTest;
 import org.glassfish.concurro.test.TestContextService;
-import org.glassfish.concurro.test.Util;
 import org.glassfish.concurro.virtualthreads.VirtualThreadsManagedThreadFactory;
 import org.junit.jupiter.api.Test;
 
+import static org.glassfish.concurro.test.Util.retry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -55,16 +56,16 @@ public class VirtualThreadsManagedThreadFactoryIT {
 
     @Test
     public void testNewThread_context() throws Exception {
-        final String CLASSLOADER_NAME = "VirtualThreadsManagedThreadFactoryIT:" + new java.util.Date(System.currentTimeMillis());
-        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(CLASSLOADER_NAME);
+        final String classLoaderName = "VirtualThreadsManagedThreadFactoryIT:" + LocalDateTime.now();
+        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(classLoaderName);
         ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
         VirtualThreadsManagedThreadFactory factory = new VirtualThreadsManagedThreadFactory("test1", contextService);
 
         FakeRunnableForTest r = new FakeRunnableForTest(null);
         Thread newThread = factory.newThread(r);
         newThread.start();
-        Util.waitForTaskComplete(r, getLoggerName());
-        r.verifyAfterRun(CLASSLOADER_NAME);
+        retry(() -> assertTrue(r.runCalled));
+        r.verifyAfterRun(classLoaderName);
     }
 
     @Test
@@ -98,8 +99,8 @@ public class VirtualThreadsManagedThreadFactoryIT {
 
     @Test
     public void testNewThreadForkJoinPoolContext() throws Exception {
-        final String CLASSLOADER_NAME = "VirtualThreadsManagedThreadFactoryIT:" + new java.util.Date(System.currentTimeMillis());
-        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(CLASSLOADER_NAME);
+        final String classLoaderName = "VirtualThreadsManagedThreadFactoryIT:" + LocalDateTime.now();
+        ContextSetupProvider contextSetupProvider = new ClassloaderContextSetupProvider(classLoaderName);
         ContextServiceImpl contextService = new TestContextService(contextSetupProvider);
         VirtualThreadsManagedThreadFactory factory = new VirtualThreadsManagedThreadFactory("test1", contextService);
         final long[] numbers = LongStream.rangeClosed(1, 10_000).toArray();
@@ -112,7 +113,7 @@ public class VirtualThreadsManagedThreadFactoryIT {
         }));
         totals.get();
         pool.shutdown();
-        assertTrue(atomicReference.get().contains(CLASSLOADER_NAME));
+        assertTrue(atomicReference.get().contains(classLoaderName));
     }
 
     @Test
@@ -126,10 +127,6 @@ public class VirtualThreadsManagedThreadFactoryIT {
     private void verifyThreadProperties(Thread thread, boolean isDaemon, int priority) {
         assertEquals(isDaemon, thread.isDaemon());
         assertEquals(priority, thread.getPriority());
-    }
-
-    private String getLoggerName() {
-        return VirtualThreadsManagedThreadFactoryIT.class.getName();
     }
 
     static class TestRunnable implements Runnable {

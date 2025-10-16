@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -16,40 +17,42 @@
 
 package org.glassfish.concurro.test;
 
+import java.lang.System.Logger;
+import java.time.Instant;
 import java.util.ArrayList;
 
+import static java.lang.System.Logger.Level.INFO;
+
 /**
- * A Runnable for use in scheduleAtFixedRate, scheduleWithFixedDelay, and 
+ * A Runnable for use in scheduleAtFixedRate, scheduleWithFixedDelay, and
  * schedule with Trigger tests.
  */
-public class TimeRecordingRunnableImpl extends ManagedRunnableTestTask {
+public class TimeRecordingTestRunnable extends ManagedRunnableTestTask {
+    private static final Logger LOG = System.getLogger(TimeRecordingTestRunnable.class.getName());
 
-    ArrayList<Long> invocations = new ArrayList<>();
+    private ArrayList<Long> invocations = new ArrayList<>();
 
-    public boolean DEBUG;
-    
-    public TimeRecordingRunnableImpl(ManagedTestTaskListener taskListener) {
+    public TimeRecordingTestRunnable(ManagedTestTaskListener taskListener) {
         super(taskListener);
         invocations.add(System.currentTimeMillis());
     }
 
-    public TimeRecordingRunnableImpl(ManagedTestTaskListener taskListener, RuntimeException runException) {
+    public TimeRecordingTestRunnable(ManagedTestTaskListener taskListener, RuntimeException runException) {
         super(taskListener, runException);
         invocations.add(System.currentTimeMillis());
     }
-    
-    
+
+
     @Override
     public void run() {
+        synchronized (invocations) {
+            LOG.log(INFO, "run() executed at " + Instant.now());
+            invocations.add(System.currentTimeMillis());
+        }
         try {
-            synchronized(invocations) {
-                if (DEBUG) System.out.println("TimeRecordingRunnableImpl.run()" + new java.util.Date(System.currentTimeMillis()));
-                invocations.add(System.currentTimeMillis());
-            }
-            // sleep for 1 second
             Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
         super.run();
     }

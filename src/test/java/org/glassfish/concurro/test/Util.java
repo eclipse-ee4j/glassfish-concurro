@@ -17,14 +17,7 @@
 
 package org.glassfish.concurro.test;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
-
-import static org.glassfish.concurro.test.ManagedTestTaskListener.ABORTED;
-import static org.glassfish.concurro.test.ManagedTestTaskListener.DONE;
-import static org.glassfish.concurro.test.ManagedTestTaskListener.STARTING;
+import java.time.Instant;
 
 public class Util {
 
@@ -34,45 +27,9 @@ public class Util {
       public boolean getValue();
     }
 
-    public static boolean waitForBoolean(BooleanValueProducer valueProducer, boolean expectedValue, String loggerName) throws InterruptedException {
-        long endWaitTime = System.currentTimeMillis() + MAX_WAIT_TIME;
-        boolean value = valueProducer.getValue();
-        while ((value != expectedValue) && endWaitTime > System.currentTimeMillis()) {
-            Thread.sleep(100);
-            value = valueProducer.getValue();
-        }
-        return value;
-    }
-
-
-    public static boolean waitForTaskStarted(final Future<?> future, final ManagedTestTaskListener listener,
-        String loggerName) throws InterruptedException {
-        return waitForBoolean(() -> listener.eventCalled(future, STARTING), true, loggerName);
-    }
-
-
-    public static boolean waitForTaskComplete(final FakeRunnableForTest task, String loggerName)
-        throws InterruptedException {
-        return waitForBoolean(() -> task.runCalled, true, loggerName);
-    }
-
-
-    public static boolean waitForTaskAborted(final Future<?> future, final ManagedTestTaskListener listener,
-        String loggerName) throws InterruptedException {
-        return waitForBoolean(() -> listener.eventCalled(future, ABORTED), true, loggerName);
-    }
-
-
-    public static boolean waitForTaskDone(final Future<?> future, final ManagedTestTaskListener listener,
-        String loggerName) throws InterruptedException {
-        return waitForBoolean(() -> listener.eventCalled(future, DONE), true, loggerName);
-    }
-
-
     public static String generateName() {
-        return new java.util.Date(System.currentTimeMillis()).toString();
+        return Instant.now().toString();
     }
-
 
     /**
      * Ignores {@link Exception}s and {@link AssertionError}s for {@value #MAX_WAIT_TIME} millis
@@ -94,10 +51,6 @@ public class Util {
             }
         }
         action.action();
-    }
-
-    public static void log(String message) {
-        System.out.println(DateTimeFormatter.ISO_TIME.format(LocalDateTime.now()) + ": " + message);
     }
 
     @FunctionalInterface

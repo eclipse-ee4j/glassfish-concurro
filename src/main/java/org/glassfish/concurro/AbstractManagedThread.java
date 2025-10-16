@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -19,13 +20,12 @@ package org.glassfish.concurro;
 import jakarta.enterprise.concurrent.ManageableThread;
 
 /**
- * Abstract base class for threads to be returned by 
+ * Abstract base class for threads to be returned by
  * {@link ManagedThreadFactoryImpl#createThread(java.lang.Runnable, org.glassfish.concurro.spi.ContextHandle) }
  * @author alai
  */
 public abstract class AbstractManagedThread extends Thread implements ManageableThread {
-    volatile boolean shutdown = false;
-    final long threadStartTime = System.currentTimeMillis();
+    private volatile boolean shutdown;
 
     public AbstractManagedThread(Runnable target) {
         super(target);
@@ -49,7 +49,7 @@ public abstract class AbstractManagedThread extends Thread implements Manageable
 
     /**
      * Return the identity name of the task that is being run on this thread.
-     * 
+     *
      * @return The identity name of the task that is being run on this thread, or
      * "null" if there is none.
      */
@@ -57,19 +57,19 @@ public abstract class AbstractManagedThread extends Thread implements Manageable
 
     /**
      * Return the time in millisecond since the task has started.
-     * 
+     *
      * @param now The current time in milliseconds, which is typically obtained
      *            by calling {@link System#currentTimeMillis() }
-     * 
+     *
      * @return The time since the task has started in milliseconds.
      */
     abstract public long getTaskRunTime(long now);
 
     /**
-     * Return the time that the thread was started, measured in milliseconds, 
+     * Return the time that the thread was started, measured in milliseconds,
      * between the current time and midnight, January 1, 1970 UTC.
-     * 
-     * @return The time that the thread was started, in milliseconds. 
+     *
+     * @return The time that the thread was started, in milliseconds.
      */
     public abstract long getThreadStartTime();
 

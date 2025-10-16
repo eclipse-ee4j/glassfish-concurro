@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -16,7 +17,12 @@
 
 package org.glassfish.concurro.internal;
 
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import org.glassfish.concurro.AbstractManagedThread;
 
 /**
@@ -25,7 +31,7 @@ import org.glassfish.concurro.AbstractManagedThread;
 public class ManagedThreadPoolExecutor extends ThreadPoolExecutor {
 
     private long threadLifeTime = 0L; // in seconds
-    
+
     public ManagedThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, RejectedExecutionHandler handler) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler);
     }
@@ -53,7 +59,7 @@ public class ManagedThreadPoolExecutor extends ThreadPoolExecutor {
         }
     }
 
-    
+
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
@@ -80,10 +86,10 @@ public class ManagedThreadPoolExecutor extends ThreadPoolExecutor {
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
         super.beforeExecute(t, r);
-        
+
         ManagedFutureTask task = (ManagedFutureTask) r;
         task.setupContext();
         task.starting(t);
     }
-    
+
 }
