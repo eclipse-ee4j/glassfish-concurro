@@ -18,7 +18,6 @@ package org.glassfish.concurro.test.virtualthreads;
 
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -127,24 +126,28 @@ public class VirtualThreadsManagedExecutorServiceIT {
             exec -> new ManagedRunnableTestTask(exec.listener));
         execution3.submitTo(mes); // this task should be queued
 
-        // wait for some time so tasks have some chance to start before assertions are made
-        Thread.sleep(Duration.ofSeconds(1));
-
         // task3 should wait with starting while the other 2 tasks are running
-        assertFalse(execution3.listener.eventCalled(execution3.future, ManagedTestTaskListener.STARTING));
-        assertFalse(execution1.future.isDone());
-        assertFalse(execution2.future.isDone());
+        retry(() -> assertAll(
+            () -> assertFalse(execution3.listener.eventCalled(execution3.future, ManagedTestTaskListener.STARTING)),
+            () -> assertFalse(execution1.future.isDone()),
+            () -> assertFalse(execution2.future.isDone())
+        ));
 
         execution1.task.stopBlocking();
         execution2.task.stopBlocking();
 
-        execution1.assertTaskCompleted();
-        execution2.assertTaskCompleted();
-        execution3.assertTaskCompleted();
-
-        assertTrue(execution1.future.isDone());
-        assertTrue(execution2.future.isDone());
-        assertTrue(execution3.future.isDone());
+        retry(() -> assertAll(
+            () -> execution1.assertTaskCompleted(),
+            () -> execution2.assertTaskCompleted(),
+            () -> execution3.assertTaskCompleted()
+        ));
+        // The assertTaskCompleted checks just some field set to true,
+        // but when it is set, the future is still in progress.
+        retry(() -> assertAll(
+            () -> assertTrue(execution1.future.isDone()),
+            () -> assertTrue(execution2.future.isDone()),
+            () -> assertTrue(execution3.future.isDone())
+        ));
     }
 
     @Test
@@ -177,14 +180,13 @@ public class VirtualThreadsManagedExecutorServiceIT {
                 = new TestableExecution<>("task4", exec -> new ManagedRunnableTestTask(exec.listener));
         execution4.submitTo(managedExecutorService);
 
-        // Wait for some time so tasks have some chance to start before assertions are made
-        Thread.sleep(Duration.ofSeconds(1));
-
         // Task3 and task4 should wait with starting while the other 2 tasks are running
-        assertFalse(execution3.listener.eventCalled(execution3.future, ManagedTestTaskListener.STARTING));
-        assertFalse(execution4.listener.eventCalled(execution4.future, ManagedTestTaskListener.STARTING));
-        assertFalse(execution1.future.isDone());
-        assertFalse(execution2.future.isDone());
+        retry(() -> assertAll(
+            () -> assertFalse(execution3.listener.eventCalled(execution3.future, ManagedTestTaskListener.STARTING)),
+            () -> assertFalse(execution4.listener.eventCalled(execution4.future, ManagedTestTaskListener.STARTING)),
+            () -> assertFalse(execution1.future.isDone()),
+            () -> assertFalse(execution2.future.isDone())
+        ));
 
         TestableExecution<ManagedRunnableTestTask> execution5 =
             new TestableExecution<>("task5", exec -> new ManagedRunnableTestTask(exec.listener));
@@ -197,13 +199,18 @@ public class VirtualThreadsManagedExecutorServiceIT {
         execution1.task.stopBlocking();
         execution2.task.stopBlocking();
 
-        execution1.assertTaskCompleted();
-        execution2.assertTaskCompleted();
-        execution3.assertTaskCompleted();
-
-        assertTrue(execution1.future.isDone());
-        assertTrue(execution2.future.isDone());
-        assertTrue(execution3.future.isDone());
+        retry(() -> assertAll(
+            () -> execution1.assertTaskCompleted(),
+            () -> execution2.assertTaskCompleted(),
+            () -> execution3.assertTaskCompleted()
+        ));
+        // The assertTaskCompleted checks just some field set to true,
+        // but when it is set, the future is still in progress.
+        retry(() -> assertAll(
+            () -> assertTrue(execution1.future.isDone()),
+            () -> assertTrue(execution2.future.isDone()),
+            () -> assertTrue(execution3.future.isDone())
+        ));
     }
 
     /**

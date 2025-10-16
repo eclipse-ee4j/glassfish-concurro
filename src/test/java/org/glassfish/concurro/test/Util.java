@@ -17,19 +17,9 @@
 
 package org.glassfish.concurro.test;
 
-import java.time.Instant;
-
 public class Util {
 
     private static final long MAX_WAIT_TIME = 10000L; // 10 seconds
-
-    public static interface BooleanValueProducer {
-      public boolean getValue();
-    }
-
-    public static String generateName() {
-        return Instant.now().toString();
-    }
 
     /**
      * Ignores {@link Exception}s and {@link AssertionError}s for {@value #MAX_WAIT_TIME} millis
