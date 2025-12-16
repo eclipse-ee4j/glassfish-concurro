@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2024, 2025 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -18,23 +18,29 @@ package org.glassfish.concurro.virtualthreads;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.concurrent.Trigger;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
 import org.glassfish.concurro.ContextServiceImpl;
 import org.glassfish.concurro.ManagedScheduledExecutorServiceAdapter;
 import org.glassfish.concurro.internal.ManagedFutureTask;
+import org.glassfish.concurro.internal.ManagedScheduledThreadPoolExecutor;
 
 /**
- * Dummy Implementation of ManagedScheduledExecutorService interface using Virtual
- * Threads.
+ * Implementation of ManagedScheduledExecutorService interface using Virtual
+ * Threads. See {@code AbstractPlatformThreadExecutorService}.
  *
- * @author Kalin Chan
+ * @author aubi
  */
 public class VirtualThreadsManagedScheduledExecutorService extends VirtualThreadsManagedExecutorService
         implements ManagedScheduledExecutorService {
+
+    protected final ManagedScheduledExecutorServiceAdapter scheduledAdapter;
+    protected final ManagedScheduledThreadPoolExecutor threadPoolExecutor;
 
     public VirtualThreadsManagedScheduledExecutorService(String name,
             VirtualThreadsManagedThreadFactory managedThreadFactory,
@@ -44,88 +50,108 @@ public class VirtualThreadsManagedScheduledExecutorService extends VirtualThread
             int queueCapacity,
             ContextServiceImpl contextService,
             RejectPolicy rejectPolicy) {
-        super(null, null, 0, false,
-                0, 0, null, null);
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        super(name, managedThreadFactory, hungTaskThreshold, longRunningTasks,
+                maxParallelTasks, queueCapacity, contextService, rejectPolicy);
+        scheduledAdapter = new ManagedScheduledExecutorServiceAdapter(this);
+
+        threadPoolExecutor = new ManagedScheduledThreadPoolExecutor(0/*maxParallelTasks*/, // FIXME: should be 0?
+                this.managedThreadFactory);
+        threadPoolExecutor.setMaximumPoolSize(maxParallelTasks); // FIXME: MAXINT, limit/block by thread itself, look at VirtualThreadsManagedExecutorService.parallelTasksSemaphore
+        threadPoolExecutor.setKeepAliveTime(0, TimeUnit.SECONDS);
+        threadPoolExecutor.setThreadLifeTime(0);
     }
 
+    private VirtualThreadsManagedThreadFactory createDefaultManagedThreadFactory(String name) {
+        VirtualThreadsManagedThreadFactory newManagedThreadFactory = new VirtualThreadsManagedThreadFactory(name + "-ManagedThreadFactory",
+                null);
+        managedThreadFactory = newManagedThreadFactory;
+        return newManagedThreadFactory;
+    }
     @Override
     public ScheduledFuture<?> schedule(Runnable command, Trigger trigger) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor.schedule(this, command, trigger);
     }
 
     @Override
     public <V> ScheduledFuture<V> schedule(Callable<V> callable, Trigger trigger) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor.schedule(this, callable, trigger);
     }
 
     @Override
     public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor.schedule(this, command, null, delay, unit);
     }
 
     @Override
     public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor.schedule(this, callable, delay, unit);
     }
 
     @Override
     public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor.scheduleAtFixedRate(this, command, initialDelay, period, unit);
     }
 
     @Override
     public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor.scheduleWithFixedDelay(this, command, initialDelay, delay, unit);
     }
 
     @Override
     public void execute(Runnable command) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        threadPoolExecutor.schedule(this, command, null, 0L, TimeUnit.NANOSECONDS);
     }
 
     @Override
     public Future<?> submit(Runnable task) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor.schedule(this, task, null, 0L, TimeUnit.NANOSECONDS);
     }
 
     @Override
     public <T> Future<T> submit(Runnable task, T result) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor.schedule(this, task, result, 0L, TimeUnit.NANOSECONDS);
     }
 
     @Override
     public <T> Future<T> submit(Callable<T> task) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor.schedule(this, task, 0L, TimeUnit.NANOSECONDS);
     }
 
     @Override
     protected <V> ManagedFutureTask<V> getNewTaskFor(Runnable r, V result) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor.newTaskFor(this, r, result);
     }
 
     @Override
     protected <V> ManagedFutureTask<V> getNewTaskFor(Callable<V> callable) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor.newTaskFor(this, callable);
     }
 
     @Override
     protected void executeManagedFutureTask(ManagedFutureTask<?> task) {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        threadPoolExecutor.executeManagedTask(task);
     }
 
+    /**
+     * Returns an adapter for ManagedExecutorService instance which has its life
+     * cycle operations disabled.
+     *
+     * @return The ManagedExecutorService instance with life cycle operations
+     * disabled for use by application components.
+     *
+     */
     @Override
     public ManagedScheduledExecutorServiceAdapter getAdapter() {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return scheduledAdapter;
     }
 
     @Override
     public ManagedExecutorService getExecutorForTaskListener() {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return scheduledAdapter;
     }
 
     @Override
     protected ExecutorService getThreadPoolExecutor() {
-        throw new UnsupportedOperationException("This feature is only supported for Java 21+");
+        return threadPoolExecutor;
     }
 }
