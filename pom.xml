@@ -29,7 +29,7 @@
 
     <groupId>org.glassfish.concurro</groupId>
     <artifactId>concurro</artifactId>
-    <version>3.1.1-SNAPSHOT</version>
+    <version>3.2.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Eclipse Concurro</name>
@@ -54,9 +54,14 @@
 
     <developers>
         <developer>
-            <id>anthony.lai</id>
-            <name>Anthony Lai</name>
-            <organization>Oracle</organization>
+            <id>aubi</id>
+            <name>Petr Aubrecht</name>
+        </developer>
+        <developer>
+            <id>omnifish</id>
+            <name>OmniFish Developers</name>
+            <organization>OmniFish</organization>
+            <organizationUrl>https://omnifish.ee</organizationUrl>
         </developer>
         <developer>
             <id>smillidge</id>
@@ -64,10 +69,9 @@
             <organization>Payara</organization>
         </developer>
         <developer>
-            <id>omnifish</id>
-            <name>OmniFish Developers</name>
-            <organization>OmniFish</organization>
-            <organizationUrl>https://omnifish.ee</organizationUrl>
+            <id>anthony.lai</id>
+            <name>Anthony Lai</name>
+            <organization>Oracle</organization>
         </developer>
     </developers>
 
@@ -121,11 +125,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <maven.compiler.release>17</maven.compiler.release>
-        <jakarta.enterprise.concurrent-api.version>3.1.1</jakarta.enterprise.concurrent-api.version>
+        <maven.compiler.release>21</maven.compiler.release>
+        
+        <jakarta.enterprise.concurrent-api.version>3.2.0-M1</jakarta.enterprise.concurrent-api.version>
         <jakarta.interceptor-api.version>2.2.0</jakarta.interceptor-api.version>
         <jakarta.transaction-api.version>2.0.1</jakarta.transaction-api.version>
-        <jakarta.enterprise.cdi-api.version>4.1.0</jakarta.enterprise.cdi-api.version>
+        <jakarta.enterprise.cdi-api.version>5.0.0-M1</jakarta.enterprise.cdi-api.version>
         <junit5-surefire-tree-reporter.version>1.5.1</junit5-surefire-tree-reporter.version>
 
         <!-- speed up test execution - run all tests in parallel -->
@@ -170,7 +175,7 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>6.0.1</version>
+            <version>6.1.0-M1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -209,6 +214,7 @@
                         </dependency>
                     </dependencies>
                 </plugin>
+                
                 <plugin>
                     <groupId>org.sonatype.plugins</groupId>
                     <artifactId>nexus-staging-maven-plugin</artifactId>
@@ -223,6 +229,7 @@
                         </execution>
                     </executions>
                 </plugin>
+                
                 <plugin>
                     <groupId>org.sonatype.central</groupId>
                     <artifactId>central-publishing-maven-plugin</artifactId>
@@ -299,9 +306,9 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>6.0.0</version>
                 <configuration>
-                    <!-- By default, we don't export anything. -->
-                    <Export-Package />
                     <instructions>
+                        <!-- By default, we don't export anything. -->
+                        <Export-Package />
                         <_include>-${basedir}/osgi.bundle</_include>
                     </instructions>
                 </configuration>
@@ -444,54 +451,6 @@ Use is subject to <a href="http://www.eclipse.org/legal/epl-2.0" target="_top">l
     </build>
 
     <profiles>
-        <profile>
-            <id>jdk21+</id>
-            <activation>
-                <jdk>[21,)</jdk>
-            </activation>
-            <properties>
-                <java21.sourceDirectory>${project.basedir}/src/main/java21</java21.sourceDirectory>
-                <java21.testSourceDirectory>${project.basedir}/src/test/java21</java21.testSourceDirectory>
-            </properties>
-            <build>
-                <pluginManagement>
-                    <plugins>
-                        <plugin>
-                            <artifactId>maven-compiler-plugin</artifactId>
-                            <executions>
-                                <execution>
-                                    <id>Java21</id>
-                                    <phase>compile</phase>
-                                    <goals>
-                                        <goal>compile</goal>
-                                    </goals>
-                                    <configuration>
-                                        <release>21</release>
-                                        <multiReleaseOutput>true</multiReleaseOutput>
-                                        <compileSourceRoots>
-                                            <compileSourceRoot>${java21.sourceDirectory}</compileSourceRoot>
-                                        </compileSourceRoots>
-                                    </configuration>
-                                </execution>
-                                <execution>
-                                    <id>Java21-tests</id>
-                                    <phase>test-compile</phase>
-                                    <goals>
-                                        <goal>testCompile</goal>
-                                    </goals>
-                                    <configuration>
-                                        <release>21</release>
-                                        <compileSourceRoots>
-                                            <compileSourceRoot>${java21.testSourceDirectory}</compileSourceRoot>
-                                        </compileSourceRoots>
-                                    </configuration>
-                                </execution>
-                            </executions>
-                        </plugin>
-                    </plugins>
-                </pluginManagement>
-            </build>
-        </profile>
         <profile>
             <id>oss-release</id>
             <build>
