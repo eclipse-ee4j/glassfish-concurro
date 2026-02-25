@@ -127,10 +127,10 @@
 
         <maven.compiler.release>21</maven.compiler.release>
         
-        <jakarta.enterprise.concurrent-api.version>3.2.0-M1</jakarta.enterprise.concurrent-api.version>
+        <jakarta.concurrent-api.version>3.2.0-SNAPSHOT</jakarta.concurrent-api.version>
         <jakarta.interceptor-api.version>2.2.0</jakarta.interceptor-api.version>
         <jakarta.transaction-api.version>2.0.1</jakarta.transaction-api.version>
-        <jakarta.enterprise.cdi-api.version>5.0.0-M1</jakarta.enterprise.cdi-api.version>
+        <jakarta.cdi-api.version>5.0.0.Alpha3</jakarta.cdi-api.version>
         <junit5-surefire-tree-reporter.version>1.5.1</junit5-surefire-tree-reporter.version>
 
         <!-- speed up test execution - run all tests in parallel -->
@@ -140,15 +140,16 @@
 
         <!-- Do not autopublish by default -->
         <release.autopublish>false</release.autopublish>
+        
         <!-- By default block until everything is really published -->
         <release.waitUntil>published</release.waitUntil>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>jakarta.enterprise.concurrent</groupId>
-            <artifactId>jakarta.enterprise.concurrent-api</artifactId>
-            <version>${jakarta.enterprise.concurrent-api.version}</version>
+            <groupId>jakarta.concurrent</groupId>
+            <artifactId>jakarta.concurrent-api</artifactId>
+            <version>${jakarta.concurrent-api.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -164,9 +165,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>jakarta.enterprise</groupId>
-            <artifactId>jakarta.enterprise.cdi-api</artifactId>
-            <version>${jakarta.enterprise.cdi-api.version}</version>
+            <groupId>jakarta.cdi</groupId>
+            <artifactId>jakarta.cdi-api</artifactId>
+            <version>${jakarta.cdi-api.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -473,35 +474,6 @@ Use is subject to <a href="http://www.eclipse.org/legal/epl-2.0" target="_top">l
                     </plugin>
                 </plugins>
             </build>
-        </profile>
-        
-        <profile>
-            <id>ci</id>
-            <repositories>
-                <repository>
-                    <id>sonatype-oss-snapshots</id>
-                    <url>https://central.sonatype.com/repository/maven-snapshots</url>
-                    <releases>
-                        <enabled>false</enabled>
-                    </releases>
-                    <snapshots>
-                        <enabled>true</enabled>
-                        <updatePolicy>always</updatePolicy>
-                        <checksumPolicy>fail</checksumPolicy>
-                    </snapshots>
-                </repository>
-                <repository>
-                    <name>Nexus staging</name>
-                    <id>repo3.eclipse.org</id>
-                    <url>https://repo3.eclipse.org/repository/ee4j-staging/</url>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                    <snapshots>
-                        <enabled>false</enabled>
-                    </snapshots>
-                </repository>
-            </repositories>
         </profile>
     </profiles>
 </project>
