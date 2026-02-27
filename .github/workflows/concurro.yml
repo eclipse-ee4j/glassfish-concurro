@@ -23,7 +23,7 @@ jobs:
       run: mvn -V -ntp -Ddash.skip verify -Psnapshots,staged
     - name: Upload artifacts
       if: matrix.java == '21'
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: glassfish-concurro
         path: target/*.jar
