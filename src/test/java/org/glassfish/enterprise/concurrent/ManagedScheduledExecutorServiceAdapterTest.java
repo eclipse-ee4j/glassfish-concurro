@@ -17,16 +17,21 @@
 
 package org.glassfish.enterprise.concurrent;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import jakarta.enterprise.concurrent.LastExecution;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
@@ -58,7 +63,7 @@ import org.junit.Test;
 
 
 public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorServiceAdapterTest {
- 
+
     /**
      * verifies that task got run when scheduled using schedule(Callable, delay, unit)
      */
@@ -389,7 +394,68 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         taskListener.verifyCallback(ManagedTaskListenerImpl.SUBMITTED, future, instance, task, null);
         taskListener.verifyCallback(ManagedTaskListenerImpl.STARTING, future, instance, task, null, classloaderName);
     }
-    
+
+    @Test
+    public void testScheduleAtFixedRate_ConcurrentContextReset() throws Throwable {
+        final String classloaderName = "testScheduleAtFixedRate_ConcurrentContextReset" + LocalDateTime.now();
+        // we need an executor with 2 threads to replicate the issue
+        final ManagedScheduledExecutorService instance = new ManagedScheduledExecutorServiceImpl(classloaderName, null, 0, false,
+                2,
+                0, TimeUnit.SECONDS,
+                0L,
+                new TestContextService(new ClassloaderContextSetupProvider(classloaderName)),
+                RejectPolicy.ABORT)
+                .getAdapter();
+        final int numberOfTasks = 5;
+        final long taskPeriod = 500;
+        final Thread testThread = Thread.currentThread();
+        final AtomicBoolean firstTask = new AtomicBoolean(true);
+        final AtomicReference<Throwable> testException = new AtomicReference<>();
+        final AtomicBoolean testRunning = new AtomicBoolean(false);
+        final ManagedTaskListenerImpl managedTaskListener = new ManagedTaskListenerImpl() {
+            @Override
+            public void taskDone(Future<?> future, ManagedExecutorService executor, Object task, Throwable exception) {
+                super.taskDone(future, executor, task, exception);
+                if (exception != null) {
+                    if (testRunning.get()) {
+                        testException.set(exception);
+                        testThread.interrupt();
+                    }
+                } else {
+                    if (testRunning.get() && firstTask.compareAndSet(true, false)) {
+                        // hold the first task long enough so the second task runs in a diff thread and complete its run and triggers the issue in case it still exists
+                        try {
+                            Thread.sleep(3*taskPeriod);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            }
+        };
+        final ScheduledFuture<?> future = instance.scheduleAtFixedRate(new ManagedRunnableTask(managedTaskListener), 0L, taskPeriod, TimeUnit.MILLISECONDS);
+        try {
+            testRunning.set(true);
+            try {
+                Thread.sleep(taskPeriod * numberOfTasks);
+            } catch (InterruptedException e) {
+                if (testException.get() == null) {
+                    // unexpected interrupt, rethrow
+                    throw e;
+                }
+            } finally {
+                // signals the listener that test is done
+                testRunning.set(false);
+            }
+            if (testException.get() != null) {
+                fail(testException.get().toString());
+            }
+        } finally {
+            future.cancel(true);
+        }
+    }
+
+
     @Test
     public void testScheduleWithFixedDelay()  {
         final String classloaderName = "testScheduleWithFixedDelay" + new Date(System.currentTimeMillis());
