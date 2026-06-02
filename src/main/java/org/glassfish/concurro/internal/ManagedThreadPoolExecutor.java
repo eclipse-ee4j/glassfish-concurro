@@ -63,21 +63,14 @@ public class ManagedThreadPoolExecutor extends ThreadPoolExecutor {
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
-
-        ManagedFutureTask task = (ManagedFutureTask) r;
-        try {
-            task.done(t);
-        }
-        finally {
-            task.resetContext();
-            // Kill thread if thread older than threadLifeTime
-            if (threadLifeTime > 0) {
-                Thread thread = Thread.currentThread();
-                if (thread instanceof AbstractManagedThread) {
-                    long threadStartTime = ((AbstractManagedThread)thread).getThreadStartTime();
-                    if ((System.currentTimeMillis() - threadStartTime)/1000 > threadLifeTime) {
-                        throw new ThreadExpiredException();
-                    }
+        ((ManagedFutureTask) r).afterExecute(t);
+        // Kill thread if thread older than threadLifeTime
+        if (threadLifeTime > 0) {
+            Thread thread = Thread.currentThread();
+            if (thread instanceof AbstractManagedThread) {
+                long threadStartTime = ((AbstractManagedThread)thread).getThreadStartTime();
+                if ((System.currentTimeMillis() - threadStartTime)/1000 > threadLifeTime) {
+                    throw new ThreadExpiredException();
                 }
             }
         }
@@ -85,11 +78,8 @@ public class ManagedThreadPoolExecutor extends ThreadPoolExecutor {
 
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
+        ((ManagedFutureTask) r).beforeExecute(t);
         super.beforeExecute(t, r);
-
-        ManagedFutureTask task = (ManagedFutureTask) r;
-        task.setupContext();
-        task.starting(t);
     }
 
 }

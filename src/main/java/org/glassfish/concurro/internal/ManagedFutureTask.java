@@ -24,6 +24,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import org.glassfish.concurro.AbstractManagedExecutorService;
+import org.glassfish.concurro.AbstractManagedThread;
 import org.glassfish.concurro.spi.ContextHandle;
 import org.glassfish.concurro.spi.ContextSetupProvider;
 
@@ -114,6 +115,15 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
         }
     }
 
+    /**
+     * See @{@link ManagedThreadPoolExecutor#beforeExecute(Thread, Runnable)}
+     * @param t
+     */
+    protected void beforeExecute(Thread t) {
+        setupContext();
+        starting(t);
+    }
+
     @Override
     public void run() {
         if (contextSetupException == null) {
@@ -132,6 +142,19 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
         }
 
         return false;
+    }
+
+    /**
+     * See @{@link ManagedThreadPoolExecutor#afterExecute(Runnable, Throwable)}
+     * @param t
+     */
+    protected void afterExecute(Throwable t) {
+        try {
+            done(t);
+        }
+        finally {
+            resetContext();
+        }
     }
 
     @Override
