@@ -38,4 +38,46 @@ public class AsynchronousInterceptorTest {
         var representation = trigger.toString();
         assert representation.matches("CronTrigger@.* seconds 0, minutes 0, hours 0, \\* \\* \\*") : representation;
     }
+
+    @Test
+    public void testGettingCronTriggerFromScheduleEmptySeconds() {
+        var scheduleWithDefaults = ScheduleStub.newScheduleWithSeconds(new int[] {});
+
+        var trigger = AsynchronousInterceptor.getCronTrigger(scheduleWithDefaults, null);
+
+        var representation = trigger.toString();
+        assert representation.matches("CronTrigger@.* \\* minutes 0, hours 0, \\* \\* \\*") : representation;
+    }
+
+    @Test
+    public void testGettingCronTriggerFromScheduleEmptyMinutes() {
+        var scheduleWithDefaults = ScheduleStub.newScheduleWithMinutes(new int[] {});
+
+        var trigger = AsynchronousInterceptor.getCronTrigger(scheduleWithDefaults, null);
+
+        var representation = trigger.toString();
+        assert representation.matches("CronTrigger@.* seconds 0, \\* hours 0, \\* \\* \\*") : representation;
+    }
+
+    @Test
+    public void testGettingCronTriggerFromScheduleEmptyHours() {
+        var scheduleWithDefaults = ScheduleStub.newScheduleWithHours(new int[] {});
+
+        var trigger = AsynchronousInterceptor.getCronTrigger(scheduleWithDefaults, null);
+
+        var representation = trigger.toString();
+        assert representation.matches("CronTrigger@.* seconds 0, minutes 0, \\* \\* \\* \\*") : representation;
+    }
+
+    @Test
+    public void testGettingCronTriggerFromScheduleHMS() {
+        var scheduleWithDefaults = ScheduleStub.newScheduleWithHMS(new int[] {11, 20},
+                new int[] {19, 29, 39},
+                new int[] {17, 23, 32});
+
+        var trigger = AsynchronousInterceptor.getCronTrigger(scheduleWithDefaults, null);
+
+        var representation = trigger.toString();
+        assert representation.matches("CronTrigger@.* seconds 17,23,32, minutes 19,29,39, hours 11,20, \\* \\* \\*") : representation;
+    }
 }
