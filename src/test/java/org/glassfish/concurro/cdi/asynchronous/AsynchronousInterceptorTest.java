@@ -18,6 +18,9 @@ package org.glassfish.concurro.cdi.asynchronous;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.stream.IntStream;
+
 public class AsynchronousInterceptorTest {
     @Test
     public void testGettingCronTriggerFromScheduleWithCronExpression() {
@@ -79,5 +82,26 @@ public class AsynchronousInterceptorTest {
 
         var representation = trigger.toString();
         assert representation.matches("CronTrigger@.* seconds 17,23,32, minutes 19,29,39, hours 11,20, \\* \\* \\*") : representation;
+    }
+
+    @Test
+    void allHoursContents() {
+        assert AsynchronousInterceptor.ALL_HOURS.length == 24;
+        IntStream.rangeClosed(0, 23)
+                .forEach(hour -> { assert Arrays.binarySearch(AsynchronousInterceptor.ALL_HOURS, hour) >=0: "Missing hour: " + hour; });
+    }
+
+    @Test
+    void allMinutesContents() {
+        assert AsynchronousInterceptor.ALL_MINUTES.length == 60;
+        IntStream.rangeClosed(0, 59)
+                .forEach(minute -> { assert Arrays.binarySearch(AsynchronousInterceptor.ALL_MINUTES, minute) >=0: "Missing minute: " + minute; });
+    }
+
+    @Test
+    void allSecondsContents() {
+        assert AsynchronousInterceptor.ALL_SECONDS.length == 60;
+        IntStream.rangeClosed(0, 59)
+                .forEach(second -> { assert Arrays.binarySearch(AsynchronousInterceptor.ALL_SECONDS, second) >=0: "Missing second: " + second; });
     }
 }
