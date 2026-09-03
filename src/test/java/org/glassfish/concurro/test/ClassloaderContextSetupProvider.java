@@ -40,7 +40,7 @@ public class ClassloaderContextSetupProvider implements ContextSetupProvider {
 
     @Override
     public ContextHandle saveContext(ContextService contextService) {
-        return new SavedContext(Thread.currentThread().getContextClassLoader());
+        return new SavedContext(Thread.currentThread());
     }
 
     @Override
@@ -54,29 +54,38 @@ public class ClassloaderContextSetupProvider implements ContextSetupProvider {
         ClassLoader contextClassLoader =
                 new NamedClassLoader(classloaderName, savedContext.originalClassloader);
         Thread.currentThread().setContextClassLoader(contextClassLoader);
-        return new SavedContext(classloaderBeforeSetup);
+        return new SavedContext(classloaderBeforeSetup, Thread.currentThread().getId());
     }
 
     @Override
     public void reset(ContextHandle contextHandle) {
         numResetCalled++;
         SavedContext savedContext = (SavedContext)contextHandle;
-        Thread.currentThread().setContextClassLoader(savedContext.originalClassloader);
+        final Thread currentThread = Thread.currentThread();
+        if (currentThread.getId() != savedContext.threadId) {
+            throw new IllegalStateException();
+        }
+        currentThread.setContextClassLoader(savedContext.originalClassloader);
     }
 
     @Override
     public ContextHandle saveContext(ContextService contextService, Map<String, String> contextObjectProperties) {
         contextServiceProperties = contextObjectProperties;
-        return new SavedContext(Thread.currentThread().getContextClassLoader());
+        return new SavedContext(Thread.currentThread());
     }
 
     static class SavedContext implements ContextHandle {
         transient ClassLoader originalClassloader;
+        transient long threadId;
 
-        public SavedContext(ClassLoader originalClassloader) {
-            this.originalClassloader = originalClassloader;
+        public SavedContext(Thread thread) {
+            this(thread.getContextClassLoader(), thread.getId());
         }
 
+        public SavedContext(ClassLoader originalClassloader, long threadId) {
+            this.originalClassloader = originalClassloader;
+            this.threadId = threadId;
+        }
     }
 
 }

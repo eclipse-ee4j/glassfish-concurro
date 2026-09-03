@@ -321,34 +321,24 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
 
    @Override
     protected void afterExecute(Runnable r, Throwable t) {
-        super.afterExecute(r, t);
-
-        ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask task = (ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask) r;
-        try {
-            task.done(t /*task.getTaskRunException()*/);
-        }
-        finally {
-            task.resetContext();
-            // Kill thread if thread older than threadLifeTime
-            if (threadLifeTime > 0) {
-                Thread thread = Thread.currentThread();
-                if (thread instanceof AbstractManagedThread) {
-                    long threadStartTime = ((AbstractManagedThread)thread).getThreadStartTime();
-                    if ((System.currentTimeMillis() - threadStartTime)/1000 > threadLifeTime) {
-                        throw new ThreadExpiredException();
-                    }
-                }
-            }
-        }
+       super.afterExecute(r, t);
+       ((ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask) r).afterExecute(t);
+       // Kill thread if thread older than threadLifeTime
+       if (threadLifeTime > 0) {
+           Thread thread = Thread.currentThread();
+           if (thread instanceof AbstractManagedThread) {
+               long threadStartTime = ((AbstractManagedThread)thread).getThreadStartTime();
+               if ((System.currentTimeMillis() - threadStartTime)/1000 > threadLifeTime) {
+                   throw new ThreadExpiredException();
+               }
+           }
+       }
     }
 
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
+        ((ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask) r).beforeExecute(t);
         super.beforeExecute(t, r);
-
-        ManagedFutureTask task = (ManagedFutureTask) r;
-        task.setupContext();
-        task.starting(t);
     }
 
     public <V> ManagedFutureTask<V> newTaskFor(
@@ -402,6 +392,11 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
          * Index into delay queue, to support faster cancellation.
          */
         int heapIndex;
+
+        /**
+         * flag that run() uses to indicate the task should be reExecuted
+         */
+        boolean reExecute = false;
 
         /**
          * Creates a one-shot action with given nanoTime-based execution time.
@@ -520,6 +515,15 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         }
 
         /**
+         * See @{@link ManagedScheduledThreadPoolExecutor#beforeExecute(Thread, Runnable)}
+         * @param t
+         */
+        protected void beforeExecute(Thread t) {
+            setupContext();
+            starting(t);
+        }
+
+        /**
          * Overrides FutureTask version so as to reset/requeue if periodic.
          */
         @Override
@@ -532,8 +536,28 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
                 ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask.super.run();
             }
             else if (ManagedScheduledThreadPoolExecutor.ManagedScheduledFutureTask.super.runAndReset()) {
-                    setNextRunTime();
+                setNextRunTime();
+                reExecute = true;
+            }
+        }
+
+        /**
+         * See @{@link ManagedScheduledThreadPoolExecutor#afterExecute(Runnable, Throwable)}
+         * @param t
+         */
+        protected void afterExecute(Throwable t) {
+            try {
+                try {
+                    done(t /*task.getTaskRunException()*/);
+                }
+                finally {
+                    resetContext();
+                }
+            } finally {
+                if (reExecute) {
+                    reExecute = false;
                     reExecutePeriodic(outerTask);
+                }
             }
         }
     }
