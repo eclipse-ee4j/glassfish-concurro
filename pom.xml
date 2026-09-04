@@ -205,7 +205,7 @@
             <plugins>
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.5.6</version>
+                    <version>3.6.0</version>
                     <configuration>
                         <skipTests>${skipUTs}</skipTests>
                         <systemPropertyVariables>
