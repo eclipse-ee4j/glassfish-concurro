@@ -70,14 +70,26 @@ class ScheduleStub implements Schedule {
         return hours;
     }
 
+    void hours(int[] newHours) {
+        hours = newHours;
+    }
+
     @Override
     public int[] minutes() {
         return minutes;
     }
 
+    void minutes(int[] newMinutes) {
+        minutes = newMinutes;
+    }
+
     @Override
     public int[] seconds() {
         return seconds;
+    }
+
+    void seconds(int[] newSeconds) {
+        seconds = newSeconds;
     }
 
     @Override
@@ -98,5 +110,31 @@ class ScheduleStub implements Schedule {
 
     static Schedule newScheduleWithDefaults() {
         return new ScheduleStub();
+    }
+
+    static Schedule newScheduleWithSeconds(int[] seconds) {
+        var stub = new ScheduleStub();
+        stub.seconds(seconds);
+        return stub;
+    }
+
+    static Schedule newScheduleWithMinutes(int[] minutes) {
+        var stub = new ScheduleStub();
+        stub.minutes(minutes);
+        return stub;
+    }
+
+    static Schedule newScheduleWithHours(int[] hours) {
+        var stub = new ScheduleStub();
+        stub.hours(hours);
+        return stub;
+    }
+
+    static Schedule newScheduleWithHMS(int[] hours, int[] minutes, int[] seconds) {
+        var stub = new ScheduleStub();
+        stub.hours(hours);
+        stub.minutes(minutes);
+        stub.seconds(seconds);
+        return stub;
     }
 }

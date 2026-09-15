@@ -147,18 +147,49 @@ public class AsynchronousInterceptor {
         return future;
     }
 
+    static final int[] ALL_SECONDS = {
+             0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
+            10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+            20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+            30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+            40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+            50, 51, 52, 53, 54, 55, 56, 57, 58, 59
+    };
+
+    static final int[] ALL_MINUTES = {
+             0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
+            10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+            20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+            30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+            40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+            50, 51, 52, 53, 54, 55, 56, 57, 58, 59
+    };
+
+    static final int[] ALL_HOURS = {
+             0,  1,  2,  3,  4,  5,
+             6,  7,  8,  9, 10, 11,
+            12, 13, 14, 15, 16, 17,
+            18, 19, 20, 21, 22, 23
+    };
+
     static final CronTrigger getCronTrigger(Schedule schedule, ZoneId zone) {
         if (schedule.cron().isEmpty()) {
             var trigger = new CronTrigger(zone);
-            setIfNotEmpty(trigger::seconds, schedule.seconds());
-            setIfNotEmpty(trigger::minutes, schedule.minutes());
-            setIfNotEmpty(trigger::hours, schedule.hours());
+            setIfNotEmpty(trigger::seconds, orRangeClosed(schedule.seconds(), ALL_SECONDS));
+            setIfNotEmpty(trigger::minutes, orRangeClosed(schedule.minutes(), ALL_MINUTES));
+            setIfNotEmpty(trigger::hours, orRangeClosed(schedule.hours(), ALL_HOURS));
             setIfNotEmpty(trigger::daysOfWeek, schedule.daysOfWeek());
             setIfNotEmpty(trigger::daysOfMonth, schedule.daysOfMonth());
             setIfNotEmpty(trigger::months, schedule.months());
             return trigger;
         }
         return new CronTrigger(schedule.cron(), zone);
+    }
+
+    static int[] orRangeClosed(int[] original, int[] orRange) {
+        return Optional.ofNullable(original)
+                .filter(a -> a.length > 0)
+                .orElse(orRange);
     }
 
     static final void setIfNotEmpty(Consumer<int[]> consumer, int[] data) {
