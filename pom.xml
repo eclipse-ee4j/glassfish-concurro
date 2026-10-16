@@ -105,7 +105,7 @@
         <jakarta.interceptor-api.version>2.2.0</jakarta.interceptor-api.version>
         <jakarta.transaction-api.version>2.0.1</jakarta.transaction-api.version>
         <jakarta.cdi-api.version>5.0.0</jakarta.cdi-api.version>
-        <junit5-surefire-tree-reporter.version>1.5.1</junit5-surefire-tree-reporter.version>
+        <junit5-surefire-tree-reporter.version>2.0.0</junit5-surefire-tree-reporter.version>
 
         <!-- speed up test execution - run all tests in parallel -->
         <skipUTs>${skipTests}</skipUTs>
