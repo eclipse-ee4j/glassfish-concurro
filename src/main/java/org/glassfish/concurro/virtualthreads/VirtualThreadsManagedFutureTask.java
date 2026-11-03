@@ -130,7 +130,11 @@ public class VirtualThreadsManagedFutureTask<V> extends ManagedFutureTask<V> {
     }
 
     protected void afterExecute(Throwable t) {
-        this.done(t);
+        try {
+            this.done(t);
+        } finally {
+            this.resetContext();
+        }
     }
 
 }

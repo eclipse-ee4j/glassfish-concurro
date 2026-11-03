@@ -18,6 +18,7 @@ package org.glassfish.concurro.test.virtualthreads;
 
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +32,7 @@ import org.glassfish.concurro.ContextServiceImpl;
 import org.glassfish.concurro.spi.ContextSetupProvider;
 import org.glassfish.concurro.test.AwaitableManagedTestTask;
 import org.glassfish.concurro.test.BlockingRunnableForTest;
+import org.glassfish.concurro.test.ClassloaderContextSetupProvider;
 import org.glassfish.concurro.test.FakeRunnableForTest;
 import org.glassfish.concurro.test.ManagedBlockingRunnableTask;
 import org.glassfish.concurro.test.ManagedRunnableTestTask;
@@ -345,6 +347,24 @@ public class VirtualThreadsManagedExecutorServiceIT {
 
         // Should not have any more hung threads
         retry(() -> assertThat(managedExecutorService.getHungThreads(), empty()));
+    }
+
+    @Test
+    public void testContextIsResetAfterEachTask() throws Exception {
+        ClassloaderContextSetupProvider contextCallback = new ClassloaderContextSetupProvider("testContextIsResetAfterEachTask");
+        ManagedExecutorService managedExecutorService = createManagedExecutorWithMaxOneParallelTask("testContextIsResetAfterEachTask", contextCallback);
+
+        int tasks = 3;
+        List<Future<?>> futures = new ArrayList<>();
+        for (int i = 0; i < tasks; i++) {
+            futures.add(managedExecutorService.submit(new ManagedRunnableTestTask(new ManagedTestTaskListener())));
+        }
+        for (Future<?> future : futures) {
+            future.get(10, TimeUnit.SECONDS);
+        }
+
+        // The context is reset right after the future is completed, so give it a moment
+        retry(() -> assertThat(contextCallback.numResetCalled, is(tasks)));
     }
 
     protected VirtualThreadsManagedExecutorServiceExt createManagedExecutorWithMaxOneParallelTask(String name, ContextSetupProvider contextCallback) {
