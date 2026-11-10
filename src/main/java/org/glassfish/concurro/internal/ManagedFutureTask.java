@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2024, 2026 Contributors to the Eclipse Foundation.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2018 - 2024 [Payara Foundation and/or its affiliates].
  *
@@ -53,6 +53,8 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
     protected TaskDoneCallback<V> taskDoneCallback;
 
     IllegalStateException contextSetupException;
+
+    private boolean cancelledBeforeExecute;
 
     public ManagedFutureTask(AbstractManagedExecutorService executor, Runnable runnable, V result) {
         super(runnable, result);
@@ -120,8 +122,22 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
      * @param t
      */
     protected void beforeExecute(Thread t) {
-        setupContext();
-        starting(t);
+        // A task cancelled while it was waiting in the queue is never run, so it needs no context
+        // and must not be reported as starting. Setting up the context could also fail and abort
+        // the task, if the application that submitted it is already stopped.
+        cancelledBeforeExecute = isCancelled();
+        if (!cancelledBeforeExecute) {
+            setupContext();
+            starting(t);
+        }
+    }
+
+    /**
+     * @return true if the task was already cancelled when {@link #beforeExecute(Thread)} was called,
+     *         so the context was not set up and the task was not started.
+     */
+    protected boolean isCancelledBeforeExecute() {
+        return cancelledBeforeExecute;
     }
 
     @Override
@@ -149,6 +165,9 @@ public class ManagedFutureTask<V> extends FutureTask<V> implements Future<V> {
      * @param t
      */
     protected void afterExecute(Throwable t) {
+        if (cancelledBeforeExecute) {
+            return;
+        }
         try {
             done(t);
         }

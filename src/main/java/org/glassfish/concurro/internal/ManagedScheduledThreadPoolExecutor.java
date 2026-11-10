@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2025, 2026 Contributors to the Eclipse Foundation.
  * Copyright (c) 2022, 2024 Payara Foundation and/or its affiliates.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
@@ -515,15 +515,6 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
         }
 
         /**
-         * See @{@link ManagedScheduledThreadPoolExecutor#beforeExecute(Thread, Runnable)}
-         * @param t
-         */
-        protected void beforeExecute(Thread t) {
-            setupContext();
-            starting(t);
-        }
-
-        /**
          * Overrides FutureTask version so as to reset/requeue if periodic.
          */
         @Override
@@ -547,11 +538,13 @@ public class ManagedScheduledThreadPoolExecutor extends ScheduledThreadPoolExecu
          */
         protected void afterExecute(Throwable t) {
             try {
-                try {
-                    done(t /*task.getTaskRunException()*/);
-                }
-                finally {
-                    resetContext();
+                if (!isCancelledBeforeExecute()) {
+                    try {
+                        done(t /*task.getTaskRunException()*/);
+                    }
+                    finally {
+                        resetContext();
+                    }
                 }
             } finally {
                 if (reExecute) {
