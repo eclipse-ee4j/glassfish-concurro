@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2025, 2026 Contributors to the Eclipse Foundation.
  * Copyright (c) 2022, 2024 Payara Foundation and/or its affiliates.
  * Copyright (c) 2010, 2018 Oracle and/or its affiliates. All rights reserved.
  *
@@ -673,10 +673,10 @@ public class ManagedScheduledExecutorServiceAdapterTest extends ManagedExecutorS
         taskListener.verifyCallback(ManagedTestTaskListener.ABORTED, future, instance,
                 task, new CancellationException());
 
-        // test also that task only executed once as it should have been cancelled.
+        // test also that the task never started, as it was cancelled before its first run time.
         Thread.sleep(2000);
-        assertEquals(1, taskListener.getCount(future, ManagedTestTaskListener.STARTING),
-            "Task executions should be 1 as trigger task was cancelled");
+        assertEquals(0, taskListener.getCount(future, ManagedTestTaskListener.STARTING),
+            "Task executions should be 0 as trigger task was cancelled before it started");
     }
 
 

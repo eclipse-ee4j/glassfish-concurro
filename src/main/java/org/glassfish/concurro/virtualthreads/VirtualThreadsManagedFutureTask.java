@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2025 Contributors to the Eclipse Foundation.
+ * Copyright (c) 2023, 2026 Contributors to the Eclipse Foundation.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -124,13 +124,11 @@ public class VirtualThreadsManagedFutureTask<V> extends ManagedFutureTask<V> {
         }
     }
 
-    protected void beforeExecute(Thread t) {
-        this.setupContext();
-        this.starting(t);
-    }
-
+    @Override
     protected void afterExecute(Throwable t) {
-        this.done(t);
+        if (!isCancelledBeforeExecute()) {
+            this.done(t);
+        }
     }
 
 }
